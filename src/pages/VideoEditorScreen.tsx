@@ -172,9 +172,11 @@ const VideoEditorScreen = () => {
   const [redoStack, setRedoStack] = useState<Project[]>([]);
 
   const orderedTimeline = useMemo(
-    () => [...project.timeline].sort((a, b) => a.order - b.order),
-    [project.timeline]
+    () => (project ? [...project.timeline].sort((a, b) => a.order - b.order) : []),
+    [project?.timeline]
   );
+
+  const projectDuration = project?.duration ?? 0;
 
   const timelineSegments = useMemo(() => {
     let cursor = 0;
@@ -193,14 +195,14 @@ const VideoEditorScreen = () => {
   const getClipAtTime = useCallback(
     (time: number) => {
       if (timelineSegments.length === 0) return null;
-      const clampedTime = Math.min(Math.max(time, 0), project.duration);
+      const clampedTime = Math.min(Math.max(time, 0), projectDuration);
       const segment =
         timelineSegments.find(
           (entry) => clampedTime >= entry.start && clampedTime < entry.end
         ) ?? timelineSegments[timelineSegments.length - 1];
       return segment?.clip ?? null;
     },
-    [project.duration, timelineSegments]
+    [projectDuration, timelineSegments]
   );
 
   const saveProject = useCallback(
@@ -332,7 +334,7 @@ const VideoEditorScreen = () => {
   };
 
   useEffect(() => {
-    if (!isPlaying || project.duration === 0) return;
+    if (!isPlaying || projectDuration === 0) return;
 
     const step = (timestamp: number) => {
       if (playbackStartRef.current === null) {
@@ -344,10 +346,10 @@ const VideoEditorScreen = () => {
 
       setCurrentTime((prev) => {
         const nextTime = prev + deltaSeconds;
-        if (nextTime >= project.duration) {
+        if (nextTime >= projectDuration) {
           setIsPlaying(false);
           playbackStartRef.current = null;
-          return project.duration;
+          return projectDuration;
         }
         return nextTime;
       });
@@ -364,7 +366,7 @@ const VideoEditorScreen = () => {
       playbackFrameRef.current = null;
       playbackStartRef.current = null;
     };
-  }, [isPlaying, project.duration]);
+  }, [isPlaying, projectDuration]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -375,8 +377,8 @@ const VideoEditorScreen = () => {
   }, [currentTime, getClipAtTime, isPlaying, selectedClipId]);
 
   const handleTogglePlay = () => {
-    if (project.duration === 0) return;
-    if (!isPlaying && currentTime >= project.duration) {
+    if (projectDuration === 0) return;
+    if (!isPlaying && currentTime >= projectDuration) {
       setCurrentTime(0);
     }
     setIsPlaying((prev) => !prev);
