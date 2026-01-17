@@ -120,6 +120,16 @@ export type ToolType =
   | 'photo-audio'
   | 'settings';
 
+export interface ToolFlow {
+  emptyStateTitle: string;
+  emptyStateDescription: string;
+  ctaLabel: string;
+  ctaHint: string;
+  exampleLabel: string;
+  exampleInput: string;
+  exampleHint: string;
+}
+
 export interface Tool {
   id: ToolType;
   name: string;
@@ -129,4 +139,5 @@ export interface Tool {
   gradient?: string;
   isNew?: boolean;
   isBeta?: boolean;
+  flow?: ToolFlow;
 }
