@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -10,27 +10,31 @@ import {
   Shield,
   Info,
   ChevronRight,
-  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import type { AppSettings } from '@/types';
+import { SETTINGS_STORAGE_KEY, useAppSettings } from '@/context/AppSettingsContext';
 
 const SettingsScreen = () => {
   const navigate = useNavigate();
-  const [settings, setSettings] = useState<AppSettings>({
-    language: 'auto',
-    theme: 'dark',
-    soundEffects: true,
-    aiBetaEnabled: false,
-    autoSave: true,
-    exportQuality: 'balanced',
-  });
+  const { settings, updateSetting, setSettings } = useAppSettings();
+  const languageLabel = settings.language === 'auto' ? 'Auto' : settings.language.toUpperCase();
+  const themeLabel = settings.theme === 'auto' ? 'Auto' : settings.theme[0].toUpperCase() + settings.theme.slice(1);
 
-  const updateSetting = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-    localStorage.setItem('xtrim_settings', JSON.stringify({ ...settings, [key]: value }));
-  };
+  useEffect(() => {
+    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!stored) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored) as Partial<AppSettings>;
+      setSettings((prev) => ({ ...prev, ...parsed }));
+    } catch {
+      setSettings((prev) => prev);
+    }
+  }, [setSettings]);
 
   return (
     <div className="min-h-screen bg-background safe-area-top safe-area-bottom">
@@ -71,7 +75,7 @@ const SettingsScreen = () => {
                 <span>Language</span>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
-                <span className="text-sm">Auto</span>
+                <span className="text-sm">{languageLabel}</span>
                 <ChevronRight className="w-4 h-4" />
               </div>
             </button>
@@ -81,7 +85,7 @@ const SettingsScreen = () => {
                 <span>Theme</span>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
-                <span className="text-sm">Dark</span>
+                <span className="text-sm">{themeLabel}</span>
                 <ChevronRight className="w-4 h-4" />
               </div>
             </button>
