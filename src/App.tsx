@@ -15,6 +15,7 @@ import AudioScreen from "./pages/AudioScreen";
 import PhotoEditorScreen from "./pages/PhotoEditorScreen";
 import CollageScreen from "./pages/CollageScreen";
 import PhotoAudioScreen from "./pages/PhotoAudioScreen";
+import ExportScreen from "./pages/ExportScreen";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/photo-editor" element={<PhotoEditorScreen />} />
           <Route path="/collage" element={<CollageScreen />} />
           <Route path="/photo-audio" element={<PhotoAudioScreen />} />
+          <Route path="/export/:projectId" element={<ExportScreen />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
