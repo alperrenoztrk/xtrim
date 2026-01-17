@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
@@ -105,6 +105,8 @@ const VideoEditorScreen = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const playbackFrameRef = useRef<number | null>(null);
+  const playbackStartRef = useRef<number | null>(null);
 
   const [project, setProject] = useState<Project | null>(() => {
     if (projectId === 'new') {
@@ -122,6 +124,38 @@ const VideoEditorScreen = () => {
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [undoStack, setUndoStack] = useState<Project[]>([]);
   const [redoStack, setRedoStack] = useState<Project[]>([]);
+
+  const orderedTimeline = useMemo(
+    () => [...project.timeline].sort((a, b) => a.order - b.order),
+    [project.timeline]
+  );
+
+  const timelineSegments = useMemo(() => {
+    let cursor = 0;
+    return orderedTimeline.map((clip) => {
+      const duration = clip.endTime - clip.startTime;
+      const segment = {
+        clip,
+        start: cursor,
+        end: cursor + duration,
+      };
+      cursor += duration;
+      return segment;
+    });
+  }, [orderedTimeline]);
+
+  const getClipAtTime = useCallback(
+    (time: number) => {
+      if (timelineSegments.length === 0) return null;
+      const clampedTime = Math.min(Math.max(time, 0), project.duration);
+      const segment =
+        timelineSegments.find(
+          (entry) => clampedTime >= entry.start && clampedTime < entry.end
+        ) ?? timelineSegments[timelineSegments.length - 1];
+      return segment?.clip ?? null;
+    },
+    [project.duration, timelineSegments]
+  );
 
   const saveProject = useCallback(
     (updatedProject: Project) => {
@@ -251,6 +285,57 @@ const VideoEditorScreen = () => {
     saveProject({ ...project, timeline: reorderedTimeline });
   };
 
+  useEffect(() => {
+    if (!isPlaying || project.duration === 0) return;
+
+    const step = (timestamp: number) => {
+      if (playbackStartRef.current === null) {
+        playbackStartRef.current = timestamp;
+      }
+
+      const deltaSeconds = (timestamp - playbackStartRef.current) / 1000;
+      playbackStartRef.current = timestamp;
+
+      setCurrentTime((prev) => {
+        const nextTime = prev + deltaSeconds;
+        if (nextTime >= project.duration) {
+          setIsPlaying(false);
+          playbackStartRef.current = null;
+          return project.duration;
+        }
+        return nextTime;
+      });
+
+      playbackFrameRef.current = requestAnimationFrame(step);
+    };
+
+    playbackFrameRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (playbackFrameRef.current !== null) {
+        cancelAnimationFrame(playbackFrameRef.current);
+      }
+      playbackFrameRef.current = null;
+      playbackStartRef.current = null;
+    };
+  }, [isPlaying, project.duration]);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const clipAtTime = getClipAtTime(currentTime);
+    if (clipAtTime && clipAtTime.id !== selectedClipId) {
+      setSelectedClipId(clipAtTime.id);
+    }
+  }, [currentTime, getClipAtTime, isPlaying, selectedClipId]);
+
+  const handleTogglePlay = () => {
+    if (project.duration === 0) return;
+    if (!isPlaying && currentTime >= project.duration) {
+      setCurrentTime(0);
+    }
+    setIsPlaying((prev) => !prev);
+  };
+
   if (!project) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -260,8 +345,9 @@ const VideoEditorScreen = () => {
   }
 
   const selectedClip = project.timeline.find((c) => c.id === selectedClipId);
-  const selectedMedia = selectedClip
-    ? project.mediaItems.find((m) => m.id === selectedClip.mediaId)
+  const clipForPreview = isPlaying ? getClipAtTime(currentTime) : selectedClip;
+  const selectedMedia = clipForPreview
+    ? project.mediaItems.find((m) => m.id === clipForPreview.mediaId)
     : null;
 
   return (
@@ -322,7 +408,15 @@ const VideoEditorScreen = () => {
             className="max-h-full max-w-full object-contain"
           />
         ) : project.timeline.length > 0 ? (
-          <div className="text-muted-foreground text-sm">Select a clip to preview</div>
+          <div className="flex flex-col items-center gap-2 text-muted-foreground text-sm">
+            <span className="text-xs uppercase tracking-[0.2em]">Preview Time</span>
+            <span className="text-lg font-semibold text-foreground">
+              {MediaService.formatDuration(currentTime)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              Scrub the timeline or press play to preview clips
+            </span>
+          </div>
         ) : (
           <div className="flex flex-col items-center gap-4 text-center p-8">
             <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center">
@@ -347,7 +441,7 @@ const VideoEditorScreen = () => {
             variant="icon"
             size="iconLg"
             className="absolute bg-white/10 backdrop-blur-sm hover:bg-white/20"
-            onClick={() => setIsPlaying(!isPlaying)}
+            onClick={handleTogglePlay}
           >
             {isPlaying ? (
               <Pause className="w-6 h-6 text-white fill-white" />
