@@ -27,8 +27,10 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ProjectService } from '@/services/ProjectService';
 import { MediaService } from '@/services/MediaService';
+import { TemplateService } from '@/services/TemplateService';
+import { MediaDraftService } from '@/services/MediaDraftService';
 import { cn } from '@/lib/utils';
-import type { Project, TimelineClip, MediaItem } from '@/types';
+import type { Project, TimelineClip, MediaItem, Template } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 type EditorTool = 'trim' | 'split' | 'delete' | 'audio' | 'text' | 'effects' | 'layers';
@@ -101,6 +103,26 @@ const TimelineClipItem = ({
   );
 };
 
+const buildTimelineFromDraft = (
+  mediaItems: MediaItem[],
+  template: Template | null
+): TimelineClip[] => {
+  const clips = template?.config.clips ?? [];
+  return mediaItems
+    .filter((item) => item.type !== 'audio')
+    .map((item, index) => {
+      const clipDuration =
+        clips[index]?.duration ?? item.duration ?? 5;
+      return {
+        id: uuidv4(),
+        mediaId: item.id,
+        startTime: 0,
+        endTime: clipDuration,
+        order: index,
+      };
+    });
+};
+
 const VideoEditorScreen = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
@@ -110,6 +132,30 @@ const VideoEditorScreen = () => {
 
   const [project, setProject] = useState<Project | null>(() => {
     if (projectId === 'new') {
+      const draft = MediaDraftService.getDraft();
+      if (draft) {
+        const template = TemplateService.getTemplateById(draft.templateId);
+        const mediaItems = draft.items.filter(
+          (item): item is MediaItem => Boolean(item)
+        );
+        const timeline = buildTimelineFromDraft(mediaItems, template);
+        const newProject = ProjectService.createProject(
+          template ? `${template.name} Project` : undefined
+        );
+        const projectWithDraft = {
+          ...newProject,
+          mediaItems,
+          timeline,
+          aspectRatio: template?.aspectRatio ?? newProject.aspectRatio,
+          duration: timeline.reduce(
+            (acc, clip) => acc + (clip.endTime - clip.startTime),
+            0
+          ),
+        };
+        ProjectService.saveProject(projectWithDraft);
+        MediaDraftService.clearDraft();
+        return projectWithDraft;
+      }
       const newProject = ProjectService.createProject();
       ProjectService.saveProject(newProject);
       return newProject;

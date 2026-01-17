@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import SplashScreen from "./pages/SplashScreen";
 import HomeScreen from "./pages/HomeScreen";
 import TemplatesScreen from "./pages/TemplatesScreen";
+import MediaPickerScreen from "./pages/MediaPickerScreen";
 import VideoEditorScreen from "./pages/VideoEditorScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import ProjectsScreen from "./pages/ProjectsScreen";
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/" element={<SplashScreen />} />
           <Route path="/home" element={<HomeScreen />} />
           <Route path="/templates" element={<TemplatesScreen />} />
+          <Route path="/media-picker" element={<MediaPickerScreen />} />
           <Route path="/editor" element={<VideoEditorScreen />} />
           <Route path="/editor/:projectId" element={<VideoEditorScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
