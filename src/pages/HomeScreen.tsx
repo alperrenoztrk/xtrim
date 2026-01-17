@@ -16,75 +16,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { ProjectService } from '@/services/ProjectService';
 import { cn } from '@/lib/utils';
-import type { Tool, ToolType } from '@/types';
-
-const tools: Tool[] = [
-  {
-    id: 'new-project',
-    name: 'New Project',
-    icon: 'Plus',
-    description: 'Start a new video project',
-    route: '/editor/new',
-    gradient: 'from-primary to-accent',
-  },
-  {
-    id: 'templates',
-    name: 'Templates',
-    icon: 'LayoutGrid',
-    description: 'Ready-made video templates',
-    route: '/templates',
-  },
-  {
-    id: 'ai-enhance',
-    name: 'AI Enhance',
-    icon: 'Sparkles',
-    description: 'AI-powered enhancements',
-    route: '/ai',
-    isBeta: true,
-  },
-  {
-    id: 'video-editor',
-    name: 'Video Editor',
-    icon: 'Video',
-    description: 'Full timeline editing',
-    route: '/editor',
-  },
-  {
-    id: 'audio-music',
-    name: 'Audio & Music',
-    icon: 'Music',
-    description: 'Add and edit audio',
-    route: '/audio',
-  },
-  {
-    id: 'photo-editor',
-    name: 'Photo Editor',
-    icon: 'Image',
-    description: 'Edit and enhance photos',
-    route: '/photo-editor',
-  },
-  {
-    id: 'collage',
-    name: 'Collage',
-    icon: 'Grid3X3',
-    description: 'Create photo collages',
-    route: '/collage',
-  },
-  {
-    id: 'photo-audio',
-    name: 'Photo + Audio',
-    icon: 'ImagePlay',
-    description: 'Create video from photos',
-    route: '/photo-audio',
-  },
-  {
-    id: 'settings',
-    name: 'Settings',
-    icon: 'Settings',
-    description: 'App preferences',
-    route: '/settings',
-  },
-];
+import { tools } from '@/data/tools';
+import type { Tool } from '@/types';
 
 const iconComponents: Record<string, React.ComponentType<any>> = {
   Plus,
