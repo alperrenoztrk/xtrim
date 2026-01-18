@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
@@ -22,6 +22,8 @@ import {
   Copy,
   ZoomIn,
   ZoomOut,
+  SkipBack,
+  SkipForward,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -105,6 +107,7 @@ const VideoEditorScreen = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const [project, setProject] = useState<Project | null>(() => {
     if (projectId === 'new') {
@@ -122,6 +125,7 @@ const VideoEditorScreen = () => {
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [undoStack, setUndoStack] = useState<Project[]>([]);
   const [redoStack, setRedoStack] = useState<Project[]>([]);
+  const [videoError, setVideoError] = useState(false);
 
   const saveProject = useCallback(
     (updatedProject: Project) => {
@@ -251,6 +255,54 @@ const VideoEditorScreen = () => {
     saveProject({ ...project, timeline: reorderedTimeline });
   };
 
+  // Auto-select first clip if none selected
+  useEffect(() => {
+    if (project && project.timeline.length > 0 && !selectedClipId) {
+      setSelectedClipId(project.timeline[0].id);
+    }
+  }, [project, selectedClipId]);
+
+  // Handle video playback
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isPlaying) {
+      video.play().catch(() => {
+        setIsPlaying(false);
+      });
+    } else {
+      video.pause();
+    }
+  }, [isPlaying]);
+
+  // Sync video time with timeline
+  const handleTimeUpdate = () => {
+    const video = videoRef.current;
+    if (video && selectedClip) {
+      const relativeTime = video.currentTime - selectedClip.startTime;
+      // Update currentTime based on clip position
+    }
+  };
+
+  const handleVideoEnded = () => {
+    setIsPlaying(false);
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+    }
+  };
+
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleSeek = (time: number) => {
+    setCurrentTime(time);
+    if (videoRef.current && selectedMedia?.type === 'video') {
+      videoRef.current.currentTime = time;
+    }
+  };
+
   if (!project) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -315,46 +367,104 @@ const VideoEditorScreen = () => {
 
       {/* Preview */}
       <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
-        {selectedMedia?.thumbnail ? (
-          <img
-            src={selectedMedia.thumbnail}
-            alt=""
-            className="max-h-full max-w-full object-contain"
-          />
+        {selectedMedia ? (
+          selectedMedia.type === 'video' ? (
+            <>
+              <video
+                ref={videoRef}
+                src={selectedMedia.uri}
+                className="max-h-full max-w-full object-contain"
+                onTimeUpdate={handleTimeUpdate}
+                onEnded={handleVideoEnded}
+                onError={() => setVideoError(true)}
+                playsInline
+                preload="auto"
+              />
+              {videoError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+                  <div className="text-center p-4">
+                    <p className="text-destructive font-medium">Video yüklenemedi</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Bu format desteklenmiyor olabilir
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <img
+              src={selectedMedia.uri}
+              alt=""
+              className="max-h-full max-w-full object-contain"
+            />
+          )
         ) : project.timeline.length > 0 ? (
-          <div className="text-muted-foreground text-sm">Select a clip to preview</div>
+          <div className="text-muted-foreground text-sm">Önizleme için bir klip seçin</div>
         ) : (
           <div className="flex flex-col items-center gap-4 text-center p-8">
             <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center">
               <Plus className="w-8 h-8 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-foreground font-medium">Add media to start editing</p>
+              <p className="text-foreground font-medium">Düzenlemeye başlamak için medya ekleyin</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Import videos or photos from your device
+                Cihazınızdan video veya fotoğraf içe aktarın
               </p>
             </div>
             <Button variant="gradient" onClick={() => fileInputRef.current?.click()}>
               <Plus className="w-4 h-4" />
-              Add Media
+              Medya Ekle
             </Button>
           </div>
         )}
 
         {/* Play button overlay */}
-        {project.timeline.length > 0 && (
-          <Button
-            variant="icon"
-            size="iconLg"
-            className="absolute bg-white/10 backdrop-blur-sm hover:bg-white/20"
-            onClick={() => setIsPlaying(!isPlaying)}
-          >
-            {isPlaying ? (
-              <Pause className="w-6 h-6 text-white fill-white" />
-            ) : (
-              <Play className="w-6 h-6 text-white fill-white" />
-            )}
-          </Button>
+        {project.timeline.length > 0 && selectedMedia && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <Button
+              variant="icon"
+              size="iconLg"
+              className="bg-white/10 backdrop-blur-sm hover:bg-white/20 pointer-events-auto"
+              onClick={handlePlayPause}
+            >
+              {isPlaying ? (
+                <Pause className="w-6 h-6 text-white fill-white" />
+              ) : (
+                <Play className="w-6 h-6 text-white fill-white" />
+              )}
+            </Button>
+          </div>
+        )}
+
+        {/* Video controls overlay */}
+        {selectedMedia?.type === 'video' && (
+          <div className="absolute bottom-4 left-4 right-4 flex items-center gap-3 px-3 py-2 rounded-lg bg-black/50 backdrop-blur-sm">
+            <Button
+              variant="iconGhost"
+              size="iconSm"
+              onClick={handlePlayPause}
+              className="text-white hover:bg-white/20"
+            >
+              {isPlaying ? (
+                <Pause className="w-4 h-4" />
+              ) : (
+                <Play className="w-4 h-4" />
+              )}
+            </Button>
+            <span className="text-xs text-white min-w-[40px]">
+              {MediaService.formatDuration(currentTime)}
+            </span>
+            <Slider
+              value={[currentTime]}
+              max={selectedMedia.duration || 1}
+              step={0.1}
+              onValueChange={([value]) => handleSeek(value)}
+              className="flex-1"
+            />
+            <span className="text-xs text-white min-w-[40px]">
+              {MediaService.formatDuration(selectedMedia.duration || 0)}
+            </span>
+          </div>
         )}
       </div>
 
