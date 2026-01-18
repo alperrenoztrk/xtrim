@@ -321,7 +321,7 @@ const VideoEditorScreen = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept="video/*,image/*"
+        accept={MediaService.getSupportedMediaFormats()}
         multiple
         className="hidden"
         onChange={(e) => handleAddMedia(e.target.files)}
@@ -382,10 +382,16 @@ const VideoEditorScreen = () => {
               />
               {videoError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/80">
-                  <div className="text-center p-4">
-                    <p className="text-destructive font-medium">Video yüklenemedi</p>
+                  <div className="text-center p-4 max-w-sm">
+                    <p className="text-destructive font-medium">Video oynatılamıyor</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Bu format desteklenmiyor olabilir
+                      Bu format tarayıcınız tarafından desteklenmiyor olabilir.
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Desteklenen formatlar: MP4, WebM, OGG
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Dosya adı: {selectedMedia?.name}
                     </p>
                   </div>
                 </div>
