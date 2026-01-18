@@ -7,6 +7,7 @@ import SplashScreen from "./pages/SplashScreen";
 import HomeScreen from "./pages/HomeScreen";
 import TemplatesScreen from "./pages/TemplatesScreen";
 import VideoEditorScreen from "./pages/VideoEditorScreen";
+import AudioEditorScreen from "./pages/AudioEditorScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import ProjectsScreen from "./pages/ProjectsScreen";
 import NotFound from "./pages/NotFound";
@@ -28,7 +29,8 @@ const App = () => (
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="/projects" element={<ProjectsScreen />} />
           <Route path="/ai" element={<HomeScreen />} />
-          <Route path="/audio" element={<HomeScreen />} />
+          <Route path="/audio" element={<AudioEditorScreen />} />
+          <Route path="/audio/:projectId" element={<AudioEditorScreen />} />
           <Route path="/photo-editor" element={<HomeScreen />} />
           <Route path="/collage" element={<HomeScreen />} />
           <Route path="/photo-audio" element={<HomeScreen />} />
