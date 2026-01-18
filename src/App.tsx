@@ -10,6 +10,7 @@ import VideoEditorScreen from "./pages/VideoEditorScreen";
 import AudioEditorScreen from "./pages/AudioEditorScreen";
 import PhotoEditorScreen from "./pages/PhotoEditorScreen";
 import PhotoAudioScreen from "./pages/PhotoAudioScreen";
+import CollageMakerScreen from "./pages/CollageMakerScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import ProjectsScreen from "./pages/ProjectsScreen";
 import NotFound from "./pages/NotFound";
@@ -34,7 +35,7 @@ const App = () => (
           <Route path="/audio" element={<AudioEditorScreen />} />
           <Route path="/audio/:projectId" element={<AudioEditorScreen />} />
           <Route path="/photo-editor" element={<PhotoEditorScreen />} />
-          <Route path="/collage" element={<HomeScreen />} />
+          <Route path="/collage" element={<CollageMakerScreen />} />
           <Route path="/photo-audio" element={<PhotoAudioScreen />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
