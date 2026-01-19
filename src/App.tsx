@@ -13,6 +13,7 @@ import PhotoAudioScreen from "./pages/PhotoAudioScreen";
 import CollageMakerScreen from "./pages/CollageMakerScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import ProjectsScreen from "./pages/ProjectsScreen";
+import ExportScreen from "./pages/ExportScreen";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/templates" element={<TemplatesScreen />} />
           <Route path="/editor" element={<VideoEditorScreen />} />
           <Route path="/editor/:projectId" element={<VideoEditorScreen />} />
+          <Route path="/export/:projectId" element={<ExportScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
           <Route path="/projects" element={<ProjectsScreen />} />
           <Route path="/ai" element={<HomeScreen />} />
