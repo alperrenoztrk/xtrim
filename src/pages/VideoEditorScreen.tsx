@@ -491,48 +491,103 @@ const VideoEditorScreen = () => {
     }
   }, [project, selectedClipId]);
 
-  // Handle video playback
+  // Handle video playback with clip boundaries
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !project) return;
+
+    const clip = project.timeline.find((c) => c.id === selectedClipId);
+    if (!clip) return;
 
     if (isPlaying) {
+      // Set video to clip start time if before
+      if (video.currentTime < clip.startTime || video.currentTime >= clip.endTime) {
+        video.currentTime = clip.startTime;
+      }
       video.play().catch(() => {
         setIsPlaying(false);
       });
     } else {
       video.pause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, selectedClipId, project]);
 
-  // Sync video time with timeline
+  // Sync video time with timeline and enforce clip boundaries
   const handleTimeUpdate = () => {
     const video = videoRef.current;
-    if (video && project) {
-      const clip = project.timeline.find((c) => c.id === selectedClipId);
-      if (clip) {
-        setCurrentTime(video.currentTime);
-      }
+    if (!video || !project) return;
+    
+    const clip = project.timeline.find((c) => c.id === selectedClipId);
+    if (!clip) return;
+
+    // Calculate relative time within the clip
+    const relativeTime = video.currentTime - clip.startTime;
+    const clipDuration = clip.endTime - clip.startTime;
+    
+    // Update current time display (relative to clip)
+    setCurrentTime(Math.max(0, Math.min(relativeTime, clipDuration)));
+
+    // Stop at clip end
+    if (video.currentTime >= clip.endTime) {
+      video.pause();
+      video.currentTime = clip.startTime;
+      setIsPlaying(false);
+      setCurrentTime(0);
+    }
+    
+    // Prevent going before clip start
+    if (video.currentTime < clip.startTime) {
+      video.currentTime = clip.startTime;
     }
   };
 
   const handleVideoEnded = () => {
     setIsPlaying(false);
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
+    const video = videoRef.current;
+    const clip = project?.timeline.find((c) => c.id === selectedClipId);
+    if (video && clip) {
+      video.currentTime = clip.startTime;
     }
+    setCurrentTime(0);
   };
 
   const handlePlayPause = () => {
+    const video = videoRef.current;
+    const clip = project?.timeline.find((c) => c.id === selectedClipId);
+    
+    if (video && clip && !isPlaying) {
+      // Reset to clip start if at end
+      if (video.currentTime >= clip.endTime || video.currentTime < clip.startTime) {
+        video.currentTime = clip.startTime;
+        setCurrentTime(0);
+      }
+    }
     setIsPlaying(!isPlaying);
   };
 
   const handleSeek = (time: number) => {
-    setCurrentTime(time);
-    if (videoRef.current && selectedMedia?.type === 'video') {
-      videoRef.current.currentTime = time;
+    const video = videoRef.current;
+    const clip = project?.timeline.find((c) => c.id === selectedClipId);
+    
+    if (video && clip) {
+      // time is relative to clip, so add clip.startTime
+      const absoluteTime = clip.startTime + time;
+      video.currentTime = Math.max(clip.startTime, Math.min(absoluteTime, clip.endTime));
+      setCurrentTime(time);
     }
   };
+
+  // When selected clip changes, reset video position
+  useEffect(() => {
+    const video = videoRef.current;
+    const clip = project?.timeline.find((c) => c.id === selectedClipId);
+    
+    if (video && clip) {
+      video.currentTime = clip.startTime;
+      setCurrentTime(0);
+      setIsPlaying(false);
+    }
+  }, [selectedClipId]);
 
   if (!project) {
     return (
@@ -682,7 +737,7 @@ const VideoEditorScreen = () => {
         )}
 
         {/* Video controls overlay */}
-        {selectedMedia?.type === 'video' && (
+        {selectedMedia?.type === 'video' && selectedClip && (
           <div className="absolute bottom-4 left-4 right-4 flex items-center gap-3 px-3 py-2 rounded-lg bg-black/50 backdrop-blur-sm">
             <Button
               variant="iconGhost"
@@ -701,13 +756,13 @@ const VideoEditorScreen = () => {
             </span>
             <Slider
               value={[currentTime]}
-              max={selectedMedia.duration || 1}
+              max={selectedClip.endTime - selectedClip.startTime}
               step={0.1}
               onValueChange={([value]) => handleSeek(value)}
               className="flex-1"
             />
             <span className="text-xs text-white min-w-[40px]">
-              {MediaService.formatDuration(selectedMedia.duration || 0)}
+              {MediaService.formatDuration(selectedClip.endTime - selectedClip.startTime)}
             </span>
           </div>
         )}
@@ -751,9 +806,9 @@ const VideoEditorScreen = () => {
         <div className="px-4 py-2">
           <Slider
             value={[currentTime]}
-            max={Math.max(project.duration, 1)}
+            max={selectedClip ? (selectedClip.endTime - selectedClip.startTime) : Math.max(project.duration, 1)}
             step={0.1}
-            onValueChange={([value]) => setCurrentTime(value)}
+            onValueChange={([value]) => handleSeek(value)}
             className="w-full"
           />
         </div>
