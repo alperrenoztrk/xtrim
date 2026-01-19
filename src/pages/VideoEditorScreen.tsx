@@ -24,16 +24,35 @@ import {
   ZoomOut,
   SkipBack,
   SkipForward,
+  X,
+  Check,
+  Wand2,
+  Palette,
+  RotateCcw,
+  Crop,
+  Filter,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 import { ProjectService } from '@/services/ProjectService';
 import { MediaService } from '@/services/MediaService';
 import { cn } from '@/lib/utils';
-import type { Project, TimelineClip, MediaItem } from '@/types';
+import type { Project, TimelineClip, MediaItem, AudioTrack } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 type EditorTool = 'trim' | 'split' | 'delete' | 'audio' | 'text' | 'effects' | 'layers';
+
+interface TextOverlay {
+  id: string;
+  text: string;
+  position: 'top' | 'center' | 'bottom';
+  fontSize: number;
+  color: string;
+  startTime: number;
+  endTime: number;
+}
 
 const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string }[] = [
   { id: 'trim', icon: Scissors, label: 'Trim' },
@@ -43,6 +62,18 @@ const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string
   { id: 'text', icon: Type, label: 'Text' },
   { id: 'effects', icon: Sparkles, label: 'Effects' },
   { id: 'layers', icon: Layers, label: 'Layers' },
+];
+
+const moreMenuItems = [
+  { id: 'speed', icon: SlidersHorizontal, label: 'Speed' },
+  { id: 'filters', icon: Filter, label: 'Filters' },
+  { id: 'effects', icon: Sparkles, label: 'Effects' },
+  { id: 'crop', icon: Crop, label: 'Crop' },
+  { id: 'rotate', icon: RotateCcw, label: 'Rotate' },
+  { id: 'enhance', icon: Wand2, label: 'AI Enhance' },
+  { id: 'color', icon: Palette, label: 'Color' },
+  { id: 'layers', icon: Layers, label: 'Layers' },
+  { id: 'duplicate', icon: Copy, label: 'Duplicate' },
 ];
 
 const TimelineClipItem = ({
@@ -107,6 +138,7 @@ const VideoEditorScreen = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [project, setProject] = useState<Project | null>(() => {
@@ -126,6 +158,25 @@ const VideoEditorScreen = () => {
   const [undoStack, setUndoStack] = useState<Project[]>([]);
   const [redoStack, setRedoStack] = useState<Project[]>([]);
   const [videoError, setVideoError] = useState(false);
+  
+  // Panel states
+  const [showTrimPanel, setShowTrimPanel] = useState(false);
+  const [showAudioPanel, setShowAudioPanel] = useState(false);
+  const [showTextPanel, setShowTextPanel] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  
+  // Trim state
+  const [trimStart, setTrimStart] = useState(0);
+  const [trimEnd, setTrimEnd] = useState(0);
+  
+  // Audio state
+  const [clipVolume, setClipVolume] = useState(100);
+  const [clipSpeed, setClipSpeed] = useState(1);
+  
+  // Text overlay state
+  const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
+  const [newTextContent, setNewTextContent] = useState('');
+  const [textPosition, setTextPosition] = useState<'top' | 'center' | 'bottom'>('center');
 
   const saveProject = useCallback(
     (updatedProject: Project) => {
@@ -255,6 +306,184 @@ const VideoEditorScreen = () => {
     saveProject({ ...project, timeline: reorderedTimeline });
   };
 
+  // Handle Trim
+  const handleOpenTrim = () => {
+    if (!selectedClipId || !project) return;
+    const clip = project.timeline.find((c) => c.id === selectedClipId);
+    if (!clip) return;
+    setTrimStart(clip.startTime);
+    setTrimEnd(clip.endTime);
+    setShowTrimPanel(true);
+    setShowAudioPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+  };
+
+  const handleApplyTrim = () => {
+    if (!selectedClipId || !project) return;
+    
+    const updatedTimeline = project.timeline.map((clip) => {
+      if (clip.id === selectedClipId) {
+        return { ...clip, startTime: trimStart, endTime: trimEnd };
+      }
+      return clip;
+    });
+    
+    const newDuration = updatedTimeline.reduce(
+      (acc, clip) => acc + (clip.endTime - clip.startTime),
+      0
+    );
+    
+    saveProject({ ...project, timeline: updatedTimeline, duration: newDuration });
+    setShowTrimPanel(false);
+  };
+
+  // Handle Audio settings
+  const handleOpenAudio = () => {
+    setShowAudioPanel(true);
+    setShowTrimPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+  };
+
+  const handleAddAudioTrack = async (files: FileList | null) => {
+    if (!files || !project) return;
+    
+    const newAudioTracks: AudioTrack[] = [];
+    
+    for (const file of Array.from(files)) {
+      const mediaItem = await MediaService.createMediaItem(file);
+      if (mediaItem.type === 'audio') {
+        const audioTrack: AudioTrack = {
+          id: uuidv4(),
+          uri: mediaItem.uri,
+          name: mediaItem.name,
+          startTime: 0,
+          endTime: mediaItem.duration || 10,
+          trimStart: 0,
+          trimEnd: mediaItem.duration || 10,
+          volume: 1,
+          fadeIn: 0,
+          fadeOut: 0,
+          isMuted: false,
+        };
+        newAudioTracks.push(audioTrack);
+      }
+    }
+    
+    saveProject({
+      ...project,
+      audioTracks: [...project.audioTracks, ...newAudioTracks],
+    });
+  };
+
+  const handleRemoveAudioTrack = (trackId: string) => {
+    if (!project) return;
+    saveProject({
+      ...project,
+      audioTracks: project.audioTracks.filter((t) => t.id !== trackId),
+    });
+  };
+
+  const handleUpdateAudioVolume = (trackId: string, volume: number) => {
+    if (!project) return;
+    saveProject({
+      ...project,
+      audioTracks: project.audioTracks.map((t) =>
+        t.id === trackId ? { ...t, volume: volume / 100 } : t
+      ),
+    });
+  };
+
+  // Handle Text Overlay
+  const handleOpenText = () => {
+    setShowTextPanel(true);
+    setShowTrimPanel(false);
+    setShowAudioPanel(false);
+    setShowMoreMenu(false);
+  };
+
+  const handleAddTextOverlay = () => {
+    if (!newTextContent.trim() || !project) return;
+    
+    const newOverlay: TextOverlay = {
+      id: uuidv4(),
+      text: newTextContent,
+      position: textPosition,
+      fontSize: 24,
+      color: '#ffffff',
+      startTime: currentTime,
+      endTime: Math.min(currentTime + 5, project.duration || 5),
+    };
+    
+    setTextOverlays([...textOverlays, newOverlay]);
+    setNewTextContent('');
+  };
+
+  const handleRemoveTextOverlay = (id: string) => {
+    setTextOverlays(textOverlays.filter((t) => t.id !== id));
+  };
+
+  // Handle More menu actions
+  const handleMoreMenuAction = (actionId: string) => {
+    if (!selectedClipId || !project) return;
+    
+    switch (actionId) {
+      case 'duplicate':
+        const clipToDuplicate = project.timeline.find((c) => c.id === selectedClipId);
+        if (clipToDuplicate) {
+          const newClip: TimelineClip = {
+            ...clipToDuplicate,
+            id: uuidv4(),
+            order: project.timeline.length,
+          };
+          saveProject({
+            ...project,
+            timeline: [...project.timeline, newClip],
+            duration: project.duration + (newClip.endTime - newClip.startTime),
+          });
+        }
+        break;
+      case 'speed':
+        // Speed adjustment could show a dialog
+        break;
+      case 'rotate':
+        // Rotate logic - for now just toggle a state
+        break;
+      case 'enhance':
+        // AI enhancement placeholder
+        break;
+      default:
+        break;
+    }
+    setShowMoreMenu(false);
+  };
+
+  // Tool click handler
+  const handleToolClick = (toolId: EditorTool) => {
+    setActiveTool(activeTool === toolId ? null : toolId);
+    
+    switch (toolId) {
+      case 'trim':
+        handleOpenTrim();
+        break;
+      case 'split':
+        if (selectedClipId) handleSplitClip();
+        break;
+      case 'delete':
+        if (selectedClipId) handleDeleteClip();
+        break;
+      case 'audio':
+        handleOpenAudio();
+        break;
+      case 'text':
+        handleOpenText();
+        break;
+      default:
+        break;
+    }
+  };
+
   // Auto-select first clip if none selected
   useEffect(() => {
     if (project && project.timeline.length > 0 && !selectedClipId) {
@@ -279,9 +508,11 @@ const VideoEditorScreen = () => {
   // Sync video time with timeline
   const handleTimeUpdate = () => {
     const video = videoRef.current;
-    if (video && selectedClip) {
-      const relativeTime = video.currentTime - selectedClip.startTime;
-      // Update currentTime based on clip position
+    if (video && project) {
+      const clip = project.timeline.find((c) => c.id === selectedClipId);
+      if (clip) {
+        setCurrentTime(video.currentTime);
+      }
     }
   };
 
@@ -325,6 +556,14 @@ const VideoEditorScreen = () => {
         multiple
         className="hidden"
         onChange={(e) => handleAddMedia(e.target.files)}
+      />
+      <input
+        ref={audioInputRef}
+        type="file"
+        accept="audio/*"
+        multiple
+        className="hidden"
+        onChange={(e) => handleAddAudioTrack(e.target.files)}
       />
 
       {/* Header */}
@@ -571,8 +810,233 @@ const VideoEditorScreen = () => {
         )}
       </div>
 
+      {/* Trim Panel */}
+      <AnimatePresence>
+        {showTrimPanel && selectedClip && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium">Trim Clip</h3>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setShowTrimPanel(false)}>
+                  <X className="w-4 h-4" />
+                  Cancel
+                </Button>
+                <Button variant="gradient" size="sm" onClick={handleApplyTrim}>
+                  <Check className="w-4 h-4" />
+                  Apply
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-muted-foreground">Start: {MediaService.formatDuration(trimStart)}</label>
+                <Slider
+                  value={[trimStart]}
+                  min={0}
+                  max={trimEnd - 0.1}
+                  step={0.1}
+                  onValueChange={([v]) => setTrimStart(v)}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">End: {MediaService.formatDuration(trimEnd)}</label>
+                <Slider
+                  value={[trimEnd]}
+                  min={trimStart + 0.1}
+                  max={selectedMedia?.duration || 10}
+                  step={0.1}
+                  onValueChange={([v]) => setTrimEnd(v)}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Duration: {MediaService.formatDuration(trimEnd - trimStart)}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Audio Panel */}
+      <AnimatePresence>
+        {showAudioPanel && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10 max-h-60 overflow-y-auto"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium">Audio</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowAudioPanel(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            {/* Add audio track button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mb-4"
+              onClick={() => audioInputRef.current?.click()}
+            >
+              <Music className="w-4 h-4" />
+              Add Audio Track
+            </Button>
+            
+            {/* Audio tracks list */}
+            {project.audioTracks.length > 0 ? (
+              <div className="space-y-3">
+                {project.audioTracks.map((track) => (
+                  <div key={track.id} className="bg-secondary rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium truncate flex-1">{track.name}</span>
+                      <Button
+                        variant="iconGhost"
+                        size="iconSm"
+                        onClick={() => handleRemoveAudioTrack(track.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Volume2 className="w-4 h-4 text-muted-foreground" />
+                      <Slider
+                        value={[track.volume * 100]}
+                        min={0}
+                        max={100}
+                        step={1}
+                        onValueChange={([v]) => handleUpdateAudioVolume(track.id, v)}
+                        className="flex-1"
+                      />
+                      <span className="text-xs text-muted-foreground w-8">
+                        {Math.round(track.volume * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No audio tracks added yet
+              </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Text Overlay Panel */}
+      <AnimatePresence>
+        {showTextPanel && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10 max-h-72 overflow-y-auto"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium">Text Overlay</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowTextPanel(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            {/* Add new text */}
+            <div className="space-y-3 mb-4">
+              <Input
+                placeholder="Enter text..."
+                value={newTextContent}
+                onChange={(e) => setNewTextContent(e.target.value)}
+              />
+              <div className="flex gap-2">
+                {(['top', 'center', 'bottom'] as const).map((pos) => (
+                  <Button
+                    key={pos}
+                    variant={textPosition === pos ? 'secondary' : 'ghost'}
+                    size="sm"
+                    onClick={() => setTextPosition(pos)}
+                    className="flex-1 capitalize"
+                  >
+                    {pos}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                variant="gradient"
+                size="sm"
+                className="w-full"
+                onClick={handleAddTextOverlay}
+                disabled={!newTextContent.trim()}
+              >
+                <Plus className="w-4 h-4" />
+                Add Text
+              </Button>
+            </div>
+            
+            {/* Text overlays list */}
+            {textOverlays.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Added Texts:</p>
+                {textOverlays.map((overlay) => (
+                  <div key={overlay.id} className="flex items-center justify-between bg-secondary rounded-lg p-2">
+                    <span className="text-sm truncate flex-1">{overlay.text}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground capitalize">{overlay.position}</span>
+                      <Button
+                        variant="iconGhost"
+                        size="iconSm"
+                        onClick={() => handleRemoveTextOverlay(overlay.id)}
+                      >
+                        <Trash2 className="w-3 h-3 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* More Menu */}
+      <AnimatePresence>
+        {showMoreMenu && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium">More Options</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowMoreMenu(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {moreMenuItems.map((item) => (
+                <Button
+                  key={item.id}
+                  variant="ghost"
+                  className="flex-col gap-1 h-auto py-3"
+                  onClick={() => handleMoreMenuAction(item.id)}
+                  disabled={!selectedClipId && item.id !== 'enhance'}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="text-xxs">{item.label}</span>
+                </Button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Bottom toolbar */}
-      <div className="flex items-center justify-around py-3 px-4 border-t border-border bg-card safe-area-bottom">
+      <div className="flex items-center justify-around py-3 px-4 border-t border-border bg-card safe-area-bottom relative z-20">
         {toolItems.slice(0, 5).map((tool) => (
           <Button
             key={tool.id}
@@ -582,20 +1046,29 @@ const VideoEditorScreen = () => {
               'flex-col gap-1 h-auto py-2',
               activeTool === tool.id && 'text-primary'
             )}
-            onClick={() => {
-              setActiveTool(activeTool === tool.id ? null : tool.id);
-              if (tool.id === 'delete' && selectedClipId) {
-                handleDeleteClip();
-              } else if (tool.id === 'split' && selectedClipId) {
-                handleSplitClip();
-              }
-            }}
+            onClick={() => handleToolClick(tool.id)}
+            disabled={
+              (tool.id === 'trim' || tool.id === 'split' || tool.id === 'delete') && !selectedClipId
+            }
           >
             <tool.icon className="w-5 h-5" />
             <span className="text-xxs">{tool.label}</span>
           </Button>
         ))}
-        <Button variant="ghost" size="sm" className="flex-col gap-1 h-auto py-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            'flex-col gap-1 h-auto py-2',
+            showMoreMenu && 'text-primary'
+          )}
+          onClick={() => {
+            setShowMoreMenu(!showMoreMenu);
+            setShowTrimPanel(false);
+            setShowAudioPanel(false);
+            setShowTextPanel(false);
+          }}
+        >
           <MoreHorizontal className="w-5 h-5" />
           <span className="text-xxs">More</span>
         </Button>
