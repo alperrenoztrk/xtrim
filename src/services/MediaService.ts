@@ -52,7 +52,12 @@ export class MediaService {
 
   // Get supported video formats string for file input
   static getSupportedVideoFormats(): string {
-    return VIDEO_EXTENSIONS.join(',') + ',' + VIDEO_MIME_TYPES.join(',') + ',video/*';
+    return 'video/*,' + VIDEO_EXTENSIONS.join(',');
+  }
+
+  // Get supported image formats string for file input
+  static getSupportedImageFormats(): string {
+    return 'image/*,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.heic,.heif';
   }
 
   // Get all media formats string for file input

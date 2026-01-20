@@ -607,7 +607,7 @@ const VideoEditorScreen = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept={MediaService.getSupportedMediaFormats()}
+        accept={MediaService.getSupportedVideoFormats()}
         multiple
         className="hidden"
         onChange={(e) => handleAddMedia(e.target.files)}
