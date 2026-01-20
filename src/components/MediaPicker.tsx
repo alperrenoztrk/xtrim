@@ -37,11 +37,11 @@ interface PermissionState {
 const getAcceptTypes = (mediaType: MediaType): string => {
   switch (mediaType) {
     case 'photo':
-      return 'image/*';
+      return 'image/*,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.heic,.heif';
     case 'video':
-      return 'video/*';
+      return 'video/*,.mp4,.webm,.ogg,.ogv,.mov,.m4v,.avi,.mkv,.wmv,.flv,.3gp,.3g2,.ts,.mts,.m2ts,.mpg,.mpeg';
     case 'audio':
-      return 'audio/*';
+      return 'audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac,.wma,.aiff';
     case 'all':
     default:
       return 'image/*,video/*';
