@@ -4,11 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   Download,
-  Check,
   Film,
   Monitor,
   Smartphone,
-  Square,
   Settings2,
   Loader2,
   CheckCircle2,
@@ -16,12 +14,15 @@ import {
   Share2,
   FolderDown,
   Play,
+  Smartphone as PhoneIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ProjectService } from '@/services/ProjectService';
 import { MediaService } from '@/services/MediaService';
+import { nativeExportService } from '@/services/NativeExportService';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import type { Project, ExportSettings } from '@/types';
 
 type ExportStatus = 'idle' | 'preparing' | 'exporting' | 'finalizing' | 'complete' | 'error';
@@ -81,6 +82,9 @@ const ExportScreen = () => {
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const [estimatedSize, setEstimatedSize] = useState('0 MB');
+  const [exportedVideoBlob, setExportedVideoBlob] = useState<Blob | null>(null);
+  const [isNative] = useState(nativeExportService.isNativePlatform());
+  const [platform] = useState(nativeExportService.getPlatform());
 
   // Calculate estimated file size
   useEffect(() => {
@@ -117,6 +121,15 @@ const ExportScreen = () => {
 
   const handleStartExport = async () => {
     if (!project) return;
+
+    // Check permissions first on native
+    if (isNative) {
+      const hasPermission = await nativeExportService.checkPermissions();
+      if (!hasPermission) {
+        toast.error('Dosya kaydetme izni gerekli');
+        return;
+      }
+    }
 
     setExportStatus('preparing');
     setProgress(0);
@@ -163,31 +176,67 @@ const ExportScreen = () => {
 
     setProgress(100);
 
+    // Create a simulated video blob (in real app, this would be actual rendered video)
+    // For demo purposes, we create a sample blob
+    const sampleVideoData = new Uint8Array([0, 0, 0, 32, 102, 116, 121, 112]); // MP4 header sample
+    const videoBlob = new Blob([sampleVideoData], { type: 'video/mp4' });
+    setExportedVideoBlob(videoBlob);
+
     // Save export settings to project
     const updatedProject = { ...project, exportSettings: settings };
     ProjectService.saveProject(updatedProject);
+
+    toast.success('Video başarıyla oluşturuldu!');
   };
 
   const handleCancelExport = () => {
     setExportStatus('idle');
     setProgress(0);
     setProgressMessage('');
+    setExportedVideoBlob(null);
   };
 
-  const handleShare = () => {
-    // Simulated share action
-    if (navigator.share) {
-      navigator.share({
-        title: project?.name || 'Video',
-        text: 'Xtrim ile oluşturuldu',
-      }).catch(() => {});
+  const handleShare = async () => {
+    if (!project) return;
+
+    const fileName = `${project.name.replace(/\s+/g, '_')}.mp4`;
+
+    if (exportedVideoBlob) {
+      const success = await nativeExportService.shareVideoBlob(exportedVideoBlob, fileName);
+      if (success) {
+        toast.success('Paylaşım başarılı!');
+      } else if (navigator.share) {
+        // Web fallback
+        try {
+          await navigator.share({
+            title: project.name,
+            text: 'Xtrim ile oluşturuldu',
+          });
+        } catch (e) {
+          // User cancelled
+        }
+      } else {
+        toast.error('Paylaşım desteklenmiyor');
+      }
     }
   };
 
-  const handleSaveToDevice = () => {
-    // Simulated save action
-    // In a real app, this would trigger a download
-    alert('Video cihaza kaydedildi!');
+  const handleSaveToDevice = async () => {
+    if (!project || !exportedVideoBlob) return;
+
+    const fileName = `${project.name.replace(/\s+/g, '_')}.mp4`;
+
+    const result = await nativeExportService.saveVideoToDevice(exportedVideoBlob, fileName);
+
+    if (result.success) {
+      toast.success(
+        isNative 
+          ? `Video kaydedildi: ${result.filePath?.split('/').pop() || fileName}`
+          : 'Video indirildi!'
+      );
+    } else {
+      toast.error(result.error || 'Kaydetme hatası');
+    }
   };
 
   if (!project) {
