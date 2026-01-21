@@ -20,12 +20,14 @@ import {
   Check,
   X,
   ImagePlus,
+  Eraser,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
+import BackgroundRemover from '@/components/BackgroundRemover';
 
-type EditorTab = 'adjust' | 'crop' | 'filters';
+type EditorTab = 'adjust' | 'crop' | 'filters' | 'background';
 
 interface ImageAdjustments {
   brightness: number;
@@ -87,6 +89,7 @@ const PhotoEditorScreen = () => {
   const [selectedCropRatio, setSelectedCropRatio] = useState<string>('free');
   const [undoStack, setUndoStack] = useState<ImageAdjustments[]>([]);
   const [redoStack, setRedoStack] = useState<ImageAdjustments[]>([]);
+  const [showBackgroundRemover, setShowBackgroundRemover] = useState(false);
 
   const saveState = useCallback(() => {
     setUndoStack((prev) => [...prev.slice(-20), adjustments]);
@@ -278,6 +281,7 @@ const PhotoEditorScreen = () => {
               { id: 'adjust', label: 'Adjust', icon: Sun },
               { id: 'crop', label: 'Crop', icon: Crop },
               { id: 'filters', label: 'Filters', icon: Palette },
+              { id: 'background', label: 'BG Remove', icon: Eraser },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -458,6 +462,35 @@ const PhotoEditorScreen = () => {
                   </div>
                 </motion.div>
               )}
+
+              {activeTab === 'background' && (
+                <motion.div
+                  key="background"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="p-4"
+                >
+                  <div className="text-center space-y-4">
+                    <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                      <Eraser className="w-8 h-8 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">Arka Plan Kaldır</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Fotoğrafınızın arka planını otomatik olarak kaldırın
+                      </p>
+                    </div>
+                    <Button
+                      variant="gradient"
+                      onClick={() => setShowBackgroundRemover(true)}
+                    >
+                      <Eraser className="w-4 h-4" />
+                      Başla
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
             </AnimatePresence>
           </div>
 
@@ -465,6 +498,20 @@ const PhotoEditorScreen = () => {
           <div className="safe-area-bottom bg-card" />
         </>
       )}
+
+      {/* Background Remover Modal */}
+      <AnimatePresence>
+        {showBackgroundRemover && imageUrl && (
+          <BackgroundRemover
+            imageUrl={imageUrl}
+            onClose={() => setShowBackgroundRemover(false)}
+            onSave={(resultUrl) => {
+              setImageUrl(resultUrl);
+              setShowBackgroundRemover(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
