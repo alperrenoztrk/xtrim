@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Video, Image, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectService } from '@/services/ProjectService';
 import { cn } from '@/lib/utils';
+import ToolsMenuSheet from '@/components/ToolsMenuSheet';
 
 interface Tool {
   id: string;
@@ -42,15 +44,37 @@ const tools: Tool[] = [
 
 const HomeScreen = () => {
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuType, setMenuType] = useState<'video' | 'photo'>('video');
 
   const handleToolClick = (tool: Tool) => {
-    if (tool.id === 'video') {
-      const project = ProjectService.createProject();
-      ProjectService.saveProject(project);
-      navigate(`/editor/${project.id}`);
+    if (tool.id === 'video' || tool.id === 'photo') {
+      setMenuType(tool.id);
+      setMenuOpen(true);
     } else {
       navigate(tool.route);
     }
+  };
+
+  const handleToolSelect = (toolId: string) => {
+    setMenuOpen(false);
+    
+    if (toolId === 'new-project') {
+      if (menuType === 'video') {
+        const project = ProjectService.createProject();
+        ProjectService.saveProject(project);
+        navigate(`/editor/${project.id}`);
+      } else {
+        navigate('/photo-editor');
+      }
+    } else if (toolId === 'editor') {
+      navigate('/photo-editor');
+    } else if (toolId === 'trim') {
+      const project = ProjectService.createProject();
+      ProjectService.saveProject(project);
+      navigate(`/editor/${project.id}`);
+    }
+    // Other tools can be added here
   };
 
   return (
@@ -124,6 +148,14 @@ const HomeScreen = () => {
           })}
         </div>
       </section>
+
+      {/* Tools Menu Sheet */}
+      <ToolsMenuSheet
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        type={menuType}
+        onToolSelect={handleToolSelect}
+      />
     </div>
   );
 };
