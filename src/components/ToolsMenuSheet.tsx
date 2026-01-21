@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Video, Scissors, Gauge, Mic, Monitor, Sparkles, Bot, Languages, MessageSquare, Image, Eraser, Expand, Type, Plus } from 'lucide-react';
+import { X, Scissors, Gauge, Mic, Monitor, Sparkles, Bot, Languages, MessageSquare, Image, Eraser, Expand, Type, Plus, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Tool {
@@ -7,6 +7,7 @@ interface Tool {
   name: string;
   icon: React.ComponentType<any>;
   isPro?: boolean;
+  isAI?: boolean;
 }
 
 interface ToolCategory {
@@ -21,6 +22,7 @@ interface ToolsMenuSheetProps {
   onToolSelect: (toolId: string) => void;
 }
 
+// AI tools have isAI: true flag
 const videoCategories: ToolCategory[] = [
   {
     title: 'Hızlı eylemler',
@@ -34,10 +36,10 @@ const videoCategories: ToolCategory[] = [
   {
     title: 'Yapay zeka araçları',
     tools: [
-      { id: 'autocut', name: 'AutoCut', icon: Sparkles },
-      { id: 'avatars', name: 'YZ avatarlar', icon: Bot, isPro: true },
-      { id: 'translate', name: 'Video çevirmeni', icon: Languages, isPro: true },
-      { id: 'dialogue', name: 'YZ diyalog sahne', icon: MessageSquare, isPro: true },
+      { id: 'autocut', name: 'AutoCut', icon: Sparkles, isAI: true },
+      { id: 'avatars', name: 'YZ avatarlar', icon: Bot, isPro: true, isAI: true },
+      { id: 'translate', name: 'Video çevirmeni', icon: Languages, isPro: true, isAI: true },
+      { id: 'dialogue', name: 'YZ diyalog sahne', icon: MessageSquare, isPro: true, isAI: true },
     ],
   },
 ];
@@ -48,16 +50,16 @@ const photoCategories: ToolCategory[] = [
     tools: [
       { id: 'editor', name: 'Fotoğraf düzenleyici', icon: Image },
       { id: 'background', name: 'Arka planı kaldır', icon: Eraser },
-      { id: 'expand', name: 'YZ ile genişletme', icon: Expand, isPro: true },
-      { id: 'generate', name: 'Metinden resim', icon: Type, isPro: true },
+      { id: 'expand', name: 'YZ ile genişletme', icon: Expand, isPro: true, isAI: true },
+      { id: 'generate', name: 'Metinden resim', icon: Type, isPro: true, isAI: true },
     ],
   },
   {
     title: 'Yapay zeka araçları',
     tools: [
-      { id: 'enhance', name: 'Kaliteyi iyileştir', icon: Sparkles },
-      { id: 'avatars', name: 'YZ avatarlar', icon: Bot, isPro: true },
-      { id: 'poster', name: 'YZ poster', icon: Image, isPro: true },
+      { id: 'enhance', name: 'Kaliteyi iyileştir', icon: Sparkles, isAI: true },
+      { id: 'ai-avatars', name: 'YZ avatarlar', icon: Bot, isPro: true, isAI: true },
+      { id: 'poster', name: 'YZ poster', icon: Image, isPro: true, isAI: true },
     ],
   },
 ];
@@ -94,24 +96,38 @@ const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect }: ToolsMenuSheetP
                 <div className="grid grid-cols-4 gap-3">
                   {category.tools.map((tool) => {
                     const Icon = tool.icon;
+                    const isDisabled = tool.isAI;
                     return (
                       <motion.button
                         key={tool.id}
-                        className="relative flex flex-col items-center p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => onToolSelect(tool.id)}
+                        className={`relative flex flex-col items-center p-3 rounded-xl transition-colors ${
+                          isDisabled 
+                            ? 'bg-muted/30 opacity-60 cursor-not-allowed' 
+                            : 'bg-muted/50 hover:bg-muted'
+                        }`}
+                        whileTap={isDisabled ? {} : { scale: 0.95 }}
+                        onClick={() => !isDisabled && onToolSelect(tool.id)}
+                        disabled={isDisabled}
                       >
                         {tool.isPro && (
                           <span className="absolute top-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-gradient-to-r from-primary to-accent text-white font-medium">
                             PRO
                           </span>
                         )}
+                        {isDisabled && !tool.isPro && (
+                          <span className="absolute top-1 right-1">
+                            <Lock className="h-3 w-3 text-muted-foreground" />
+                          </span>
+                        )}
                         <div className="w-10 h-10 rounded-lg bg-background flex items-center justify-center mb-2">
-                          <Icon className="h-5 w-5 text-foreground" />
+                          <Icon className={`h-5 w-5 ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`} />
                         </div>
-                        <span className="text-xs text-center text-foreground leading-tight">
+                        <span className={`text-xs text-center leading-tight ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}>
                           {tool.name}
                         </span>
+                        {isDisabled && (
+                          <span className="text-[10px] text-muted-foreground mt-0.5">Yakında</span>
+                        )}
                       </motion.button>
                     );
                   })}

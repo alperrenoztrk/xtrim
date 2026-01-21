@@ -5,6 +5,7 @@ import { Video, Image, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectService } from '@/services/ProjectService';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import ToolsMenuSheet from '@/components/ToolsMenuSheet';
 
 interface Tool {
@@ -59,6 +60,7 @@ const HomeScreen = () => {
   const handleToolSelect = (toolId: string) => {
     setMenuOpen(false);
     
+    // Video tools
     if (toolId === 'new-project') {
       if (menuType === 'video') {
         const project = ProjectService.createProject();
@@ -67,14 +69,26 @@ const HomeScreen = () => {
       } else {
         navigate('/photo-editor');
       }
-    } else if (toolId === 'editor') {
-      navigate('/photo-editor');
-    } else if (toolId === 'trim') {
+    } else if (toolId === 'trim' || toolId === 'speed') {
+      // Both go to video editor - speed can be adjusted there
       const project = ProjectService.createProject();
       ProjectService.saveProject(project);
       navigate(`/editor/${project.id}`);
+    } else if (toolId === 'record') {
+      toast.info('Ses kaydı özelliği', { description: 'Video editöründen ses kaydı ekleyebilirsiniz.' });
+      const project = ProjectService.createProject();
+      ProjectService.saveProject(project);
+      navigate(`/editor/${project.id}`);
+    } else if (toolId === 'desktop') {
+      toast.info('Masaüstü düzenleyici', { description: 'Bu özellik masaüstü uygulamasında kullanılabilir.' });
     }
-    // Other tools can be added here
+    // Photo tools
+    else if (toolId === 'editor') {
+      navigate('/photo-editor');
+    } else if (toolId === 'background') {
+      toast.info('Arka plan kaldırma', { description: 'Fotoğraf düzenleyicide bu özelliği kullanabilirsiniz.' });
+      navigate('/photo-editor');
+    }
   };
 
   return (
