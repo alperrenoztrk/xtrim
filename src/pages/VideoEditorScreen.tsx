@@ -37,6 +37,7 @@ import {
 import { toast } from 'sonner';
 import { AutoCutPanel } from '@/components/AutoCutPanel';
 import { VideoEnhancePanel } from '@/components/VideoEnhancePanel';
+import { VideoStabilizePanel } from '@/components/VideoStabilizePanel';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -71,6 +72,7 @@ const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string
 const moreMenuItems = [
   { id: 'autocut', icon: Zap, label: 'AutoCut', isAI: true },
   { id: 'enhance', icon: Wand2, label: 'AI Enhance', isAI: true },
+  { id: 'stabilize', icon: Sparkles, label: 'Stabilize', isAI: true },
   { id: 'speed', icon: SlidersHorizontal, label: 'Speed' },
   { id: 'filters', icon: Filter, label: 'Filters' },
   { id: 'effects', icon: Sparkles, label: 'Effects' },
@@ -171,6 +173,7 @@ const VideoEditorScreen = () => {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAutoCutPanel, setShowAutoCutPanel] = useState(false);
   const [showEnhancePanel, setShowEnhancePanel] = useState(false);
+  const [showStabilizePanel, setShowStabilizePanel] = useState(false);
   
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
@@ -460,6 +463,22 @@ const VideoEditorScreen = () => {
     setShowTextPanel(false);
     setShowMoreMenu(false);
     setShowAutoCutPanel(false);
+    setShowStabilizePanel(false);
+  };
+
+  // Handle Stabilize Panel
+  const handleOpenStabilize = () => {
+    if (!selectedMedia || selectedMedia.type !== 'video') {
+      toast.error('Lütfen bir video seçin');
+      return;
+    }
+    setShowStabilizePanel(true);
+    setShowTrimPanel(false);
+    setShowAudioPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+    setShowAutoCutPanel(false);
+    setShowEnhancePanel(false);
   };
 
   // Handle AutoCut results - split video at suggested points
@@ -511,6 +530,9 @@ const VideoEditorScreen = () => {
         return;
       case 'enhance':
         handleOpenEnhance();
+        return;
+      case 'stabilize':
+        handleOpenStabilize();
         return;
       case 'duplicate':
         if (!selectedClipId || !project) return;
@@ -1197,6 +1219,16 @@ const VideoEditorScreen = () => {
           <VideoEnhancePanel
             videoRef={videoRef}
             onClose={() => setShowEnhancePanel(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Video Stabilize Panel */}
+      <AnimatePresence>
+        {showStabilizePanel && selectedMedia?.type === 'video' && (
+          <VideoStabilizePanel
+            videoRef={videoRef}
+            onClose={() => setShowStabilizePanel(false)}
           />
         )}
       </AnimatePresence>
