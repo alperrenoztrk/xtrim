@@ -826,7 +826,7 @@ const VideoEditorScreen = () => {
       <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
         {selectedMedia ? (
           selectedMedia.type === 'video' ? (
-            <>
+            <div className="relative max-h-full max-w-full">
               <video
                 ref={videoRef}
                 src={selectedMedia.uri}
@@ -837,6 +837,50 @@ const VideoEditorScreen = () => {
                 playsInline
                 preload="auto"
               />
+              {/* Text Overlays on Video */}
+              {textOverlays.map((overlay) => {
+                const videoCurrentTime = videoRef.current?.currentTime || 0;
+                const isVisible = videoCurrentTime >= overlay.startTime && videoCurrentTime <= overlay.endTime;
+                
+                if (!isVisible) return null;
+                
+                const positionStyles: Record<string, string> = {
+                  top: 'top-4 left-1/2 -translate-x-1/2',
+                  center: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+                  bottom: 'bottom-4 left-1/2 -translate-x-1/2',
+                };
+                
+                const animationClasses: Record<string, string> = {
+                  none: '',
+                  'fade-in': 'animate-fade-in',
+                  'slide-up': 'animate-slide-up',
+                  'slide-down': 'animate-slide-down',
+                  scale: 'animate-scale',
+                  typewriter: 'animate-typewriter',
+                  bounce: 'animate-bounce',
+                  glow: 'animate-pulse',
+                };
+                
+                return (
+                  <div
+                    key={overlay.id}
+                    className={`absolute ${positionStyles[overlay.position]} ${animationClasses[overlay.style.animation]} px-3 py-1.5 rounded pointer-events-none z-10`}
+                    style={{
+                      fontFamily: overlay.style.fontFamily,
+                      fontSize: `${overlay.style.fontSize}px`,
+                      color: overlay.style.color,
+                      backgroundColor: overlay.style.backgroundColor,
+                      textAlign: overlay.style.textAlign,
+                      fontWeight: overlay.style.bold ? 'bold' : 'normal',
+                      fontStyle: overlay.style.italic ? 'italic' : 'normal',
+                      textDecoration: overlay.style.underline ? 'underline' : 'none',
+                      textShadow: overlay.style.shadow ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
+                    }}
+                  >
+                    {overlay.text}
+                  </div>
+                );
+              })}
               {videoError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/80">
                   <div className="text-center p-4 max-w-sm">
@@ -853,13 +897,43 @@ const VideoEditorScreen = () => {
                   </div>
                 </div>
               )}
-            </>
+            </div>
           ) : (
-            <img
-              src={selectedMedia.uri}
-              alt=""
-              className="max-h-full max-w-full object-contain"
-            />
+            <div className="relative max-h-full max-w-full">
+              <img
+                src={selectedMedia.uri}
+                alt=""
+                className="max-h-full max-w-full object-contain"
+              />
+              {/* Text Overlays on Image */}
+              {textOverlays.map((overlay) => {
+                const positionStyles: Record<string, string> = {
+                  top: 'top-4 left-1/2 -translate-x-1/2',
+                  center: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+                  bottom: 'bottom-4 left-1/2 -translate-x-1/2',
+                };
+                
+                return (
+                  <div
+                    key={overlay.id}
+                    className={`absolute ${positionStyles[overlay.position]} px-3 py-1.5 rounded pointer-events-none z-10`}
+                    style={{
+                      fontFamily: overlay.style.fontFamily,
+                      fontSize: `${overlay.style.fontSize}px`,
+                      color: overlay.style.color,
+                      backgroundColor: overlay.style.backgroundColor,
+                      textAlign: overlay.style.textAlign,
+                      fontWeight: overlay.style.bold ? 'bold' : 'normal',
+                      fontStyle: overlay.style.italic ? 'italic' : 'normal',
+                      textDecoration: overlay.style.underline ? 'underline' : 'none',
+                      textShadow: overlay.style.shadow ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
+                    }}
+                  >
+                    {overlay.text}
+                  </div>
+                );
+              })}
+            </div>
           )
         ) : project.timeline.length > 0 ? (
           <div className="text-muted-foreground text-sm">Önizleme için bir klip seçin</div>
