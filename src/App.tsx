@@ -14,6 +14,7 @@ import CollageMakerScreen from "./pages/CollageMakerScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import ProjectsScreen from "./pages/ProjectsScreen";
 import ExportScreen from "./pages/ExportScreen";
+import PrivacyPolicyScreen from "./pages/PrivacyPolicyScreen";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/editor/:projectId" element={<VideoEditorScreen />} />
           <Route path="/export/:projectId" element={<ExportScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />
+          <Route path="/privacy" element={<PrivacyPolicyScreen />} />
           <Route path="/projects" element={<ProjectsScreen />} />
           <Route path="/ai" element={<HomeScreen />} />
           <Route path="/audio" element={<AudioEditorScreen />} />

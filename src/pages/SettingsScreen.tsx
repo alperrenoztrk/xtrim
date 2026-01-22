@@ -369,7 +369,10 @@ const SettingsScreen = () => {
         <div className="space-y-1">
           <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">Hakkında</h2>
           <div className="rounded-xl bg-card border border-border divide-y divide-border overflow-hidden">
-            <button className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+            <button
+              className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+              onClick={() => navigate('/privacy')}
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
                   <Shield className="w-5 h-5 text-muted-foreground" />
