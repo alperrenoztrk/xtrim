@@ -104,23 +104,45 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
       if (data?.success) {
         setProgress(90);
         
-        // Store all frames for video generation
-        if (data.frames && data.frames.length > 0) {
+        // Check if we got a real video URL from Runway
+        if (data.type === 'real-video' && data.videoUrl) {
+          console.log('Real AI video received:', data.videoUrl);
+          setGeneratedVideoUrl(data.videoUrl);
+          setGeneratedPreview(data.videoUrl); // Use video URL as preview
+          
+          // Fetch video as blob for download/share functionality
+          try {
+            const videoResponse = await fetch(data.videoUrl);
+            const videoBlob = await videoResponse.blob();
+            setGeneratedVideoBlob(videoBlob);
+          } catch (blobError) {
+            console.warn('Could not fetch video blob:', blobError);
+          }
+          
+          setProgress(100);
+          toast.success('Gerçek AI video oluşturuldu!', {
+            description: `${duration} saniyelik ${data.format?.toUpperCase() || 'MP4'} video hazır`
+          });
+        }
+        // Fallback: Image-based animated sequence
+        else if (data.frames && data.frames.length > 0) {
           setVideoFrames(data.frames);
           setGeneratedPreview(data.primaryFrame || data.frames[0].imageUrl);
           
-          // Auto-generate video from frames
-          toast.loading('Video oluşturuluyor...');
+          toast.loading('Video render ediliyor...');
           await generateVideoFromFrames(data.frames, data.animationSettings);
           toast.dismiss();
+          
+          setProgress(100);
+          toast.success('Video oluşturuldu (animasyonlu)');
         } else if (data.frameUrl) {
           setGeneratedPreview(data.frameUrl);
           setVideoFrames([{ frameIndex: 0, imageUrl: data.frameUrl, timestamp: 0 }]);
           await generateVideoFromFrames([{ frameIndex: 0, imageUrl: data.frameUrl, timestamp: 0 }], data.animationSettings);
+          
+          setProgress(100);
+          toast.success('Video oluşturuldu');
         }
-        
-        setProgress(100);
-        toast.success('Video başarıyla oluşturuldu!');
       } else {
         throw new Error(data?.error || 'Video oluşturulamadı');
       }
