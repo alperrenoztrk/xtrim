@@ -210,7 +210,13 @@ const HomeScreen = () => {
         isOpen={textToImageOpen}
         onClose={() => setTextToImageOpen(false)}
         onImageGenerated={(imageUrl) => {
-          toast.success('Görsel oluşturuldu!', { description: 'Görseli indirebilir veya kopyalayabilirsiniz.' });
+          toast.success('Görsel oluşturuldu!', { description: 'Görseli indirebilir veya düzenleyebilirsiniz.' });
+        }}
+        onEditInPhotoEditor={(imageUrl) => {
+          setTextToImageOpen(false);
+          // Store the generated image in sessionStorage for the photo editor
+          sessionStorage.setItem('generatedImage', imageUrl);
+          navigate('/photo-editor?source=generated');
         }}
       />
     </div>
