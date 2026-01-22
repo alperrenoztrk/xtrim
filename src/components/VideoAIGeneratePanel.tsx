@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { X, Sparkles, Video, Wand2, Clock, Crown, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Sparkles, Video, Wand2, Clock, Crown, Loader2, Play, Pause, RotateCcw, Volume2, VolumeX, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -43,6 +43,15 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
+  
+  // Video preview states
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [previewTime, setPreviewTime] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number>(0);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -94,6 +103,76 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Preview animation logic
+  useEffect(() => {
+    if (isPreviewPlaying && generatedPreview) {
+      startTimeRef.current = performance.now() - (previewTime * 1000);
+      
+      const animate = (currentTime: number) => {
+        const elapsed = (currentTime - startTimeRef.current) / 1000;
+        
+        if (elapsed >= duration) {
+          setPreviewTime(0);
+          setIsPreviewPlaying(false);
+          return;
+        }
+        
+        setPreviewTime(elapsed);
+        animationRef.current = requestAnimationFrame(animate);
+      };
+      
+      animationRef.current = requestAnimationFrame(animate);
+      
+      return () => {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
+      };
+    }
+  }, [isPreviewPlaying, duration, generatedPreview]);
+
+  const handlePlayPause = () => {
+    if (isPreviewPlaying) {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    }
+    setIsPreviewPlaying(!isPreviewPlaying);
+  };
+
+  const handleRestart = () => {
+    setPreviewTime(0);
+    setIsPreviewPlaying(true);
+  };
+
+  const handleSeek = (value: number[]) => {
+    setPreviewTime(value[0]);
+    if (isPreviewPlaying) {
+      startTimeRef.current = performance.now() - (value[0] * 1000);
+    }
+  };
+
+  const toggleFullscreen = () => {
+    if (!previewRef.current) return;
+    
+    if (!isFullscreen) {
+      if (previewRef.current.requestFullscreen) {
+        previewRef.current.requestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+    setIsFullscreen(!isFullscreen);
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const handleAddToTimeline = () => {
@@ -239,27 +318,171 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
           </div>
         )}
 
-        {/* Generated Preview */}
-        {generatedPreview && !isGenerating && (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Oluşturulan Video Önizleme</Label>
-            <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-black">
-              <img
-                src={generatedPreview}
-                alt="Generated video preview"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                <div className="p-4 bg-white/20 backdrop-blur-sm rounded-full">
-                  <Video className="w-8 h-8 text-white" />
+        {/* Generated Preview with Video Player */}
+        <AnimatePresence>
+          {generatedPreview && !isGenerating && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="space-y-3"
+            >
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Video className="w-4 h-4 text-purple-500" />
+                Video Önizleme
+              </Label>
+              
+              <div 
+                ref={previewRef}
+                className="relative aspect-video rounded-xl overflow-hidden border-2 border-purple-500/30 bg-black group"
+              >
+                {/* Video Frame with Animation Effects */}
+                <motion.div
+                  className="absolute inset-0"
+                  animate={{
+                    scale: isPreviewPlaying ? [1, 1.02, 1] : 1,
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: isPreviewPlaying ? Infinity : 0,
+                    ease: "easeInOut"
+                  }}
+                >
+                  <img
+                    src={generatedPreview}
+                    alt="Generated video preview"
+                    className="w-full h-full object-cover"
+                    style={{
+                      filter: isPreviewPlaying 
+                        ? `brightness(${1 + Math.sin(previewTime * 0.5) * 0.05})` 
+                        : 'none'
+                    }}
+                  />
+                </motion.div>
+                
+                {/* Cinematic Overlay Effect */}
+                {isPreviewPlaying && (
+                  <motion.div 
+                    className="absolute inset-0 pointer-events-none"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10" />
+                    {/* Film grain effect */}
+                    <div 
+                      className="absolute inset-0 opacity-[0.03]"
+                      style={{
+                        backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
+                        animation: 'noise 0.2s steps(2) infinite'
+                      }}
+                    />
+                  </motion.div>
+                )}
+
+                {/* Play/Pause Overlay */}
+                <div 
+                  className="absolute inset-0 flex items-center justify-center cursor-pointer transition-opacity"
+                  onClick={handlePlayPause}
+                >
+                  <AnimatePresence>
+                    {!isPreviewPlaying && (
+                      <motion.div 
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                        className="p-5 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition-colors"
+                      >
+                        <Play className="w-10 h-10 text-white fill-white" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Video Controls */}
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Progress Bar */}
+                  <div className="mb-2">
+                    <Slider
+                      value={[previewTime]}
+                      onValueChange={handleSeek}
+                      min={0}
+                      max={duration}
+                      step={0.1}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                  
+                  {/* Control Buttons */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-white hover:bg-white/20"
+                        onClick={handlePlayPause}
+                      >
+                        {isPreviewPlaying ? (
+                          <Pause className="w-4 h-4" />
+                        ) : (
+                          <Play className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-white hover:bg-white/20"
+                        onClick={handleRestart}
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-white hover:bg-white/20"
+                        onClick={() => setIsMuted(!isMuted)}
+                      >
+                        {isMuted ? (
+                          <VolumeX className="w-4 h-4" />
+                        ) : (
+                          <Volume2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <span className="text-white text-xs font-mono">
+                        {formatTime(previewTime)} / {formatTime(duration)}
+                      </span>
+                    </div>
+                    
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-white hover:bg-white/20"
+                      onClick={toggleFullscreen}
+                    >
+                      <Maximize2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Style Badge */}
+                <div className="absolute top-2 left-2 px-2 py-1 bg-purple-500/80 backdrop-blur-sm rounded-full text-white text-xs font-medium">
+                  {videoStyles.find(s => s.id === style)?.name}
+                </div>
+
+                {/* Quality Badge */}
+                <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-full text-white text-xs font-medium">
+                  {quality[0]}% Kalite
                 </div>
               </div>
-              <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/60 rounded text-white text-xs">
-                {duration}s
+
+              {/* Preview Info */}
+              <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/50 rounded-lg p-2">
+                <span>Süre: {duration} saniye</span>
+                <span>Stil: {videoStyles.find(s => s.id === style)?.name}</span>
+                <span className="text-green-500 font-medium">✓ Hazır</span>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-2">
