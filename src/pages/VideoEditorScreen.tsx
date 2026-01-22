@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AutoCutPanel } from '@/components/AutoCutPanel';
+import { VideoEnhancePanel } from '@/components/VideoEnhancePanel';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -69,12 +70,12 @@ const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string
 
 const moreMenuItems = [
   { id: 'autocut', icon: Zap, label: 'AutoCut', isAI: true },
+  { id: 'enhance', icon: Wand2, label: 'AI Enhance', isAI: true },
   { id: 'speed', icon: SlidersHorizontal, label: 'Speed' },
   { id: 'filters', icon: Filter, label: 'Filters' },
   { id: 'effects', icon: Sparkles, label: 'Effects' },
   { id: 'crop', icon: Crop, label: 'Crop' },
   { id: 'rotate', icon: RotateCcw, label: 'Rotate' },
-  { id: 'enhance', icon: Wand2, label: 'AI Enhance' },
   { id: 'color', icon: Palette, label: 'Color' },
   { id: 'layers', icon: Layers, label: 'Layers' },
   { id: 'duplicate', icon: Copy, label: 'Duplicate' },
@@ -169,6 +170,7 @@ const VideoEditorScreen = () => {
   const [showTextPanel, setShowTextPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAutoCutPanel, setShowAutoCutPanel] = useState(false);
+  const [showEnhancePanel, setShowEnhancePanel] = useState(false);
   
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
@@ -443,6 +445,21 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowEnhancePanel(false);
+  };
+
+  // Handle Enhance Panel
+  const handleOpenEnhance = () => {
+    if (!selectedMedia || selectedMedia.type !== 'video') {
+      toast.error('Lütfen bir video seçin');
+      return;
+    }
+    setShowEnhancePanel(true);
+    setShowTrimPanel(false);
+    setShowAudioPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+    setShowAutoCutPanel(false);
   };
 
   // Handle AutoCut results - split video at suggested points
@@ -492,6 +509,9 @@ const VideoEditorScreen = () => {
       case 'autocut':
         handleOpenAutoCut();
         return;
+      case 'enhance':
+        handleOpenEnhance();
+        return;
       case 'duplicate':
         if (!selectedClipId || !project) return;
         const clipToDuplicate = project.timeline.find((c) => c.id === selectedClipId);
@@ -513,9 +533,6 @@ const VideoEditorScreen = () => {
         break;
       case 'rotate':
         // Rotate logic - for now just toggle a state
-        break;
-      case 'enhance':
-        // AI enhancement placeholder
         break;
       default:
         break;
@@ -1170,6 +1187,16 @@ const VideoEditorScreen = () => {
             videoDuration={selectedMedia.duration || 10}
             onClose={() => setShowAutoCutPanel(false)}
             onApplyCuts={handleApplyAutoCuts}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Video Enhance Panel */}
+      <AnimatePresence>
+        {showEnhancePanel && selectedMedia?.type === 'video' && (
+          <VideoEnhancePanel
+            videoRef={videoRef}
+            onClose={() => setShowEnhancePanel(false)}
           />
         )}
       </AnimatePresence>
