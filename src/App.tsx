@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,35 +16,44 @@ import SettingsScreen from "./pages/SettingsScreen";
 import ProjectsScreen from "./pages/ProjectsScreen";
 import ExportScreen from "./pages/ExportScreen";
 import NotFound from "./pages/NotFound";
+import { applyTheme, getStoredTheme, subscribeToThemeChanges } from "./lib/theme";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<SplashScreen />} />
-          <Route path="/home" element={<HomeScreen />} />
-          <Route path="/templates" element={<TemplatesScreen />} />
-          <Route path="/editor" element={<VideoEditorScreen />} />
-          <Route path="/editor/:projectId" element={<VideoEditorScreen />} />
-          <Route path="/export/:projectId" element={<ExportScreen />} />
-          <Route path="/settings" element={<SettingsScreen />} />
-          <Route path="/projects" element={<ProjectsScreen />} />
-          <Route path="/ai" element={<HomeScreen />} />
-          <Route path="/audio" element={<AudioEditorScreen />} />
-          <Route path="/audio/:projectId" element={<AudioEditorScreen />} />
-          <Route path="/photo-editor" element={<PhotoEditorScreen />} />
-          <Route path="/collage" element={<CollageMakerScreen />} />
-          <Route path="/photo-audio" element={<PhotoAudioScreen />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  useEffect(() => {
+    const updateTheme = () => applyTheme(getStoredTheme());
+    updateTheme();
+    return subscribeToThemeChanges(updateTheme);
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<SplashScreen />} />
+            <Route path="/home" element={<HomeScreen />} />
+            <Route path="/templates" element={<TemplatesScreen />} />
+            <Route path="/editor" element={<VideoEditorScreen />} />
+            <Route path="/editor/:projectId" element={<VideoEditorScreen />} />
+            <Route path="/export/:projectId" element={<ExportScreen />} />
+            <Route path="/settings" element={<SettingsScreen />} />
+            <Route path="/projects" element={<ProjectsScreen />} />
+            <Route path="/ai" element={<HomeScreen />} />
+            <Route path="/audio" element={<AudioEditorScreen />} />
+            <Route path="/audio/:projectId" element={<AudioEditorScreen />} />
+            <Route path="/photo-editor" element={<PhotoEditorScreen />} />
+            <Route path="/collage" element={<CollageMakerScreen />} />
+            <Route path="/photo-audio" element={<PhotoAudioScreen />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
