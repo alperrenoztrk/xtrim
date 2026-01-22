@@ -41,7 +41,7 @@ export interface ExportSettings {
   resolution: '720p' | '1080p' | '4k';
   fps: 24 | 30 | 60;
   bitrate: 'low' | 'medium' | 'high';
-  format: 'mp4';
+  format: 'mp4' | 'webm' | 'mov' | 'gif';
 }
 
 export interface Project {
