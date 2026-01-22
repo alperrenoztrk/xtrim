@@ -211,6 +211,22 @@ const VideoEditorScreen = () => {
   const [selectedTextOverlayId, setSelectedTextOverlayId] = useState<string | null>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
+  // Handle phone back button - navigate only one page back
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      event.preventDefault();
+      navigate(-1);
+    };
+
+    // Push a new state so back button triggers popstate
+    window.history.pushState({ page: 'editor' }, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [navigate]);
+
   const saveProject = useCallback(
     (updatedProject: Project) => {
       if (project) {
