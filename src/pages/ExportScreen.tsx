@@ -14,10 +14,20 @@ import {
   Share2,
   FolderDown,
   Play,
-  Smartphone as PhoneIcon,
+  FileVideo,
+  ChevronDown,
+  ChevronUp,
+  Instagram,
+  Youtube,
+  Clapperboard,
+  HardDrive,
+  Zap,
+  Clock,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 import { ProjectService } from '@/services/ProjectService';
 import { MediaService } from '@/services/MediaService';
 import { nativeExportService } from '@/services/NativeExportService';
@@ -26,41 +36,79 @@ import { toast } from 'sonner';
 import type { Project, ExportSettings } from '@/types';
 
 type ExportStatus = 'idle' | 'preparing' | 'exporting' | 'finalizing' | 'complete' | 'error';
+type ExportFormat = 'mp4' | 'webm' | 'mov' | 'gif';
 
 interface ResolutionOption {
   id: ExportSettings['resolution'];
   label: string;
   description: string;
+  width: number;
+  height: number;
   icon: React.ComponentType<any>;
 }
 
 interface FpsOption {
   value: ExportSettings['fps'];
   label: string;
+  description: string;
 }
 
 interface QualityOption {
   id: ExportSettings['bitrate'];
   label: string;
   description: string;
+  bitrateMbps: number;
+}
+
+interface FormatOption {
+  id: ExportFormat;
+  label: string;
+  codec: string;
+  description: string;
+  icon: React.ComponentType<any>;
+}
+
+interface SocialPreset {
+  id: string;
+  name: string;
+  icon: React.ComponentType<any>;
+  resolution: ExportSettings['resolution'];
+  fps: ExportSettings['fps'];
+  aspectRatio: string;
+  maxDuration?: number;
 }
 
 const resolutionOptions: ResolutionOption[] = [
-  { id: '720p', label: 'HD 720p', description: '1280 × 720', icon: Smartphone },
-  { id: '1080p', label: 'Full HD 1080p', description: '1920 × 1080', icon: Monitor },
-  { id: '4k', label: '4K Ultra HD', description: '3840 × 2160', icon: Film },
+  { id: '720p', label: 'HD', description: '1280 × 720', width: 1280, height: 720, icon: Smartphone },
+  { id: '1080p', label: 'Full HD', description: '1920 × 1080', width: 1920, height: 1080, icon: Monitor },
+  { id: '4k', label: '4K UHD', description: '3840 × 2160', width: 3840, height: 2160, icon: Film },
 ];
 
 const fpsOptions: FpsOption[] = [
-  { value: 24, label: '24 FPS' },
-  { value: 30, label: '30 FPS' },
-  { value: 60, label: '60 FPS' },
+  { value: 24, label: '24', description: 'Sinematik' },
+  { value: 30, label: '30', description: 'Standart' },
+  { value: 60, label: '60', description: 'Akıcı' },
 ];
 
 const qualityOptions: QualityOption[] = [
-  { id: 'low', label: 'Düşük', description: 'Küçük dosya boyutu' },
-  { id: 'medium', label: 'Orta', description: 'Dengeli' },
-  { id: 'high', label: 'Yüksek', description: 'En iyi kalite' },
+  { id: 'low', label: 'Ekonomik', description: 'Küçük boyut', bitrateMbps: 4 },
+  { id: 'medium', label: 'Dengeli', description: 'Önerilen', bitrateMbps: 8 },
+  { id: 'high', label: 'Maksimum', description: 'En iyi kalite', bitrateMbps: 16 },
+];
+
+const formatOptions: FormatOption[] = [
+  { id: 'mp4', label: 'MP4', codec: 'H.264/AAC', description: 'En uyumlu format', icon: FileVideo },
+  { id: 'webm', label: 'WebM', codec: 'VP9/Opus', description: 'Web için optimize', icon: Clapperboard },
+  { id: 'mov', label: 'MOV', codec: 'ProRes', description: 'Apple cihazlar', icon: Film },
+  { id: 'gif', label: 'GIF', codec: 'Animasyon', description: 'Kısa klipler için', icon: Zap },
+];
+
+const socialPresets: SocialPreset[] = [
+  { id: 'instagram-reel', name: 'Instagram Reels', icon: Instagram, resolution: '1080p', fps: 30, aspectRatio: '9:16', maxDuration: 90 },
+  { id: 'instagram-post', name: 'Instagram Post', icon: Instagram, resolution: '1080p', fps: 30, aspectRatio: '1:1', maxDuration: 60 },
+  { id: 'youtube', name: 'YouTube', icon: Youtube, resolution: '1080p', fps: 30, aspectRatio: '16:9' },
+  { id: 'youtube-shorts', name: 'YouTube Shorts', icon: Youtube, resolution: '1080p', fps: 30, aspectRatio: '9:16', maxDuration: 60 },
+  { id: 'tiktok', name: 'TikTok', icon: Clapperboard, resolution: '1080p', fps: 30, aspectRatio: '9:16', maxDuration: 180 },
 ];
 
 const ExportScreen = () => {
@@ -78,37 +126,52 @@ const ExportScreen = () => {
     format: 'mp4',
   });
 
+  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('mp4');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [enableHDR, setEnableHDR] = useState(false);
+  const [enableFastStart, setEnableFastStart] = useState(true);
+  const [removeAudio, setRemoveAudio] = useState(false);
+
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const [estimatedSize, setEstimatedSize] = useState('0 MB');
+  const [estimatedTime, setEstimatedTime] = useState('0 dk');
   const [exportedVideoBlob, setExportedVideoBlob] = useState<Blob | null>(null);
   const [isNative] = useState(nativeExportService.isNativePlatform());
-  const [platform] = useState(nativeExportService.getPlatform());
 
-  // Calculate estimated file size
+  // Calculate estimated file size and time
   useEffect(() => {
     if (!project) return;
 
     const duration = project.duration;
-    let bitrateMultiplier = 1;
+    const quality = qualityOptions.find(q => q.id === settings.bitrate);
+    const resolution = resolutionOptions.find(r => r.id === settings.resolution);
+    
+    let bitrateMultiplier = quality?.bitrateMbps || 8;
     let resolutionMultiplier = 1;
 
-    switch (settings.bitrate) {
-      case 'low': bitrateMultiplier = 0.5; break;
-      case 'medium': bitrateMultiplier = 1; break;
-      case 'high': bitrateMultiplier = 2; break;
-    }
-
     switch (settings.resolution) {
-      case '720p': resolutionMultiplier = 1; break;
-      case '1080p': resolutionMultiplier = 2.25; break;
-      case '4k': resolutionMultiplier = 9; break;
+      case '720p': resolutionMultiplier = 0.5; break;
+      case '1080p': resolutionMultiplier = 1; break;
+      case '4k': resolutionMultiplier = 4; break;
     }
 
-    // Base: ~5MB per minute at 1080p medium quality
-    const baseMBPerMinute = 5;
-    const estimatedMB = (duration / 60) * baseMBPerMinute * bitrateMultiplier * resolutionMultiplier;
+    // Format affects size
+    let formatMultiplier = 1;
+    switch (selectedFormat) {
+      case 'mp4': formatMultiplier = 1; break;
+      case 'webm': formatMultiplier = 0.8; break;
+      case 'mov': formatMultiplier = 1.5; break;
+      case 'gif': formatMultiplier = 3; break;
+    }
+
+    // FPS affects size
+    let fpsMultiplier = settings.fps / 30;
+
+    // Calculate size in MB: (duration in seconds * bitrate in Mbps) / 8
+    const estimatedMB = (duration * bitrateMultiplier * resolutionMultiplier * formatMultiplier * fpsMultiplier) / 8;
 
     if (estimatedMB < 1) {
       setEstimatedSize(`${Math.round(estimatedMB * 1024)} KB`);
@@ -117,7 +180,26 @@ const ExportScreen = () => {
     } else {
       setEstimatedSize(`${Math.round(estimatedMB)} MB`);
     }
-  }, [project, settings]);
+
+    // Estimate export time (roughly 2x realtime for 1080p medium)
+    const timeMultiplier = resolutionMultiplier * (settings.fps / 30) * (bitrateMultiplier / 8);
+    const estimatedSeconds = duration * timeMultiplier * 0.5;
+    
+    if (estimatedSeconds < 60) {
+      setEstimatedTime(`~${Math.max(5, Math.round(estimatedSeconds))} sn`);
+    } else {
+      setEstimatedTime(`~${Math.round(estimatedSeconds / 60)} dk`);
+    }
+  }, [project, settings, selectedFormat]);
+
+  const handlePresetSelect = (preset: SocialPreset) => {
+    setSelectedPreset(preset.id);
+    setSettings(prev => ({
+      ...prev,
+      resolution: preset.resolution,
+      fps: preset.fps,
+    }));
+  };
 
   const handleStartExport = async () => {
     if (!project) return;
@@ -138,10 +220,10 @@ const ExportScreen = () => {
     // Simulate export process
     const steps = [
       { status: 'preparing' as ExportStatus, message: 'Medya dosyaları analiz ediliyor...', duration: 1000 },
-      { status: 'exporting' as ExportStatus, message: 'Video işleniyor...', duration: 3000 },
-      { status: 'exporting' as ExportStatus, message: 'Ses ekleniyor...', duration: 1500 },
+      { status: 'exporting' as ExportStatus, message: `${selectedFormat.toUpperCase()} formatında kodlanıyor...`, duration: 3000 },
+      { status: 'exporting' as ExportStatus, message: 'Ses işleniyor...', duration: removeAudio ? 500 : 1500 },
       { status: 'exporting' as ExportStatus, message: 'Efektler uygulanıyor...', duration: 2000 },
-      { status: 'finalizing' as ExportStatus, message: 'Dosya oluşturuluyor...', duration: 1500 },
+      { status: 'finalizing' as ExportStatus, message: enableFastStart ? 'Fast-start optimize ediliyor...' : 'Dosya oluşturuluyor...', duration: 1500 },
       { status: 'complete' as ExportStatus, message: 'Dışa aktarma tamamlandı!', duration: 0 },
     ];
 
@@ -176,14 +258,16 @@ const ExportScreen = () => {
 
     setProgress(100);
 
-    // Create a simulated video blob (in real app, this would be actual rendered video)
-    // For demo purposes, we create a sample blob
-    const sampleVideoData = new Uint8Array([0, 0, 0, 32, 102, 116, 121, 112]); // MP4 header sample
-    const videoBlob = new Blob([sampleVideoData], { type: 'video/mp4' });
+    // Create a simulated video blob
+    const sampleVideoData = new Uint8Array([0, 0, 0, 32, 102, 116, 121, 112]);
+    const mimeType = selectedFormat === 'webm' ? 'video/webm' : 
+                     selectedFormat === 'mov' ? 'video/quicktime' : 
+                     selectedFormat === 'gif' ? 'image/gif' : 'video/mp4';
+    const videoBlob = new Blob([sampleVideoData], { type: mimeType });
     setExportedVideoBlob(videoBlob);
 
     // Save export settings to project
-    const updatedProject = { ...project, exportSettings: settings };
+    const updatedProject = { ...project, exportSettings: { ...settings, format: selectedFormat } };
     ProjectService.saveProject(updatedProject);
 
     toast.success('Video başarıyla oluşturuldu!');
@@ -199,14 +283,14 @@ const ExportScreen = () => {
   const handleShare = async () => {
     if (!project) return;
 
-    const fileName = `${project.name.replace(/\s+/g, '_')}.mp4`;
+    const ext = selectedFormat === 'gif' ? 'gif' : selectedFormat;
+    const fileName = `${project.name.replace(/\s+/g, '_')}.${ext}`;
 
     if (exportedVideoBlob) {
       const success = await nativeExportService.shareVideoBlob(exportedVideoBlob, fileName);
       if (success) {
         toast.success('Paylaşım başarılı!');
       } else if (navigator.share) {
-        // Web fallback
         try {
           await navigator.share({
             title: project.name,
@@ -224,7 +308,8 @@ const ExportScreen = () => {
   const handleSaveToDevice = async () => {
     if (!project || !exportedVideoBlob) return;
 
-    const fileName = `${project.name.replace(/\s+/g, '_')}.mp4`;
+    const ext = selectedFormat === 'gif' ? 'gif' : selectedFormat;
+    const fileName = `${project.name.replace(/\s+/g, '_')}.${ext}`;
 
     const result = await nativeExportService.saveVideoToDevice(exportedVideoBlob, fileName);
 
@@ -248,6 +333,8 @@ const ExportScreen = () => {
   }
 
   const isExporting = exportStatus !== 'idle' && exportStatus !== 'complete' && exportStatus !== 'error';
+  const currentResolution = resolutionOptions.find(r => r.id === settings.resolution);
+  const currentFormat = formatOptions.find(f => f.id === selectedFormat);
 
   return (
     <div className="min-h-screen bg-background safe-area-top safe-area-bottom">
@@ -269,7 +356,7 @@ const ExportScreen = () => {
         </div>
       </header>
 
-      <div className="p-4 space-y-6 max-w-lg mx-auto">
+      <div className="p-4 space-y-6 max-w-lg mx-auto pb-24">
         {/* Preview */}
         <div className="aspect-video bg-secondary rounded-xl overflow-hidden relative">
           {project.mediaItems[0]?.thumbnail ? (
@@ -283,8 +370,12 @@ const ExportScreen = () => {
               <Film className="w-12 h-12 text-muted-foreground" />
             </div>
           )}
-          <div className="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded text-xs text-white">
+          <div className="absolute bottom-2 left-2 bg-black/70 px-2 py-1 rounded text-xs text-white flex items-center gap-1">
+            <Clock className="w-3 h-3" />
             {MediaService.formatDuration(project.duration)}
+          </div>
+          <div className="absolute bottom-2 right-2 bg-primary/90 px-2 py-1 rounded text-xs text-primary-foreground font-medium">
+            {currentResolution?.description}
           </div>
         </div>
 
@@ -309,8 +400,8 @@ const ExportScreen = () => {
                   <p className="font-medium text-foreground">{progressMessage}</p>
                   <p className="text-xs text-muted-foreground">
                     {exportStatus === 'complete'
-                      ? 'Video hazır'
-                      : `${Math.round(progress)}%`}
+                      ? `${currentFormat?.label} formatında hazır`
+                      : `${Math.round(progress)}% tamamlandı`}
                   </p>
                 </div>
                 {isExporting && (
@@ -345,6 +436,66 @@ const ExportScreen = () => {
             animate={{ opacity: 1 }}
             className="space-y-6"
           >
+            {/* Social Media Presets */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Share2 className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-medium text-foreground">Hızlı Presetler</h3>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                {socialPresets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => handlePresetSelect(preset)}
+                    className={cn(
+                      'flex-shrink-0 flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all min-w-[80px]',
+                      selectedPreset === preset.id
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border bg-card hover:border-primary/50'
+                    )}
+                  >
+                    <preset.icon className={cn(
+                      'w-5 h-5',
+                      selectedPreset === preset.id ? 'text-primary' : 'text-muted-foreground'
+                    )} />
+                    <span className="text-[10px] font-medium text-center leading-tight">{preset.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Format */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <FileVideo className="w-4 h-4 text-muted-foreground" />
+                <h3 className="font-medium text-foreground">Format</h3>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {formatOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => {
+                      setSelectedFormat(option.id);
+                      setSelectedPreset(null);
+                    }}
+                    className={cn(
+                      'flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all',
+                      selectedFormat === option.id
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border bg-card hover:border-primary/50'
+                    )}
+                  >
+                    <option.icon className={cn(
+                      'w-5 h-5',
+                      selectedFormat === option.id ? 'text-primary' : 'text-muted-foreground'
+                    )} />
+                    <span className="text-xs font-bold">{option.label}</span>
+                    <span className="text-[9px] text-muted-foreground">{option.codec}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Resolution */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -355,7 +506,10 @@ const ExportScreen = () => {
                 {resolutionOptions.map((option) => (
                   <button
                     key={option.id}
-                    onClick={() => setSettings({ ...settings, resolution: option.id })}
+                    onClick={() => {
+                      setSettings({ ...settings, resolution: option.id });
+                      setSelectedPreset(null);
+                    }}
                     className={cn(
                       'flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all',
                       settings.resolution === option.id
@@ -374,75 +528,168 @@ const ExportScreen = () => {
               </div>
             </div>
 
-            {/* FPS */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Play className="w-4 h-4 text-muted-foreground" />
-                <h3 className="font-medium text-foreground">Kare Hızı (FPS)</h3>
+            {/* FPS & Quality Row */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* FPS */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="font-medium text-foreground text-sm">Kare Hızı</h3>
+                </div>
+                <div className="flex gap-1">
+                  {fpsOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setSettings({ ...settings, fps: option.value });
+                        setSelectedPreset(null);
+                      }}
+                      className={cn(
+                        'flex-1 py-2.5 rounded-lg border-2 transition-all',
+                        settings.fps === option.value
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-card hover:border-primary/50'
+                      )}
+                    >
+                      <span className={cn(
+                        'text-sm font-bold block',
+                        settings.fps === option.value ? 'text-primary' : 'text-foreground'
+                      )}>{option.label}</span>
+                      <span className="text-[9px] text-muted-foreground">{option.description}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-2">
-                {fpsOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setSettings({ ...settings, fps: option.value })}
-                    className={cn(
-                      'flex-1 py-3 px-4 rounded-xl border-2 transition-all text-sm font-medium',
-                      settings.fps === option.value
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border bg-card hover:border-primary/50 text-foreground'
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+
+              {/* Quality */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Settings2 className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="font-medium text-foreground text-sm">Kalite</h3>
+                </div>
+                <div className="flex gap-1">
+                  {qualityOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() => setSettings({ ...settings, bitrate: option.id })}
+                      className={cn(
+                        'flex-1 py-2.5 rounded-lg border-2 transition-all',
+                        settings.bitrate === option.id
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-card hover:border-primary/50'
+                      )}
+                    >
+                      <span className={cn(
+                        'text-[10px] font-bold block',
+                        settings.bitrate === option.id ? 'text-primary' : 'text-foreground'
+                      )}>{option.label}</span>
+                      <span className="text-[8px] text-muted-foreground">{option.bitrateMbps}Mbps</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Quality / Bitrate */}
-            <div className="space-y-3">
+            {/* Advanced Settings Toggle */}
+            <button
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="w-full flex items-center justify-between py-3 px-4 bg-secondary/50 rounded-xl"
+            >
               <div className="flex items-center gap-2">
                 <Settings2 className="w-4 h-4 text-muted-foreground" />
-                <h3 className="font-medium text-foreground">Kalite</h3>
+                <span className="text-sm font-medium">Gelişmiş Ayarlar</span>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                {qualityOptions.map((option) => (
-                  <button
-                    key={option.id}
-                    onClick={() => setSettings({ ...settings, bitrate: option.id })}
-                    className={cn(
-                      'flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all',
-                      settings.bitrate === option.id
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-card hover:border-primary/50'
-                    )}
-                  >
-                    <span className={cn(
-                      'text-sm font-medium',
-                      settings.bitrate === option.id ? 'text-primary' : 'text-foreground'
-                    )}>
-                      {option.label}
-                    </span>
-                    <span className="text-xxs text-muted-foreground">{option.description}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+              {showAdvanced ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
 
-            {/* Format Info */}
-            <div className="bg-secondary/50 rounded-xl p-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Format</span>
-                <span className="text-foreground font-medium">MP4 (H.264)</span>
+            {/* Advanced Settings */}
+            <AnimatePresence>
+              {showAdvanced && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-4 overflow-hidden"
+                >
+                  <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+                    {/* Fast Start */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Zap className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Fast Start</p>
+                          <p className="text-xs text-muted-foreground">Web için hızlı oynatma başlangıcı</p>
+                        </div>
+                      </div>
+                      <Switch checked={enableFastStart} onCheckedChange={setEnableFastStart} />
+                    </div>
+
+                    {/* HDR */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Monitor className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">HDR</p>
+                          <p className="text-xs text-muted-foreground">Yüksek dinamik aralık (varsa)</p>
+                        </div>
+                      </div>
+                      <Switch checked={enableHDR} onCheckedChange={setEnableHDR} />
+                    </div>
+
+                    {/* Remove Audio */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Film className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Sessiz Video</p>
+                          <p className="text-xs text-muted-foreground">Ses olmadan dışa aktar</p>
+                        </div>
+                      </div>
+                      <Switch checked={removeAudio} onCheckedChange={setRemoveAudio} />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Export Summary */}
+            <div className="bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Info className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-primary">Dışa Aktarma Özeti</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Süre</span>
-                <span className="text-foreground font-medium">
-                  {MediaService.formatDuration(project.duration)}
-                </span>
+              <div className="grid grid-cols-2 gap-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Format:</span>
+                  <span className="font-medium">{currentFormat?.label} ({currentFormat?.codec})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Çözünürlük:</span>
+                  <span className="font-medium">{currentResolution?.description}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">FPS:</span>
+                  <span className="font-medium">{settings.fps}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Bitrate:</span>
+                  <span className="font-medium">{qualityOptions.find(q => q.id === settings.bitrate)?.bitrateMbps} Mbps</span>
+                </div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Tahmini Boyut</span>
-                <span className="text-foreground font-medium">{estimatedSize}</span>
+              <div className="flex justify-between pt-2 border-t border-primary/10">
+                <div className="flex items-center gap-2">
+                  <HardDrive className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Tahmini Boyut:</span>
+                  <span className="text-sm font-bold text-primary">{estimatedSize}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">{estimatedTime}</span>
+                </div>
               </div>
             </div>
 
