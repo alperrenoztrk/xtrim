@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.ai-image-generate]
 verify_jwt = false
+
+[functions.ai-video-generate]
+verify_jwt = false
