@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
   ArrowLeft,
@@ -165,6 +165,7 @@ const TimelineClipItem = ({
 const VideoEditorScreen = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
+  const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -229,6 +230,18 @@ const VideoEditorScreen = () => {
       window.removeEventListener('popstate', handlePopState);
     };
   }, [navigate]);
+
+  // Handle URL tool parameter to open panels automatically
+  useEffect(() => {
+    const tool = searchParams.get('tool');
+    if (tool === 'ai-generate') {
+      setShowAIGeneratePanel(true);
+    } else if (tool === 'autocut') {
+      setShowAutoCutPanel(true);
+    } else if (tool === 'enhance') {
+      setShowEnhancePanel(true);
+    }
+  }, [searchParams]);
 
   const saveProject = useCallback(
     (updatedProject: Project) => {
