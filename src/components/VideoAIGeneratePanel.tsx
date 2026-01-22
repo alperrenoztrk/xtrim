@@ -43,6 +43,10 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
+  const [videoFrames, setVideoFrames] = useState<Array<{frameIndex: number; imageUrl: string; timestamp: number}>>([]);
+  const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
+  const [isExportingVideo, setIsExportingVideo] = useState(false);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   
   // Video preview states
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
@@ -50,6 +54,8 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
 
@@ -62,18 +68,20 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
     setIsGenerating(true);
     setProgress(0);
     setGeneratedPreview(null);
+    setVideoFrames([]);
+    setGeneratedVideoUrl(null);
 
     try {
       // Simulate progress for UX
       const progressInterval = setInterval(() => {
         setProgress(prev => {
-          if (prev >= 90) {
+          if (prev >= 85) {
             clearInterval(progressInterval);
-            return 90;
+            return 85;
           }
-          return prev + Math.random() * 15;
+          return prev + Math.random() * 10;
         });
-      }, 500);
+      }, 800);
 
       const { data, error } = await supabase.functions.invoke('ai-video-generate', {
         body: {
@@ -90,10 +98,26 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
         throw new Error(error.message);
       }
 
-      if (data?.success && data?.frameUrl) {
+      if (data?.success) {
+        setProgress(90);
+        
+        // Store all frames for video generation
+        if (data.frames && data.frames.length > 0) {
+          setVideoFrames(data.frames);
+          setGeneratedPreview(data.primaryFrame || data.frames[0].imageUrl);
+          
+          // Auto-generate video from frames
+          toast.loading('Video oluşturuluyor...');
+          await generateVideoFromFrames(data.frames, data.animationSettings);
+          toast.dismiss();
+        } else if (data.frameUrl) {
+          setGeneratedPreview(data.frameUrl);
+          setVideoFrames([{ frameIndex: 0, imageUrl: data.frameUrl, timestamp: 0 }]);
+          await generateVideoFromFrames([{ frameIndex: 0, imageUrl: data.frameUrl, timestamp: 0 }], data.animationSettings);
+        }
+        
         setProgress(100);
-        setGeneratedPreview(data.frameUrl);
-        toast.success('Video oluşturuldu!');
+        toast.success('Video başarıyla oluşturuldu!');
       } else {
         throw new Error(data?.error || 'Video oluşturulamadı');
       }
@@ -102,6 +126,196 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
       toast.error(error instanceof Error ? error.message : 'Video oluşturma hatası');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // Generate animated video from frames using Canvas API
+  const generateVideoFromFrames = async (
+    frames: Array<{frameIndex: number; imageUrl: string; timestamp: number}>,
+    animationSettings?: { type: string; fps: number }
+  ) => {
+    try {
+      setIsExportingVideo(true);
+      
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context not available');
+
+      // Set canvas dimensions (16:9 aspect ratio)
+      const width = 1280;
+      const height = 720;
+      canvas.width = width;
+      canvas.height = height;
+
+      // Load all frame images
+      const loadedImages = await Promise.all(
+        frames.map(frame => {
+          return new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = frame.imageUrl;
+          });
+        })
+      );
+
+      // Create MediaRecorder for video encoding
+      const stream = canvas.captureStream(animationSettings?.fps || 30);
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp9',
+        videoBitsPerSecond: quality[0] >= 80 ? 5000000 : 2500000
+      });
+
+      const chunks: Blob[] = [];
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      const videoPromise = new Promise<string>((resolve) => {
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          resolve(url);
+        };
+      });
+
+      mediaRecorder.start();
+
+      // Animation parameters
+      const fps = animationSettings?.fps || 30;
+      const totalFrames = duration * fps;
+      const framesPerImage = totalFrames / loadedImages.length;
+      const animationType = animationSettings?.type || 'slow-zoom-pan';
+
+      // Render frames with animation effects
+      for (let frameNum = 0; frameNum < totalFrames; frameNum++) {
+        const imageIndex = Math.min(Math.floor(frameNum / framesPerImage), loadedImages.length - 1);
+        const img = loadedImages[imageIndex];
+        const localProgress = (frameNum % framesPerImage) / framesPerImage;
+        const globalProgress = frameNum / totalFrames;
+
+        // Clear canvas
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, width, height);
+
+        // Apply animation effects based on style
+        ctx.save();
+        
+        switch (animationType) {
+          case 'slow-zoom-pan': {
+            const zoom = 1 + globalProgress * 0.15;
+            const panX = Math.sin(globalProgress * Math.PI) * 50;
+            const panY = Math.cos(globalProgress * Math.PI * 0.5) * 30;
+            ctx.translate(width / 2 + panX, height / 2 + panY);
+            ctx.scale(zoom, zoom);
+            ctx.translate(-width / 2, -height / 2);
+            break;
+          }
+          case 'dynamic-motion': {
+            const bounce = Math.sin(globalProgress * Math.PI * 4) * 10;
+            const zoom = 1 + Math.sin(globalProgress * Math.PI) * 0.1;
+            ctx.translate(width / 2, height / 2 + bounce);
+            ctx.scale(zoom, zoom);
+            ctx.translate(-width / 2, -height / 2);
+            break;
+          }
+          case 'subtle-parallax': {
+            const parallax = globalProgress * 100;
+            ctx.translate(-parallax * 0.5, 0);
+            break;
+          }
+          case 'rotate-orbit': {
+            const rotation = globalProgress * 0.05;
+            const zoom = 1 + Math.sin(globalProgress * Math.PI) * 0.08;
+            ctx.translate(width / 2, height / 2);
+            ctx.rotate(rotation);
+            ctx.scale(zoom, zoom);
+            ctx.translate(-width / 2, -height / 2);
+            break;
+          }
+          case 'film-flicker': {
+            const flicker = 0.9 + Math.random() * 0.1;
+            ctx.globalAlpha = flicker;
+            const zoom = 1 + globalProgress * 0.1;
+            ctx.translate(width / 2, height / 2);
+            ctx.scale(zoom, zoom);
+            ctx.translate(-width / 2, -height / 2);
+            break;
+          }
+          default: {
+            const zoom = 1 + globalProgress * 0.12;
+            ctx.translate(width / 2, height / 2);
+            ctx.scale(zoom, zoom);
+            ctx.translate(-width / 2, -height / 2);
+          }
+        }
+
+        // Draw image covering canvas
+        const imgAspect = img.width / img.height;
+        const canvasAspect = width / height;
+        let drawWidth, drawHeight, drawX, drawY;
+
+        if (imgAspect > canvasAspect) {
+          drawHeight = height * 1.2;
+          drawWidth = drawHeight * imgAspect;
+          drawX = (width - drawWidth) / 2;
+          drawY = (height - drawHeight) / 2;
+        } else {
+          drawWidth = width * 1.2;
+          drawHeight = drawWidth / imgAspect;
+          drawX = (width - drawWidth) / 2;
+          drawY = (height - drawHeight) / 2;
+        }
+
+        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+        ctx.restore();
+
+        // Add cinematic bars for cinematic style
+        if (style === 'cinematic') {
+          ctx.fillStyle = 'rgba(0,0,0,0.85)';
+          ctx.fillRect(0, 0, width, height * 0.1);
+          ctx.fillRect(0, height * 0.9, width, height * 0.1);
+        }
+
+        // Add vintage grain effect
+        if (style === 'vintage') {
+          ctx.globalAlpha = 0.05;
+          for (let i = 0; i < 1000; i++) {
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            const gray = Math.random() * 255;
+            ctx.fillStyle = `rgb(${gray},${gray},${gray})`;
+            ctx.fillRect(x, y, 1, 1);
+          }
+          ctx.globalAlpha = 1;
+        }
+
+        // Crossfade between images
+        if (loadedImages.length > 1 && localProgress > 0.7) {
+          const nextIndex = Math.min(imageIndex + 1, loadedImages.length - 1);
+          if (nextIndex !== imageIndex) {
+            const fadeAlpha = (localProgress - 0.7) / 0.3;
+            ctx.globalAlpha = fadeAlpha;
+            ctx.drawImage(loadedImages[nextIndex], drawX, drawY, drawWidth, drawHeight);
+            ctx.globalAlpha = 1;
+          }
+        }
+
+        // Wait for next frame timing
+        await new Promise(resolve => setTimeout(resolve, 1000 / fps));
+      }
+
+      mediaRecorder.stop();
+      const videoUrl = await videoPromise;
+      setGeneratedVideoUrl(videoUrl);
+      setIsExportingVideo(false);
+      
+    } catch (error) {
+      console.error('Video export error:', error);
+      setIsExportingVideo(false);
+      // Fallback to image-based preview if video generation fails
+      toast.error('Video oluşturulamadı, görsel önizleme kullanılıyor');
     }
   };
 
@@ -134,23 +348,40 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
   }, [isPreviewPlaying, duration, generatedPreview]);
 
   const handlePlayPause = () => {
-    if (isPreviewPlaying) {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+    if (generatedVideoUrl && videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+      } else {
+        videoRef.current.pause();
       }
+    } else {
+      if (isPreviewPlaying) {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
+      }
+      setIsPreviewPlaying(!isPreviewPlaying);
     }
-    setIsPreviewPlaying(!isPreviewPlaying);
   };
 
   const handleRestart = () => {
-    setPreviewTime(0);
-    setIsPreviewPlaying(true);
+    if (generatedVideoUrl && videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play();
+    } else {
+      setPreviewTime(0);
+      setIsPreviewPlaying(true);
+    }
   };
 
   const handleSeek = (value: number[]) => {
-    setPreviewTime(value[0]);
-    if (isPreviewPlaying) {
-      startTimeRef.current = performance.now() - (value[0] * 1000);
+    if (generatedVideoUrl && videoRef.current) {
+      videoRef.current.currentTime = value[0];
+    } else {
+      setPreviewTime(value[0]);
+      if (isPreviewPlaying) {
+        startTimeRef.current = performance.now() - (value[0] * 1000);
+      }
     }
   };
 
@@ -176,8 +407,10 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
   };
 
   const handleAddToTimeline = () => {
-    if (generatedPreview) {
-      onVideoGenerated(generatedPreview, duration);
+    // Use generated video URL if available, otherwise use the preview image
+    const mediaUrl = generatedVideoUrl || generatedPreview;
+    if (mediaUrl) {
+      onVideoGenerated(mediaUrl, duration);
       toast.success('Video zaman çizelgesine eklendi');
       onClose();
     }
@@ -320,7 +553,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
 
         {/* Generated Preview with Video Player */}
         <AnimatePresence>
-          {generatedPreview && !isGenerating && (
+          {(generatedPreview || generatedVideoUrl) && !isGenerating && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -330,50 +563,83 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
               <Label className="text-sm font-medium flex items-center gap-2">
                 <Video className="w-4 h-4 text-purple-500" />
                 Video Önizleme
+                {generatedVideoUrl && (
+                  <span className="px-2 py-0.5 bg-green-500/20 text-green-500 text-xs rounded-full">
+                    ✓ Video Hazır
+                  </span>
+                )}
+                {isExportingVideo && (
+                  <span className="px-2 py-0.5 bg-purple-500/20 text-purple-500 text-xs rounded-full flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Video Render
+                  </span>
+                )}
               </Label>
               
               <div 
                 ref={previewRef}
                 className="relative aspect-video rounded-xl overflow-hidden border-2 border-purple-500/30 bg-black group"
               >
-                {/* Video Frame with Animation Effects */}
-                <motion.div
-                  className="absolute inset-0"
-                  animate={{
-                    scale: isPreviewPlaying ? [1, 1.02, 1] : 1,
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: isPreviewPlaying ? Infinity : 0,
-                    ease: "easeInOut"
-                  }}
-                >
-                  <img
-                    src={generatedPreview}
-                    alt="Generated video preview"
+                {/* Show actual video if available */}
+                {generatedVideoUrl ? (
+                  <video
+                    ref={videoRef}
+                    src={generatedVideoUrl}
                     className="w-full h-full object-cover"
-                    style={{
-                      filter: isPreviewPlaying 
-                        ? `brightness(${1 + Math.sin(previewTime * 0.5) * 0.05})` 
-                        : 'none'
+                    loop
+                    muted={isMuted}
+                    playsInline
+                    onPlay={() => setIsPreviewPlaying(true)}
+                    onPause={() => setIsPreviewPlaying(false)}
+                    onTimeUpdate={(e) => setPreviewTime(e.currentTarget.currentTime)}
+                    onClick={() => {
+                      if (videoRef.current) {
+                        if (videoRef.current.paused) {
+                          videoRef.current.play();
+                        } else {
+                          videoRef.current.pause();
+                        }
+                      }
                     }}
                   />
-                </motion.div>
+                ) : (
+                  /* Fallback to animated image preview */
+                  <motion.div
+                    className="absolute inset-0"
+                    animate={{
+                      scale: isPreviewPlaying ? [1, 1.02, 1] : 1,
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: isPreviewPlaying ? Infinity : 0,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <img
+                      src={generatedPreview || ''}
+                      alt="Generated video preview"
+                      className="w-full h-full object-cover"
+                      style={{
+                        filter: isPreviewPlaying 
+                          ? `brightness(${1 + Math.sin(previewTime * 0.5) * 0.05})` 
+                          : 'none'
+                      }}
+                    />
+                  </motion.div>
+                )}
                 
-                {/* Cinematic Overlay Effect */}
-                {isPreviewPlaying && (
+                {/* Cinematic Overlay Effect - only for image preview */}
+                {!generatedVideoUrl && isPreviewPlaying && (
                   <motion.div 
                     className="absolute inset-0 pointer-events-none"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10" />
-                    {/* Film grain effect */}
                     <div 
                       className="absolute inset-0 opacity-[0.03]"
                       style={{
                         backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
-                        animation: 'noise 0.2s steps(2) infinite'
                       }}
                     />
                   </motion.div>
@@ -486,13 +752,15 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-2">
-          {generatedPreview && !isGenerating ? (
+          {(generatedPreview || generatedVideoUrl) && !isGenerating ? (
             <>
               <Button
                 variant="outline"
                 className="flex-1"
                 onClick={() => {
                   setGeneratedPreview(null);
+                  setGeneratedVideoUrl(null);
+                  setVideoFrames([]);
                   setProgress(0);
                 }}
               >
@@ -501,9 +769,19 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
               <Button
                 className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                 onClick={handleAddToTimeline}
+                disabled={isExportingVideo}
               >
-                <Video className="w-4 h-4 mr-2" />
-                Videoya Ekle
+                {isExportingVideo ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Render...
+                  </>
+                ) : (
+                  <>
+                    <Video className="w-4 h-4 mr-2" />
+                    Videoya Ekle
+                  </>
+                )}
               </Button>
             </>
           ) : (
