@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Image, Loader2, Download, Copy, Check } from 'lucide-react';
+import { X, Sparkles, Image, Loader2, Download, Copy, Check, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { AIToolsService } from '@/services/AIToolsService';
@@ -10,6 +10,7 @@ interface TextToImagePanelProps {
   isOpen: boolean;
   onClose: () => void;
   onImageGenerated?: (imageUrl: string) => void;
+  onEditInPhotoEditor?: (imageUrl: string) => void;
 }
 
 const stylePresets = [
@@ -28,7 +29,7 @@ const aspectRatios = [
   { id: '4:3', name: '4:3', icon: '▭' },
 ];
 
-const TextToImagePanel = ({ isOpen, onClose, onImageGenerated }: TextToImagePanelProps) => {
+const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEditor }: TextToImagePanelProps) => {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
   const [selectedStyle, setSelectedStyle] = useState('realistic');
@@ -105,6 +106,11 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated }: TextToImagePane
         variant: 'destructive',
       });
     }
+  };
+
+  const handleEditInPhotoEditor = () => {
+    if (!generatedImage) return;
+    onEditInPhotoEditor?.(generatedImage);
   };
 
   const handleCopy = async () => {
@@ -243,23 +249,33 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated }: TextToImagePane
                         alt="Generated"
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute bottom-3 right-3 flex gap-2">
+                      <div className="absolute bottom-3 left-3 right-3 flex justify-between">
                         <Button
                           size="sm"
-                          variant="secondary"
-                          className="bg-background/80 backdrop-blur-sm"
-                          onClick={handleCopy}
+                          className="bg-gradient-to-r from-primary to-accent text-primary-foreground"
+                          onClick={handleEditInPhotoEditor}
                         >
-                          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          <Edit className="h-4 w-4 mr-1" />
+                          Düzenle
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="bg-background/80 backdrop-blur-sm"
-                          onClick={handleDownload}
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="bg-background/80 backdrop-blur-sm"
+                            onClick={handleCopy}
+                          >
+                            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="bg-background/80 backdrop-blur-sm"
+                            onClick={handleDownload}
                         >
-                          <Download className="h-4 w-4" />
-                        </Button>
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </>
                   ) : null}

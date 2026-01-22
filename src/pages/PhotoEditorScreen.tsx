@@ -106,9 +106,21 @@ const PhotoEditorScreen = () => {
   const [isAIProcessing, setIsAIProcessing] = useState(false);
   const [aiProgress, setAIProgress] = useState(0);
 
-  // Handle URL params for AI tools
+  // Handle URL params for AI tools and generated images
   useEffect(() => {
     const tool = searchParams.get('tool');
+    const source = searchParams.get('source');
+    
+    // Check if we have a generated image from text-to-image
+    if (source === 'generated') {
+      const generatedImage = sessionStorage.getItem('generatedImage');
+      if (generatedImage) {
+        setImageUrl(generatedImage);
+        sessionStorage.removeItem('generatedImage');
+        toast.success('Görsel yüklendi', { description: 'AI ile oluşturulan görsel düzenlemeye hazır.' });
+      }
+    }
+    
     if (tool === 'background') {
       setActiveTab('background');
     } else if (tool === 'enhance' || tool === 'expand' || tool === 'generate' || tool === 'avatar' || tool === 'poster') {
