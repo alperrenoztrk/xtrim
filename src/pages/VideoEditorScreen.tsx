@@ -1012,33 +1012,11 @@ const VideoEditorScreen = () => {
           </div>
         )}
 
-        {/* Video controls overlay */}
+        {/* Video time display overlay */}
         {selectedMedia?.type === 'video' && selectedClip && (
-          <div className="absolute bottom-4 left-4 right-4 flex items-center gap-3 px-3 py-2 rounded-lg bg-black/50 backdrop-blur-sm">
-            <Button
-              variant="iconGhost"
-              size="iconSm"
-              onClick={handlePlayPause}
-              className="text-white hover:bg-white/20"
-            >
-              {isPlaying ? (
-                <Pause className="w-4 h-4" />
-              ) : (
-                <Play className="w-4 h-4" />
-              )}
-            </Button>
-            <span className="text-xs text-white min-w-[40px]">
-              {MediaService.formatDuration(currentTime)}
-            </span>
-            <Slider
-              value={[currentTime]}
-              max={selectedClip.endTime - selectedClip.startTime}
-              step={0.1}
-              onValueChange={([value]) => handleSeek(value)}
-              className="flex-1"
-            />
-            <span className="text-xs text-white min-w-[40px]">
-              {MediaService.formatDuration(selectedClip.endTime - selectedClip.startTime)}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm">
+            <span className="text-sm text-white font-medium">
+              {MediaService.formatDuration(currentTime)} / {MediaService.formatDuration(selectedClip.endTime - selectedClip.startTime)}
             </span>
           </div>
         )}
@@ -1046,6 +1024,48 @@ const VideoEditorScreen = () => {
 
       {/* Timeline */}
       <div className="border-t border-border bg-card">
+        {/* Video Progress Bar */}
+        {selectedMedia?.type === 'video' && selectedClip && (
+          <div className="px-4 py-3 border-b border-border">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="iconGhost"
+                size="iconSm"
+                onClick={handlePlayPause}
+                className="shrink-0"
+              >
+                {isPlaying ? (
+                  <Pause className="w-5 h-5" />
+                ) : (
+                  <Play className="w-5 h-5" />
+                )}
+              </Button>
+              <span className="text-sm font-medium text-primary min-w-[45px]">
+                {MediaService.formatDuration(currentTime)}
+              </span>
+              <div className="flex-1 relative">
+                <Slider
+                  value={[currentTime]}
+                  max={selectedClip.endTime - selectedClip.startTime}
+                  step={0.01}
+                  onValueChange={([value]) => handleSeek(value)}
+                  className="w-full"
+                />
+                {/* Progress indicator line */}
+                <div 
+                  className="absolute top-1/2 left-0 h-1 bg-primary/30 rounded-full pointer-events-none -translate-y-1/2"
+                  style={{ 
+                    width: `${(currentTime / (selectedClip.endTime - selectedClip.startTime)) * 100}%` 
+                  }}
+                />
+              </div>
+              <span className="text-sm text-muted-foreground min-w-[45px] text-right">
+                {MediaService.formatDuration(selectedClip.endTime - selectedClip.startTime)}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Timeline controls */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-border">
           <div className="flex items-center gap-2">
