@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { applyTheme } from '@/lib/theme';
 import type { AppSettings, ExportSettings } from '@/types';
 
 const languages = [
@@ -108,6 +109,10 @@ const SettingsScreen = () => {
 
   const [showThemeSheet, setShowThemeSheet] = useState(false);
   const [showLanguageSheet, setShowLanguageSheet] = useState(false);
+
+  useEffect(() => {
+    applyTheme(settings.theme);
+  }, [settings.theme]);
 
   const updateSetting = <K extends keyof ExtendedSettings>(key: K, value: ExtendedSettings[K]) => {
     setSettings((prev) => {
