@@ -7,6 +7,7 @@ import { ProjectService } from '@/services/ProjectService';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import ToolsMenuSheet from '@/components/ToolsMenuSheet';
+import TextToImagePanel from '@/components/TextToImagePanel';
 
 interface Tool {
   id: string;
@@ -47,6 +48,7 @@ const HomeScreen = () => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuType, setMenuType] = useState<'video' | 'photo'>('video');
+  const [textToImageOpen, setTextToImageOpen] = useState(false);
 
   const handleToolClick = (tool: Tool) => {
     if (tool.id === 'video' || tool.id === 'photo') {
@@ -105,8 +107,8 @@ const HomeScreen = () => {
       toast.success('AI Genişletme', { description: 'Fotoğrafınızı AI ile genişletebilirsiniz.' });
       navigate('/photo-editor?tool=expand');
     } else if (toolId === 'generate') {
-      toast.success('Metinden Resim', { description: 'AI ile metin açıklamasından resim oluşturabilirsiniz.' });
-      navigate('/photo-editor?tool=generate');
+      setMenuOpen(false);
+      setTextToImageOpen(true);
     } else if (toolId === 'enhance') {
       toast.success('AI Kalite İyileştirme', { description: 'Fotoğraf kalitesini AI ile artırabilirsiniz.' });
       navigate('/photo-editor?tool=enhance');
@@ -201,6 +203,15 @@ const HomeScreen = () => {
         onClose={() => setMenuOpen(false)}
         type={menuType}
         onToolSelect={handleToolSelect}
+      />
+
+      {/* Text to Image Panel */}
+      <TextToImagePanel
+        isOpen={textToImageOpen}
+        onClose={() => setTextToImageOpen(false)}
+        onImageGenerated={(imageUrl) => {
+          toast.success('Görsel oluşturuldu!', { description: 'Görseli indirebilir veya kopyalayabilirsiniz.' });
+        }}
       />
     </div>
   );
