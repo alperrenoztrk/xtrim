@@ -316,8 +316,8 @@ const ExportScreen = () => {
     if (result.success) {
       toast.success(
         isNative 
-          ? `Video kaydedildi: ${result.filePath?.split('/').pop() || fileName}`
-          : 'Video indirildi!'
+          ? `Xtrim klasörüne kaydedildi: ${result.filePath?.split('/').pop() || fileName}`
+          : `Xtrim_${fileName} olarak indirildi!`
       );
     } else {
       toast.error(result.error || 'Kaydetme hatası');

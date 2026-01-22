@@ -195,13 +195,15 @@ class NativeExportService {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = fileName;
+      // Add Xtrim prefix for web downloads to indicate the app source
+      const xtrimFileName = fileName.startsWith('Xtrim_') ? fileName : `Xtrim_${fileName}`;
+      link.download = xtrimFileName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      return { success: true };
+      return { success: true, filePath: xtrimFileName };
     } catch (error) {
       return {
         success: false,
