@@ -40,6 +40,7 @@ import { VideoEnhancePanel } from '@/components/VideoEnhancePanel';
 import { VideoStabilizePanel } from '@/components/VideoStabilizePanel';
 import { VideoSpeedPanel } from '@/components/VideoSpeedPanel';
 import { VideoColorPanel } from '@/components/VideoColorPanel';
+import { TextOverlayPanel } from '@/components/TextOverlayPanel';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -51,12 +52,24 @@ import { v4 as uuidv4 } from 'uuid';
 
 type EditorTool = 'trim' | 'split' | 'delete' | 'audio' | 'text' | 'effects' | 'layers' | 'autocut';
 
+interface TextStyle {
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  backgroundColor: string;
+  textAlign: 'left' | 'center' | 'right';
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  shadow: boolean;
+  animation: 'none' | 'fade-in' | 'slide-up' | 'slide-down' | 'scale' | 'typewriter' | 'bounce' | 'glow';
+}
+
 interface TextOverlay {
   id: string;
   text: string;
   position: 'top' | 'center' | 'bottom';
-  fontSize: number;
-  color: string;
+  style: TextStyle;
   startTime: number;
   endTime: number;
 }
@@ -189,8 +202,6 @@ const VideoEditorScreen = () => {
   
   // Text overlay state
   const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
-  const [newTextContent, setNewTextContent] = useState('');
-  const [textPosition, setTextPosition] = useState<'top' | 'center' | 'bottom'>('center');
 
   const saveProject = useCallback(
     (updatedProject: Project) => {
@@ -418,23 +429,20 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowMoreMenu(false);
     setShowAutoCutPanel(false);
+    setShowEnhancePanel(false);
+    setShowStabilizePanel(false);
+    setShowSpeedPanel(false);
+    setShowColorPanel(false);
   };
 
-  const handleAddTextOverlay = () => {
-    if (!newTextContent.trim() || !project) return;
-    
-    const newOverlay: TextOverlay = {
-      id: uuidv4(),
-      text: newTextContent,
-      position: textPosition,
-      fontSize: 24,
-      color: '#ffffff',
-      startTime: currentTime,
-      endTime: Math.min(currentTime + 5, project.duration || 5),
-    };
-    
-    setTextOverlays([...textOverlays, newOverlay]);
-    setNewTextContent('');
+  const handleAddTextOverlay = (overlay: TextOverlay) => {
+    setTextOverlays([...textOverlays, overlay]);
+  };
+
+  const handleUpdateTextOverlay = (id: string, updates: Partial<TextOverlay>) => {
+    setTextOverlays(textOverlays.map((t) => 
+      t.id === id ? { ...t, ...updates } : t
+    ));
   };
 
   const handleRemoveTextOverlay = (id: string) => {
@@ -1140,74 +1148,16 @@ const VideoEditorScreen = () => {
 
       {/* Text Overlay Panel */}
       <AnimatePresence>
-        {showTextPanel && (
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10 max-h-72 overflow-y-auto"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium">Text Overlay</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowTextPanel(false)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            
-            {/* Add new text */}
-            <div className="space-y-3 mb-4">
-              <Input
-                placeholder="Enter text..."
-                value={newTextContent}
-                onChange={(e) => setNewTextContent(e.target.value)}
-              />
-              <div className="flex gap-2">
-                {(['top', 'center', 'bottom'] as const).map((pos) => (
-                  <Button
-                    key={pos}
-                    variant={textPosition === pos ? 'secondary' : 'ghost'}
-                    size="sm"
-                    onClick={() => setTextPosition(pos)}
-                    className="flex-1 capitalize"
-                  >
-                    {pos}
-                  </Button>
-                ))}
-              </div>
-              <Button
-                variant="gradient"
-                size="sm"
-                className="w-full"
-                onClick={handleAddTextOverlay}
-                disabled={!newTextContent.trim()}
-              >
-                <Plus className="w-4 h-4" />
-                Add Text
-              </Button>
-            </div>
-            
-            {/* Text overlays list */}
-            {textOverlays.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Added Texts:</p>
-                {textOverlays.map((overlay) => (
-                  <div key={overlay.id} className="flex items-center justify-between bg-secondary rounded-lg p-2">
-                    <span className="text-sm truncate flex-1">{overlay.text}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground capitalize">{overlay.position}</span>
-                      <Button
-                        variant="iconGhost"
-                        size="iconSm"
-                        onClick={() => handleRemoveTextOverlay(overlay.id)}
-                      >
-                        <Trash2 className="w-3 h-3 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.div>
+        {showTextPanel && project && (
+          <TextOverlayPanel
+            currentTime={currentTime}
+            videoDuration={project.duration || 10}
+            textOverlays={textOverlays}
+            onClose={() => setShowTextPanel(false)}
+            onAddOverlay={handleAddTextOverlay}
+            onUpdateOverlay={handleUpdateTextOverlay}
+            onRemoveOverlay={handleRemoveTextOverlay}
+          />
         )}
       </AnimatePresence>
 
