@@ -1,0 +1,4 @@
+project_id = "klhdubnaagdarpbkgjre"
+
+[functions.remove-background]
+verify_jwt = false

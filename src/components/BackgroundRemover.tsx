@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Download, Undo2, Brush, Eraser, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { X, Download, Brush, Eraser, ZoomIn, ZoomOut, RotateCcw, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BackgroundRemoverProps {
   imageUrl: string;
@@ -71,79 +72,119 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     }
   };
 
-  const simulateAIProcessing = async () => {
+  const processWithAI = async () => {
     setIsProcessing(true);
     setProgress(0);
 
-    // Simulate AI processing with progress
-    for (let i = 0; i <= 100; i += 2) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      setProgress(i);
-    }
+    try {
+      const canvas = canvasRef.current;
+      if (!canvas || !originalImage) {
+        throw new Error('Canvas not ready');
+      }
 
-    // Apply simulated background removal (edge detection simulation)
-    const canvas = canvasRef.current;
-    const maskCanvas = maskCanvasRef.current;
-    if (!canvas || !maskCanvas || !originalImage) return;
+      // Convert image to base64
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context not available');
+      
+      ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+      const imageBase64 = canvas.toDataURL('image/png');
 
-    const ctx = canvas.getContext('2d');
-    const maskCtx = maskCanvas.getContext('2d');
-    if (!ctx || !maskCtx) return;
+      // Simulate progress while waiting
+      const progressInterval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 5, 90));
+      }, 500);
 
-    // Get image data
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
+      // Call edge function
+      const { data, error } = await supabase.functions.invoke('remove-background', {
+        body: { imageBase64 }
+      });
 
-    // Simple background detection based on corner colors (simulation)
-    const cornerColors = [
-      { r: data[0], g: data[1], b: data[2] },
-      { r: data[(canvas.width - 1) * 4], g: data[(canvas.width - 1) * 4 + 1], b: data[(canvas.width - 1) * 4 + 2] },
-      { r: data[(canvas.height - 1) * canvas.width * 4], g: data[(canvas.height - 1) * canvas.width * 4 + 1], b: data[(canvas.height - 1) * canvas.width * 4 + 2] },
-    ];
+      clearInterval(progressInterval);
 
-    const avgBg = {
-      r: cornerColors.reduce((a, c) => a + c.r, 0) / 3,
-      g: cornerColors.reduce((a, c) => a + c.g, 0) / 3,
-      b: cornerColors.reduce((a, c) => a + c.b, 0) / 3,
-    };
+      if (error) {
+        throw new Error(error.message || 'AI işlemi başarısız oldu');
+      }
 
-    // Create mask based on color difference
-    maskCtx.fillStyle = 'white';
-    maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
-    
-    const maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-    const maskPixels = maskImageData.data;
+      if (!data?.success || !data?.imageUrl) {
+        throw new Error(data?.error || 'Arka plan kaldırılamadı');
+      }
 
-    const threshold = 60;
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
+      setProgress(100);
 
-      const diff = Math.sqrt(
-        Math.pow(r - avgBg.r, 2) +
-        Math.pow(g - avgBg.g, 2) +
-        Math.pow(b - avgBg.b, 2)
-      );
+      // Load the result image
+      const resultImg = new Image();
+      resultImg.crossOrigin = 'anonymous';
+      resultImg.onload = () => {
+        const maskCanvas = maskCanvasRef.current;
+        if (!maskCanvas) return;
 
-      if (diff < threshold) {
-        // Background pixel - mark as black in mask
-        maskPixels[i] = 0;
-        maskPixels[i + 1] = 0;
-        maskPixels[i + 2] = 0;
-        maskPixels[i + 3] = 255;
+        // Draw result to main canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw checkerboard pattern for transparency
+        const patternSize = 10;
+        for (let y = 0; y < canvas.height; y += patternSize) {
+          for (let x = 0; x < canvas.width; x += patternSize) {
+            ctx.fillStyle = (x / patternSize + y / patternSize) % 2 === 0 ? '#e0e0e0' : '#ffffff';
+            ctx.fillRect(x, y, patternSize, patternSize);
+          }
+        }
+
+        ctx.drawImage(resultImg, 0, 0, canvas.width, canvas.height);
+
+        // Update mask based on result transparency
+        const maskCtx = maskCanvas.getContext('2d');
+        if (maskCtx) {
+          maskCtx.fillStyle = 'white';
+          maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+          
+          // Extract alpha channel from result
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = canvas.width;
+          tempCanvas.height = canvas.height;
+          const tempCtx = tempCanvas.getContext('2d');
+          if (tempCtx) {
+            tempCtx.drawImage(resultImg, 0, 0, canvas.width, canvas.height);
+            const resultData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
+            const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+            
+            for (let i = 0; i < resultData.data.length; i += 4) {
+              if (resultData.data[i + 3] < 128) {
+                maskData.data[i] = 0;
+                maskData.data[i + 1] = 0;
+                maskData.data[i + 2] = 0;
+              }
+            }
+            maskCtx.putImageData(maskData, 0, 0);
+          }
+        }
+
+        setIsProcessing(false);
+        setIsProcessed(true);
+        toast.success('AI arka plan kaldırma tamamlandı! Fırça ile düzeltebilirsiniz.');
+      };
+
+      resultImg.onerror = () => {
+        throw new Error('Sonuç resmi yüklenemedi');
+      };
+
+      resultImg.src = data.imageUrl;
+
+    } catch (error) {
+      console.error('AI processing error:', error);
+      setIsProcessing(false);
+      setProgress(0);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Bir hata oluştu';
+      
+      if (errorMessage.includes('Rate limit')) {
+        toast.error('Çok fazla istek gönderildi. Lütfen biraz bekleyin.');
+      } else if (errorMessage.includes('credits') || errorMessage.includes('402')) {
+        toast.error('API kredileri tükendi. Lütfen kredi ekleyin.');
+      } else {
+        toast.error(`AI hatası: ${errorMessage}`);
       }
     }
-
-    maskCtx.putImageData(maskImageData, 0, 0);
-    setMaskData(maskImageData);
-
-    // Apply mask to show result
-    applyMaskToCanvas();
-
-    setIsProcessing(false);
-    setIsProcessed(true);
-    toast.success('Arka plan kaldırıldı! Fırça ile düzeltebilirsiniz.');
   };
 
   const applyMaskToCanvas = () => {
@@ -379,10 +420,11 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
             <Button
               variant="gradient"
               size="lg"
-              onClick={simulateAIProcessing}
+              onClick={processWithAI}
               className="shadow-2xl"
             >
-              Arka Planı Kaldır
+              <Sparkles className="w-5 h-5 mr-2" />
+              AI ile Arka Planı Kaldır
             </Button>
           </div>
         )}
