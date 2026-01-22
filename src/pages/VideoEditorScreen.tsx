@@ -41,6 +41,7 @@ import { VideoStabilizePanel } from '@/components/VideoStabilizePanel';
 import { VideoSpeedPanel } from '@/components/VideoSpeedPanel';
 import { VideoColorPanel } from '@/components/VideoColorPanel';
 import { TextOverlayPanel } from '@/components/TextOverlayPanel';
+import { DraggableTextOverlay } from '@/components/DraggableTextOverlay';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -68,7 +69,9 @@ interface TextStyle {
 interface TextOverlay {
   id: string;
   text: string;
-  position: 'top' | 'center' | 'bottom';
+  position: 'top' | 'center' | 'bottom' | 'custom';
+  x?: number; // percentage 0-100 for custom position
+  y?: number; // percentage 0-100 for custom position
   style: TextStyle;
   startTime: number;
   endTime: number;
@@ -202,6 +205,9 @@ const VideoEditorScreen = () => {
   
   // Text overlay state
   const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
+  const [isEditingTextOverlays, setIsEditingTextOverlays] = useState(false);
+  const [selectedTextOverlayId, setSelectedTextOverlayId] = useState<string | null>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const saveProject = useCallback(
     (updatedProject: Project) => {
@@ -449,6 +455,21 @@ const VideoEditorScreen = () => {
     setTextOverlays(textOverlays.filter((t) => t.id !== id));
   };
 
+  // Handle text overlay position change (drag)
+  const handleTextOverlayPositionChange = (id: string, x: number, y: number) => {
+    setTextOverlays(textOverlays.map((t) =>
+      t.id === id ? { ...t, position: 'custom' as const, x, y } : t
+    ));
+  };
+
+  // Toggle text editing mode
+  const handleToggleTextEditing = () => {
+    setIsEditingTextOverlays(!isEditingTextOverlays);
+    if (isEditingTextOverlays) {
+      setSelectedTextOverlayId(null);
+    }
+  };
+
   // Handle AutoCut Panel
   const handleOpenAutoCut = () => {
     if (!selectedMedia || selectedMedia.type !== 'video') {
@@ -511,13 +532,41 @@ const VideoEditorScreen = () => {
     setShowColorPanel(false);
   };
 
-  // Handle speed change
+  // Handle speed change - persist to timeline clip
   const handleApplySpeed = (speed: number) => {
+    if (!selectedClipId || !project) return;
+    
     setClipSpeed(speed);
     const video = videoRef.current;
     if (video) {
       video.playbackRate = speed;
     }
+
+    // Update the clip in timeline with new speed
+    const updatedTimeline = project.timeline.map((clip) => {
+      if (clip.id === selectedClipId) {
+        const originalDuration = clip.endTime - clip.startTime;
+        const newDuration = originalDuration / speed;
+        return { 
+          ...clip, 
+          speed,
+          // Adjust end time based on speed (faster = shorter duration)
+          endTime: clip.startTime + newDuration
+        };
+      }
+      return clip;
+    });
+
+    const newTotalDuration = updatedTimeline.reduce(
+      (acc, clip) => acc + (clip.endTime - clip.startTime),
+      0
+    );
+
+    saveProject({
+      ...project,
+      timeline: updatedTimeline,
+      duration: newTotalDuration,
+    });
   };
 
   // Handle Color Panel
@@ -653,6 +702,25 @@ const VideoEditorScreen = () => {
       setSelectedClipId(project.timeline[0].id);
     }
   }, [project, selectedClipId]);
+
+  // Load clip's saved speed when selecting a new clip
+  useEffect(() => {
+    if (!project || !selectedClipId) return;
+    const clip = project.timeline.find((c) => c.id === selectedClipId);
+    if (clip && clip.speed) {
+      setClipSpeed(clip.speed);
+      const video = videoRef.current;
+      if (video) {
+        video.playbackRate = clip.speed;
+      }
+    } else {
+      setClipSpeed(1);
+      const video = videoRef.current;
+      if (video) {
+        video.playbackRate = 1;
+      }
+    }
+  }, [selectedClipId, project]);
 
   // Handle video playback with clip boundaries
   useEffect(() => {
@@ -826,7 +894,7 @@ const VideoEditorScreen = () => {
       <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
         {selectedMedia ? (
           selectedMedia.type === 'video' ? (
-            <div className="relative max-h-full max-w-full">
+            <div ref={previewContainerRef} className="relative max-h-full max-w-full w-full h-full flex items-center justify-center">
               <video
                 ref={videoRef}
                 src={selectedMedia.uri}
@@ -837,50 +905,31 @@ const VideoEditorScreen = () => {
                 playsInline
                 preload="auto"
               />
-              {/* Text Overlays on Video */}
+              {/* Draggable Text Overlays on Video */}
               {textOverlays.map((overlay) => {
                 const videoCurrentTime = videoRef.current?.currentTime || 0;
                 const isVisible = videoCurrentTime >= overlay.startTime && videoCurrentTime <= overlay.endTime;
                 
-                if (!isVisible) return null;
-                
-                const positionStyles: Record<string, string> = {
-                  top: 'top-4 left-1/2 -translate-x-1/2',
-                  center: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-                  bottom: 'bottom-4 left-1/2 -translate-x-1/2',
-                };
-                
-                const animationClasses: Record<string, string> = {
-                  none: '',
-                  'fade-in': 'animate-fade-in',
-                  'slide-up': 'animate-slide-up',
-                  'slide-down': 'animate-slide-down',
-                  scale: 'animate-scale',
-                  typewriter: 'animate-typewriter',
-                  bounce: 'animate-bounce',
-                  glow: 'animate-pulse',
-                };
+                if (!isVisible && !isEditingTextOverlays) return null;
                 
                 return (
-                  <div
+                  <DraggableTextOverlay
                     key={overlay.id}
-                    className={`absolute ${positionStyles[overlay.position]} ${animationClasses[overlay.style.animation]} px-3 py-1.5 rounded pointer-events-none z-10`}
-                    style={{
-                      fontFamily: overlay.style.fontFamily,
-                      fontSize: `${overlay.style.fontSize}px`,
-                      color: overlay.style.color,
-                      backgroundColor: overlay.style.backgroundColor,
-                      textAlign: overlay.style.textAlign,
-                      fontWeight: overlay.style.bold ? 'bold' : 'normal',
-                      fontStyle: overlay.style.italic ? 'italic' : 'normal',
-                      textDecoration: overlay.style.underline ? 'underline' : 'none',
-                      textShadow: overlay.style.shadow ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
-                    }}
-                  >
-                    {overlay.text}
-                  </div>
+                    overlay={overlay}
+                    containerRef={previewContainerRef}
+                    isEditing={isEditingTextOverlays}
+                    onPositionChange={handleTextOverlayPositionChange}
+                    onSelect={setSelectedTextOverlayId}
+                  />
                 );
               })}
+              {/* Text editing mode indicator */}
+              {isEditingTextOverlays && (
+                <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                  <Type className="w-3 h-3" />
+                  Metin Düzenleme Modu
+                </div>
+              )}
               {videoError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/80">
                   <div className="text-center p-4 max-w-sm">
@@ -899,40 +948,30 @@ const VideoEditorScreen = () => {
               )}
             </div>
           ) : (
-            <div className="relative max-h-full max-w-full">
+            <div ref={previewContainerRef} className="relative max-h-full max-w-full w-full h-full flex items-center justify-center">
               <img
                 src={selectedMedia.uri}
                 alt=""
                 className="max-h-full max-w-full object-contain"
               />
-              {/* Text Overlays on Image */}
-              {textOverlays.map((overlay) => {
-                const positionStyles: Record<string, string> = {
-                  top: 'top-4 left-1/2 -translate-x-1/2',
-                  center: 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-                  bottom: 'bottom-4 left-1/2 -translate-x-1/2',
-                };
-                
-                return (
-                  <div
-                    key={overlay.id}
-                    className={`absolute ${positionStyles[overlay.position]} px-3 py-1.5 rounded pointer-events-none z-10`}
-                    style={{
-                      fontFamily: overlay.style.fontFamily,
-                      fontSize: `${overlay.style.fontSize}px`,
-                      color: overlay.style.color,
-                      backgroundColor: overlay.style.backgroundColor,
-                      textAlign: overlay.style.textAlign,
-                      fontWeight: overlay.style.bold ? 'bold' : 'normal',
-                      fontStyle: overlay.style.italic ? 'italic' : 'normal',
-                      textDecoration: overlay.style.underline ? 'underline' : 'none',
-                      textShadow: overlay.style.shadow ? '2px 2px 4px rgba(0,0,0,0.8)' : 'none',
-                    }}
-                  >
-                    {overlay.text}
-                  </div>
-                );
-              })}
+              {/* Draggable Text Overlays on Image */}
+              {textOverlays.map((overlay) => (
+                <DraggableTextOverlay
+                  key={overlay.id}
+                  overlay={overlay}
+                  containerRef={previewContainerRef}
+                  isEditing={isEditingTextOverlays}
+                  onPositionChange={handleTextOverlayPositionChange}
+                  onSelect={setSelectedTextOverlayId}
+                />
+              ))}
+              {/* Text editing mode indicator */}
+              {isEditingTextOverlays && (
+                <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+                  <Type className="w-3 h-3" />
+                  Metin Düzenleme Modu
+                </div>
+              )}
             </div>
           )
         ) : project.timeline.length > 0 ? (
@@ -1228,10 +1267,15 @@ const VideoEditorScreen = () => {
             currentTime={currentTime}
             videoDuration={project.duration || 10}
             textOverlays={textOverlays}
-            onClose={() => setShowTextPanel(false)}
+            isEditingMode={isEditingTextOverlays}
+            onClose={() => {
+              setShowTextPanel(false);
+              setIsEditingTextOverlays(false);
+            }}
             onAddOverlay={handleAddTextOverlay}
             onUpdateOverlay={handleUpdateTextOverlay}
             onRemoveOverlay={handleRemoveTextOverlay}
+            onToggleEditMode={handleToggleTextEditing}
           />
         )}
       </AnimatePresence>
