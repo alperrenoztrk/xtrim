@@ -508,6 +508,7 @@ const VideoEditorScreen = () => {
     setShowAutoCutPanel(false);
     setShowEnhancePanel(false);
     setShowStabilizePanel(false);
+    setShowColorPanel(false);
   };
 
   // Handle speed change
@@ -607,11 +608,11 @@ const VideoEditorScreen = () => {
         break;
       case 'speed':
         handleOpenSpeed();
-        return;
+        break;
       case 'color':
       case 'filters':
         handleOpenColor();
-        return;
+        break;
       case 'rotate':
         // Rotate logic - for now just toggle a state
         break;
