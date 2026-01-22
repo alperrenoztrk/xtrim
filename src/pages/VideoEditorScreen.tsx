@@ -38,6 +38,7 @@ import { toast } from 'sonner';
 import { AutoCutPanel } from '@/components/AutoCutPanel';
 import { VideoEnhancePanel } from '@/components/VideoEnhancePanel';
 import { VideoStabilizePanel } from '@/components/VideoStabilizePanel';
+import { VideoSpeedPanel } from '@/components/VideoSpeedPanel';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -174,6 +175,7 @@ const VideoEditorScreen = () => {
   const [showAutoCutPanel, setShowAutoCutPanel] = useState(false);
   const [showEnhancePanel, setShowEnhancePanel] = useState(false);
   const [showStabilizePanel, setShowStabilizePanel] = useState(false);
+  const [showSpeedPanel, setShowSpeedPanel] = useState(false);
   
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
@@ -479,6 +481,32 @@ const VideoEditorScreen = () => {
     setShowMoreMenu(false);
     setShowAutoCutPanel(false);
     setShowEnhancePanel(false);
+    setShowSpeedPanel(false);
+  };
+
+  // Handle Speed Panel
+  const handleOpenSpeed = () => {
+    if (!selectedMedia || selectedMedia.type !== 'video') {
+      toast.error('Lütfen bir video seçin');
+      return;
+    }
+    setShowSpeedPanel(true);
+    setShowTrimPanel(false);
+    setShowAudioPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+    setShowAutoCutPanel(false);
+    setShowEnhancePanel(false);
+    setShowStabilizePanel(false);
+  };
+
+  // Handle speed change
+  const handleApplySpeed = (speed: number) => {
+    setClipSpeed(speed);
+    const video = videoRef.current;
+    if (video) {
+      video.playbackRate = speed;
+    }
   };
 
   // Handle AutoCut results - split video at suggested points
@@ -551,8 +579,8 @@ const VideoEditorScreen = () => {
         }
         break;
       case 'speed':
-        // Speed adjustment could show a dialog
-        break;
+        handleOpenSpeed();
+        return;
       case 'rotate':
         // Rotate logic - for now just toggle a state
         break;
@@ -1233,7 +1261,17 @@ const VideoEditorScreen = () => {
         )}
       </AnimatePresence>
 
-      {/* Bottom toolbar */}
+      {/* Video Speed Panel */}
+      <AnimatePresence>
+        {showSpeedPanel && selectedMedia?.type === 'video' && (
+          <VideoSpeedPanel
+            videoRef={videoRef}
+            currentSpeed={clipSpeed}
+            onClose={() => setShowSpeedPanel(false)}
+            onApplySpeed={handleApplySpeed}
+          />
+        )}
+      </AnimatePresence>
       <div className="flex items-center justify-around py-3 px-4 border-t border-border bg-card safe-area-bottom relative z-20">
         {toolItems.slice(0, 5).map((tool) => (
           <Button
