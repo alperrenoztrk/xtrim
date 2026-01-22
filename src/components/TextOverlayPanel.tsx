@@ -40,7 +40,9 @@ type TextAnimation = 'none' | 'fade-in' | 'slide-up' | 'slide-down' | 'scale' | 
 interface TextOverlay {
   id: string;
   text: string;
-  position: 'top' | 'center' | 'bottom';
+  position: 'top' | 'center' | 'bottom' | 'custom';
+  x?: number; // percentage 0-100 for custom position
+  y?: number; // percentage 0-100 for custom position
   style: TextStyle;
   startTime: number;
   endTime: number;
@@ -50,10 +52,12 @@ interface TextOverlayPanelProps {
   currentTime: number;
   videoDuration: number;
   textOverlays: TextOverlay[];
+  isEditingMode?: boolean;
   onClose: () => void;
   onAddOverlay: (overlay: TextOverlay) => void;
   onUpdateOverlay: (id: string, overlay: Partial<TextOverlay>) => void;
   onRemoveOverlay: (id: string) => void;
+  onToggleEditMode?: () => void;
 }
 
 const fonts = [
@@ -188,14 +192,16 @@ export const TextOverlayPanel = ({
   currentTime,
   videoDuration,
   textOverlays,
+  isEditingMode = false,
   onClose,
   onAddOverlay,
   onUpdateOverlay,
   onRemoveOverlay,
+  onToggleEditMode,
 }: TextOverlayPanelProps) => {
   const [activeTab, setActiveTab] = useState<'add' | 'list'>('add');
   const [newText, setNewText] = useState('');
-  const [position, setPosition] = useState<'top' | 'center' | 'bottom'>('center');
+  const [position, setPosition] = useState<'top' | 'center' | 'bottom' | 'custom'>('center');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [showStyleEditor, setShowStyleEditor] = useState(false);
   const [editingOverlayId, setEditingOverlayId] = useState<string | null>(null);
@@ -310,9 +316,22 @@ export const TextOverlayPanel = ({
             </p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          {onToggleEditMode && textOverlays.length > 0 && (
+            <Button
+              variant={isEditingMode ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={onToggleEditMode}
+              className="gap-1"
+            >
+              <Move className="w-4 h-4" />
+              {isEditingMode ? 'Bitti' : 'Taşı'}
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Tabs */}
