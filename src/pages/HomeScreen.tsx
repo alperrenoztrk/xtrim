@@ -97,6 +97,11 @@ const HomeScreen = () => {
     } else if (toolId === 'avatars') {
       toast.info('YZ Avatarlar', { description: 'AI avatar oluşturma özelliği.' });
       navigate('/photo-editor?tool=avatar');
+    } else if (toolId === 'ai-generate') {
+      toast.success('AI Video Üret', { description: 'Metin ile video oluşturabilirsiniz.' });
+      const project = ProjectService.createProject();
+      ProjectService.saveProject(project);
+      navigate(`/editor/${project.id}?tool=ai-generate`);
     }
     // Photo tools
     else if (toolId === 'editor') {
