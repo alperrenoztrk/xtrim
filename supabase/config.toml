@@ -2,3 +2,9 @@ project_id = "klhdubnaagdarpbkgjre"
 
 [functions.remove-background]
 verify_jwt = false
+
+[functions.ai-video-tools]
+verify_jwt = false
+
+[functions.ai-image-generate]
+verify_jwt = false

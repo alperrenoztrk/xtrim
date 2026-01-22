@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -21,13 +21,21 @@ import {
   X,
   ImagePlus,
   Eraser,
+  Expand,
+  Type,
+  Bot,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import BackgroundRemover from '@/components/BackgroundRemover';
+import { AIToolsService } from '@/services/AIToolsService';
 
-type EditorTab = 'adjust' | 'crop' | 'filters' | 'background';
+type EditorTab = 'adjust' | 'crop' | 'filters' | 'background' | 'ai';
+type AIToolType = 'enhance' | 'expand' | 'generate' | 'avatar' | 'poster' | null;
 
 interface ImageAdjustments {
   brightness: number;
@@ -80,6 +88,7 @@ const defaultAdjustments: ImageAdjustments = {
 
 const PhotoEditorScreen = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -90,6 +99,23 @@ const PhotoEditorScreen = () => {
   const [undoStack, setUndoStack] = useState<ImageAdjustments[]>([]);
   const [redoStack, setRedoStack] = useState<ImageAdjustments[]>([]);
   const [showBackgroundRemover, setShowBackgroundRemover] = useState(false);
+  
+  // AI Tool states
+  const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [isAIProcessing, setIsAIProcessing] = useState(false);
+  const [aiProgress, setAIProgress] = useState(0);
+
+  // Handle URL params for AI tools
+  useEffect(() => {
+    const tool = searchParams.get('tool');
+    if (tool === 'background') {
+      setActiveTab('background');
+    } else if (tool === 'enhance' || tool === 'expand' || tool === 'generate' || tool === 'avatar' || tool === 'poster') {
+      setActiveTab('ai');
+      setActiveAITool(tool as AIToolType);
+    }
+  }, [searchParams]);
 
   const saveState = useCallback(() => {
     setUndoStack((prev) => [...prev.slice(-20), adjustments]);
@@ -186,11 +212,105 @@ const PhotoEditorScreen = () => {
     };
   };
 
+  // AI Processing functions
+  const processAITool = async () => {
+    if (!imageUrl && activeAITool !== 'generate') {
+      toast.error('Lütfen önce bir fotoğraf seçin');
+      return;
+    }
+
+    if ((activeAITool === 'generate' || activeAITool === 'expand' || activeAITool === 'poster') && !aiPrompt.trim()) {
+      toast.error('Lütfen bir açıklama girin');
+      return;
+    }
+
+    setIsAIProcessing(true);
+    setAIProgress(0);
+
+    const progressInterval = setInterval(() => {
+      setAIProgress(prev => Math.min(prev + 5, 90));
+    }, 300);
+
+    try {
+      let result;
+      let imageBase64 = '';
+
+      if (imageUrl) {
+        // Convert image to base64
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        imageBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      switch (activeAITool) {
+        case 'enhance':
+          result = await AIToolsService.processVideoTool('enhance', imageBase64);
+          break;
+        case 'expand':
+          result = await AIToolsService.generateImage('expand', aiPrompt, imageBase64);
+          break;
+        case 'generate':
+          result = await AIToolsService.generateImage('text-to-image', aiPrompt);
+          break;
+        case 'avatar':
+          result = await AIToolsService.generateImage('avatar', aiPrompt || 'Professional avatar', imageBase64);
+          break;
+        case 'poster':
+          result = await AIToolsService.generateImage('poster', aiPrompt, imageBase64);
+          break;
+        default:
+          throw new Error('Unknown AI tool');
+      }
+
+      clearInterval(progressInterval);
+      setAIProgress(100);
+
+      if (result.success) {
+        const outputUrl = result.outputUrl || result.imageUrl;
+        if (outputUrl) {
+          setImageUrl(outputUrl);
+          toast.success('AI işlemi tamamlandı!');
+        } else {
+          throw new Error('Sonuç alınamadı');
+        }
+      } else {
+        throw new Error(result.error || 'AI işlemi başarısız');
+      }
+    } catch (error) {
+      console.error('AI processing error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Bir hata oluştu';
+      
+      if (errorMessage.includes('Rate limit') || errorMessage.includes('429')) {
+        toast.error('Çok fazla istek. Lütfen biraz bekleyin.');
+      } else if (errorMessage.includes('402') || errorMessage.includes('credits')) {
+        toast.error('API kredileri tükendi.');
+      } else {
+        toast.error(`AI hatası: ${errorMessage}`);
+      }
+    } finally {
+      clearInterval(progressInterval);
+      setIsAIProcessing(false);
+      setAIProgress(0);
+    }
+  };
+
   const adjustmentControls = [
     { key: 'brightness', label: 'Brightness', icon: Sun, min: -100, max: 100 },
     { key: 'contrast', label: 'Contrast', icon: Contrast, min: -100, max: 100 },
     { key: 'saturation', label: 'Saturation', icon: Droplets, min: -100, max: 100 },
     { key: 'temperature', label: 'Temperature', icon: Thermometer, min: -100, max: 100 },
+  ];
+
+  const aiTools = [
+    { id: 'enhance', name: 'Kalite İyileştir', icon: Sparkles, description: 'Fotoğraf kalitesini artır' },
+    { id: 'expand', name: 'Genişlet', icon: Expand, description: 'Fotoğrafı AI ile genişlet' },
+    { id: 'generate', name: 'Metinden Resim', icon: Type, description: 'Açıklamadan resim oluştur' },
+    { id: 'avatar', name: 'Avatar Oluştur', icon: Bot, description: 'AI avatar tasarla' },
+    { id: 'poster', name: 'Poster Yap', icon: Palette, description: 'Profesyonel poster tasarla' },
   ];
 
   return (
@@ -271,22 +391,45 @@ const PhotoEditorScreen = () => {
             </Button>
           </div>
         )}
+
+        {/* AI Processing Overlay */}
+        <AnimatePresence>
+          {isAIProcessing && (
+            <motion.div
+              className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              <div className="w-48 h-2 bg-secondary rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-gradient-to-r from-primary to-accent"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${aiProgress}%` }}
+                />
+              </div>
+              <p className="text-white text-sm">AI işleniyor... %{aiProgress}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {imageUrl && (
         <>
           {/* Tab selector */}
-          <div className="flex border-b border-border bg-card">
+          <div className="flex border-b border-border bg-card overflow-x-auto scrollbar-hide">
             {[
-              { id: 'adjust', label: 'Adjust', icon: Sun },
-              { id: 'crop', label: 'Crop', icon: Crop },
-              { id: 'filters', label: 'Filters', icon: Palette },
-              { id: 'background', label: 'BG Remove', icon: Eraser },
+              { id: 'adjust', label: 'Ayarla', icon: Sun },
+              { id: 'crop', label: 'Kırp', icon: Crop },
+              { id: 'filters', label: 'Filtreler', icon: Palette },
+              { id: 'background', label: 'Arka Plan', icon: Eraser },
+              { id: 'ai', label: 'AI Araçları', icon: Sparkles },
             ].map((tab) => (
               <button
                 key={tab.id}
                 className={cn(
-                  'flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors border-b-2',
+                  'flex-shrink-0 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2',
                   activeTab === tab.id
                     ? 'text-primary border-primary'
                     : 'text-muted-foreground border-transparent hover:text-foreground'
@@ -394,9 +537,6 @@ const PhotoEditorScreen = () => {
                     <p className="text-xs text-muted-foreground">
                       Drag on the image to adjust crop area
                     </p>
-                    <p className="text-xxs text-muted-foreground mt-1">
-                      (Crop functionality simulated in MVP)
-                    </p>
                   </div>
 
                   <div className="flex gap-2 mt-4 justify-center">
@@ -424,9 +564,7 @@ const PhotoEditorScreen = () => {
                     {filterPresets.map((filter) => (
                       <motion.button
                         key={filter.id}
-                        className={cn(
-                          'flex flex-col items-center gap-2 shrink-0'
-                        )}
+                        className="flex flex-col items-center gap-2 shrink-0"
                         onClick={() => handleApplyFilter(filter)}
                         whileTap={{ scale: 0.95 }}
                       >
@@ -478,17 +616,118 @@ const PhotoEditorScreen = () => {
                     <div>
                       <h3 className="font-semibold text-foreground">Arka Plan Kaldır</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Fotoğrafınızın arka planını otomatik olarak kaldırın
+                        Fotoğrafınızın arka planını AI ile otomatik olarak kaldırın
                       </p>
                     </div>
                     <Button
                       variant="gradient"
                       onClick={() => setShowBackgroundRemover(true)}
                     >
-                      <Eraser className="w-4 h-4" />
-                      Başla
+                      <Sparkles className="w-4 h-4" />
+                      AI ile Başla
                     </Button>
                   </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'ai' && (
+                <motion.div
+                  key="ai"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="p-4 space-y-4"
+                >
+                  {!activeAITool ? (
+                    // AI Tool Selection
+                    <div className="grid grid-cols-3 gap-3">
+                      {aiTools.map((tool) => {
+                        const Icon = tool.icon;
+                        return (
+                          <motion.button
+                            key={tool.id}
+                            className="flex flex-col items-center p-3 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                            onClick={() => setActiveAITool(tool.id as AIToolType)}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-2">
+                              <Icon className="w-5 h-5 text-primary" />
+                            </div>
+                            <span className="text-xs font-medium text-foreground">{tool.name}</span>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    // Active AI Tool UI
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setActiveAITool(null);
+                            setAiPrompt('');
+                          }}
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-1" />
+                          Geri
+                        </Button>
+                        <span className="text-sm font-medium text-foreground">
+                          {aiTools.find(t => t.id === activeAITool)?.name}
+                        </span>
+                      </div>
+
+                      {(activeAITool === 'generate' || activeAITool === 'expand' || activeAITool === 'poster') && (
+                        <div className="space-y-2">
+                          <label className="text-xs text-muted-foreground">
+                            {activeAITool === 'generate' ? 'Ne oluşturmak istiyorsunuz?' : 'Açıklama ekleyin'}
+                          </label>
+                          <Input
+                            placeholder={
+                              activeAITool === 'generate'
+                                ? 'Örn: Gün batımında bir deniz manzarası'
+                                : activeAITool === 'expand'
+                                ? 'Örn: Yanlara doğru genişlet, gökyüzü ekle'
+                                : 'Örn: Minimalist film posteri tasarımı'
+                            }
+                            value={aiPrompt}
+                            onChange={(e) => setAiPrompt(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      {activeAITool === 'avatar' && (
+                        <div className="space-y-2">
+                          <label className="text-xs text-muted-foreground">Avatar stili (opsiyonel)</label>
+                          <Input
+                            placeholder="Örn: Profesyonel, anime tarzı, 3D..."
+                            value={aiPrompt}
+                            onChange={(e) => setAiPrompt(e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      <Button
+                        variant="gradient"
+                        className="w-full"
+                        onClick={processAITool}
+                        disabled={isAIProcessing}
+                      >
+                        {isAIProcessing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            İşleniyor...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4" />
+                            {activeAITool === 'generate' ? 'Oluştur' : 'Uygula'}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

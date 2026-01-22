@@ -70,7 +70,6 @@ const HomeScreen = () => {
         navigate('/photo-editor');
       }
     } else if (toolId === 'trim' || toolId === 'speed') {
-      // Both go to video editor - speed can be adjusted there
       const project = ProjectService.createProject();
       ProjectService.saveProject(project);
       navigate(`/editor/${project.id}`);
@@ -82,12 +81,45 @@ const HomeScreen = () => {
     } else if (toolId === 'desktop') {
       toast.info('Masaüstü düzenleyici', { description: 'Bu özellik masaüstü uygulamasında kullanılabilir.' });
     }
+    // Video AI tools
+    else if (toolId === 'autocut') {
+      toast.success('AutoCut', { description: 'Video editöründe AI ile otomatik kesim yapabilirsiniz.' });
+      const project = ProjectService.createProject();
+      ProjectService.saveProject(project);
+      navigate(`/editor/${project.id}?tool=autocut`);
+    } else if (toolId === 'ai-enhance-video') {
+      toast.success('AI İyileştirme', { description: 'Video kalitesini AI ile artırabilirsiniz.' });
+      const project = ProjectService.createProject();
+      ProjectService.saveProject(project);
+      navigate(`/editor/${project.id}?tool=enhance`);
+    } else if (toolId === 'avatars') {
+      toast.info('YZ Avatarlar', { description: 'AI avatar oluşturma özelliği.' });
+      navigate('/photo-editor?tool=avatar');
+    }
     // Photo tools
     else if (toolId === 'editor') {
       navigate('/photo-editor');
     } else if (toolId === 'background') {
-      toast.info('Arka plan kaldırma', { description: 'Fotoğraf düzenleyicide bu özelliği kullanabilirsiniz.' });
-      navigate('/photo-editor');
+      navigate('/photo-editor?tool=background');
+    } else if (toolId === 'expand') {
+      toast.success('AI Genişletme', { description: 'Fotoğrafınızı AI ile genişletebilirsiniz.' });
+      navigate('/photo-editor?tool=expand');
+    } else if (toolId === 'generate') {
+      toast.success('Metinden Resim', { description: 'AI ile metin açıklamasından resim oluşturabilirsiniz.' });
+      navigate('/photo-editor?tool=generate');
+    } else if (toolId === 'enhance') {
+      toast.success('AI Kalite İyileştirme', { description: 'Fotoğraf kalitesini AI ile artırabilirsiniz.' });
+      navigate('/photo-editor?tool=enhance');
+    } else if (toolId === 'ai-avatars') {
+      toast.success('YZ Avatarlar', { description: 'AI avatar oluşturma özelliği.' });
+      navigate('/photo-editor?tool=avatar');
+    } else if (toolId === 'poster') {
+      toast.success('YZ Poster', { description: 'AI ile profesyonel poster tasarlayabilirsiniz.' });
+      navigate('/photo-editor?tool=poster');
+    }
+    // Inactive AI tools
+    else if (toolId === 'translate' || toolId === 'dialogue') {
+      toast.info('Yakında', { description: 'Bu özellik çok yakında aktif olacak.' });
     }
   };
 
