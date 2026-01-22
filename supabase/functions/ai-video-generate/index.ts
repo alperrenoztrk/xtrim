@@ -51,8 +51,8 @@ serve(async (req) => {
     const styleDesc = styleDescriptions[style] || styleDescriptions.cinematic;
     const enhancedPrompt = `${prompt}. ${styleDesc}. High quality video, smooth motion, professional production.`;
 
-    // Call Runway ML Gen-3 Alpha API
-    const runwayResponse = await fetch("https://api.runwayml.com/v1/video/generate", {
+    // Call Runway ML Text-to-Video API
+    const runwayResponse = await fetch("https://api.dev.runwayml.com/v1/text_to_video", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${RUNWAY_API_KEY}`,
@@ -60,11 +60,10 @@ serve(async (req) => {
         "X-Runway-Version": "2024-11-06"
       },
       body: JSON.stringify({
-        model: "gen3a_turbo", // Gen-3 Alpha Turbo for faster generation
+        model: "gen4_turbo", // Latest Gen-4 Turbo model
         promptText: enhancedPrompt,
         duration: Math.min(duration, 10), // Runway supports up to 10 seconds
-        watermark: false,
-        ratio: "16:9"
+        ratio: "1280:720" // 16:9 HD resolution
       }),
     });
 
@@ -156,7 +155,7 @@ async function pollForVideoCompletion(taskId: string, apiKey: string, maxAttempt
     await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds between polls
 
     try {
-      const response = await fetch(`https://api.runwayml.com/v1/tasks/${taskId}`, {
+      const response = await fetch(`https://api.dev.runwayml.com/v1/tasks/${taskId}`, {
         headers: {
           "Authorization": `Bearer ${apiKey}`,
           "X-Runway-Version": "2024-11-06"
@@ -176,7 +175,8 @@ async function pollForVideoCompletion(taskId: string, apiKey: string, maxAttempt
       }
 
       if (data.status === "FAILED") {
-        throw new Error("Video generation failed");
+        console.error("Video generation failed:", data.failure);
+        throw new Error(data.failure || "Video generation failed");
       }
 
     } catch (error) {
