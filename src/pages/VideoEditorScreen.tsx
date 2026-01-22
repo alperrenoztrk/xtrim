@@ -39,6 +39,7 @@ import { AutoCutPanel } from '@/components/AutoCutPanel';
 import { VideoEnhancePanel } from '@/components/VideoEnhancePanel';
 import { VideoStabilizePanel } from '@/components/VideoStabilizePanel';
 import { VideoSpeedPanel } from '@/components/VideoSpeedPanel';
+import { VideoColorPanel } from '@/components/VideoColorPanel';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -176,6 +177,7 @@ const VideoEditorScreen = () => {
   const [showEnhancePanel, setShowEnhancePanel] = useState(false);
   const [showStabilizePanel, setShowStabilizePanel] = useState(false);
   const [showSpeedPanel, setShowSpeedPanel] = useState(false);
+  const [showColorPanel, setShowColorPanel] = useState(false);
   
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
@@ -509,6 +511,23 @@ const VideoEditorScreen = () => {
     }
   };
 
+  // Handle Color Panel
+  const handleOpenColor = () => {
+    if (!selectedMedia || selectedMedia.type !== 'video') {
+      toast.error('Lütfen bir video seçin');
+      return;
+    }
+    setShowColorPanel(true);
+    setShowTrimPanel(false);
+    setShowAudioPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+    setShowAutoCutPanel(false);
+    setShowEnhancePanel(false);
+    setShowStabilizePanel(false);
+    setShowSpeedPanel(false);
+  };
+
   // Handle AutoCut results - split video at suggested points
   const handleApplyAutoCuts = (cutPoints: number[]) => {
     if (!selectedClipId || !project || cutPoints.length === 0) return;
@@ -580,6 +599,10 @@ const VideoEditorScreen = () => {
         break;
       case 'speed':
         handleOpenSpeed();
+        return;
+      case 'color':
+      case 'filters':
+        handleOpenColor();
         return;
       case 'rotate':
         // Rotate logic - for now just toggle a state
@@ -1272,6 +1295,18 @@ const VideoEditorScreen = () => {
           />
         )}
       </AnimatePresence>
+
+      {/* Video Color Panel */}
+      <AnimatePresence>
+        {showColorPanel && selectedMedia?.type === 'video' && (
+          <VideoColorPanel
+            videoRef={videoRef}
+            onClose={() => setShowColorPanel(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Bottom toolbar */}
       <div className="flex items-center justify-around py-3 px-4 border-t border-border bg-card safe-area-bottom relative z-20">
         {toolItems.slice(0, 5).map((tool) => (
           <Button
