@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Video, Wand2, Clock, Crown, Loader2, Play, Pause, RotateCcw, Volume2, VolumeX, Maximize2 } from 'lucide-react';
+import { X, Sparkles, Video, Wand2, Clock, Crown, Loader2, Play, Pause, RotateCcw, Volume2, VolumeX, Maximize2, Download, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { nativeExportService } from '@/services/NativeExportService';
 
 interface VideoAIGeneratePanelProps {
   isOpen: boolean;
@@ -47,8 +48,10 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const [isExportingVideo, setIsExportingVideo] = useState(false);
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+  const [generatedVideoBlob, setGeneratedVideoBlob] = useState<Blob | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   
-  // Video preview states
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const [previewTime, setPreviewTime] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -308,6 +311,10 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
 
       mediaRecorder.stop();
       const videoUrl = await videoPromise;
+      
+      // Fetch the video blob for download/share
+      const videoBlob = new Blob(chunks, { type: 'video/webm' });
+      setGeneratedVideoBlob(videoBlob);
       setGeneratedVideoUrl(videoUrl);
       setIsExportingVideo(false);
       
@@ -316,6 +323,98 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
       setIsExportingVideo(false);
       // Fallback to image-based preview if video generation fails
       toast.error('Video oluşturulamadı, görsel önizleme kullanılıyor');
+    }
+  };
+
+  // Download video to device
+  const handleDownloadVideo = async () => {
+    if (!generatedVideoBlob && !generatedVideoUrl) {
+      toast.error('İndirilecek video bulunamadı');
+      return;
+    }
+
+    setIsDownloading(true);
+
+    try {
+      let blob = generatedVideoBlob;
+      
+      // If we only have URL, fetch the blob
+      if (!blob && generatedVideoUrl) {
+        const response = await fetch(generatedVideoUrl);
+        blob = await response.blob();
+      }
+
+      if (!blob) {
+        throw new Error('Video blob oluşturulamadı');
+      }
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const styleName = videoStyles.find(s => s.id === style)?.name || style;
+      const fileName = `AI_Video_${styleName}_${timestamp}.webm`;
+
+      // Use native export service
+      const result = await nativeExportService.saveVideoToDevice(blob, fileName);
+
+      if (result.success) {
+        toast.success('Video kaydedildi!', {
+          description: nativeExportService.isNativePlatform() 
+            ? 'Xtrim klasörüne kaydedildi' 
+            : `${result.filePath} olarak indirildi`
+        });
+      } else {
+        throw new Error(result.error || 'Kaydetme hatası');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error(error instanceof Error ? error.message : 'İndirme hatası');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Share video
+  const handleShareVideo = async () => {
+    if (!generatedVideoBlob && !generatedVideoUrl) {
+      toast.error('Paylaşılacak video bulunamadı');
+      return;
+    }
+
+    setIsSharing(true);
+
+    try {
+      let blob = generatedVideoBlob;
+      
+      if (!blob && generatedVideoUrl) {
+        const response = await fetch(generatedVideoUrl);
+        blob = await response.blob();
+      }
+
+      if (!blob) {
+        throw new Error('Video blob oluşturulamadı');
+      }
+
+      const styleName = videoStyles.find(s => s.id === style)?.name || style;
+      const fileName = `AI_Video_${styleName}.webm`;
+
+      const success = await nativeExportService.shareVideoBlob(blob, fileName);
+
+      if (success) {
+        toast.success('Paylaşım açıldı!');
+      } else {
+        // Fallback for web: copy blob URL
+        if (!nativeExportService.isNativePlatform()) {
+          await navigator.clipboard.writeText(generatedVideoUrl || '');
+          toast.success('Video bağlantısı kopyalandı!');
+        } else {
+          toast.error('Paylaşım başarısız');
+        }
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      toast.error(error instanceof Error ? error.message : 'Paylaşım hatası');
+    } finally {
+      setIsSharing(false);
     }
   };
 
@@ -746,6 +845,48 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
                 <span>Stil: {videoStyles.find(s => s.id === style)?.name}</span>
                 <span className="text-green-500 font-medium">✓ Hazır</span>
               </div>
+
+              {/* Download & Share Buttons */}
+              {generatedVideoUrl && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleDownloadVideo}
+                    disabled={isDownloading || isExportingVideo}
+                  >
+                    {isDownloading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        İndiriliyor...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        İndir
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={handleShareVideo}
+                    disabled={isSharing || isExportingVideo}
+                  >
+                    {isSharing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Paylaşılıyor...
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Paylaş
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -760,6 +901,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
                 onClick={() => {
                   setGeneratedPreview(null);
                   setGeneratedVideoUrl(null);
+                  setGeneratedVideoBlob(null);
                   setVideoFrames([]);
                   setProgress(0);
                 }}
