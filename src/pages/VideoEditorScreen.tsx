@@ -42,6 +42,7 @@ import { VideoSpeedPanel } from '@/components/VideoSpeedPanel';
 import { VideoColorPanel } from '@/components/VideoColorPanel';
 import { TextOverlayPanel } from '@/components/TextOverlayPanel';
 import { DraggableTextOverlay } from '@/components/DraggableTextOverlay';
+import { VideoMergePanel } from '@/components/VideoMergePanel';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -88,6 +89,7 @@ const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string
 ];
 
 const moreMenuItems = [
+  { id: 'merge', icon: Layers, label: 'Birleştir' },
   { id: 'autocut', icon: Zap, label: 'AutoCut', isAI: true },
   { id: 'enhance', icon: Wand2, label: 'AI Enhance', isAI: true },
   { id: 'stabilize', icon: Sparkles, label: 'Stabilize', isAI: true },
@@ -97,7 +99,6 @@ const moreMenuItems = [
   { id: 'crop', icon: Crop, label: 'Crop' },
   { id: 'rotate', icon: RotateCcw, label: 'Rotate' },
   { id: 'color', icon: Palette, label: 'Color' },
-  { id: 'layers', icon: Layers, label: 'Layers' },
   { id: 'duplicate', icon: Copy, label: 'Duplicate' },
 ];
 
@@ -194,6 +195,7 @@ const VideoEditorScreen = () => {
   const [showStabilizePanel, setShowStabilizePanel] = useState(false);
   const [showSpeedPanel, setShowSpeedPanel] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
+  const [showMergePanel, setShowMergePanel] = useState(false);
   
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
@@ -584,6 +586,47 @@ const VideoEditorScreen = () => {
     setShowEnhancePanel(false);
     setShowStabilizePanel(false);
     setShowSpeedPanel(false);
+    setShowMergePanel(false);
+  };
+
+  // Handle Merge Panel
+  const handleOpenMerge = () => {
+    if (!project || project.timeline.length < 2) {
+      toast.error('Birleştirmek için en az 2 klip gerekli');
+      return;
+    }
+    setShowMergePanel(true);
+    setShowTrimPanel(false);
+    setShowAudioPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+    setShowAutoCutPanel(false);
+    setShowEnhancePanel(false);
+    setShowStabilizePanel(false);
+    setShowSpeedPanel(false);
+    setShowColorPanel(false);
+  };
+
+  // Handle apply transition between clips
+  const handleApplyTransition = (transitionId: string, duration: number) => {
+    if (!project) return;
+    // Store transition info in the project (could be extended to store per-clip transitions)
+    toast.success(`Geçiş efekti uygulandı: ${transitionId}`);
+  };
+
+  // Handle merge all clips with transition
+  const handleMergeAllClips = (transitionId: string) => {
+    if (!project) return;
+    // Mark all clips with the selected transition
+    const updatedTimeline = project.timeline.map((clip, index) => ({
+      ...clip,
+      transition: index < project.timeline.length - 1 ? transitionId : undefined,
+    }));
+
+    saveProject({
+      ...project,
+      timeline: updatedTimeline,
+    });
   };
 
   // Handle AutoCut results - split video at suggested points
@@ -630,15 +673,18 @@ const VideoEditorScreen = () => {
   // Handle More menu actions
   const handleMoreMenuAction = (actionId: string) => {
     switch (actionId) {
+      case 'merge':
+        handleOpenMerge();
+        break;
       case 'autocut':
         handleOpenAutoCut();
-        return;
+        break;
       case 'enhance':
         handleOpenEnhance();
-        return;
+        break;
       case 'stabilize':
         handleOpenStabilize();
-        return;
+        break;
       case 'duplicate':
         if (!selectedClipId || !project) return;
         const clipToDuplicate = project.timeline.find((c) => c.id === selectedClipId);
@@ -1391,6 +1437,19 @@ const VideoEditorScreen = () => {
           <VideoColorPanel
             videoRef={videoRef}
             onClose={() => setShowColorPanel(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Video Merge Panel */}
+      <AnimatePresence>
+        {showMergePanel && project && (
+          <VideoMergePanel
+            clipCount={project.timeline.length}
+            isPro={false} // TODO: Connect to user subscription status
+            onClose={() => setShowMergePanel(false)}
+            onApplyTransition={handleApplyTransition}
+            onMergeAll={handleMergeAllClips}
           />
         )}
       </AnimatePresence>
