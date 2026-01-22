@@ -101,7 +101,7 @@ export interface CollageLayout {
 }
 
 export interface AppSettings {
-  language: 'auto' | 'en' | 'es' | 'fr' | 'de' | 'ja' | 'ko' | 'zh';
+  language: 'auto' | 'tr' | 'en' | 'es' | 'fr' | 'de' | 'ja' | 'ko' | 'zh';
   theme: 'auto' | 'dark' | 'light';
   soundEffects: boolean;
   aiBetaEnabled: boolean;
