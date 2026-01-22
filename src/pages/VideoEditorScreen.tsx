@@ -32,7 +32,10 @@ import {
   Crop,
   Filter,
   SlidersHorizontal,
+  Zap,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { AutoCutPanel } from '@/components/AutoCutPanel';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -42,7 +45,7 @@ import { cn } from '@/lib/utils';
 import type { Project, TimelineClip, MediaItem, AudioTrack } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
-type EditorTool = 'trim' | 'split' | 'delete' | 'audio' | 'text' | 'effects' | 'layers';
+type EditorTool = 'trim' | 'split' | 'delete' | 'audio' | 'text' | 'effects' | 'layers' | 'autocut';
 
 interface TextOverlay {
   id: string;
@@ -65,6 +68,7 @@ const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string
 ];
 
 const moreMenuItems = [
+  { id: 'autocut', icon: Zap, label: 'AutoCut', isAI: true },
   { id: 'speed', icon: SlidersHorizontal, label: 'Speed' },
   { id: 'filters', icon: Filter, label: 'Filters' },
   { id: 'effects', icon: Sparkles, label: 'Effects' },
@@ -164,6 +168,7 @@ const VideoEditorScreen = () => {
   const [showAudioPanel, setShowAudioPanel] = useState(false);
   const [showTextPanel, setShowTextPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showAutoCutPanel, setShowAutoCutPanel] = useState(false);
   
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
@@ -317,6 +322,7 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowAutoCutPanel(false);
   };
 
   const handleApplyTrim = () => {
@@ -344,6 +350,7 @@ const VideoEditorScreen = () => {
     setShowTrimPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowAutoCutPanel(false);
   };
 
   const handleAddAudioTrack = async (files: FileList | null) => {
@@ -401,6 +408,7 @@ const VideoEditorScreen = () => {
     setShowTrimPanel(false);
     setShowAudioPanel(false);
     setShowMoreMenu(false);
+    setShowAutoCutPanel(false);
   };
 
   const handleAddTextOverlay = () => {
@@ -424,12 +432,68 @@ const VideoEditorScreen = () => {
     setTextOverlays(textOverlays.filter((t) => t.id !== id));
   };
 
+  // Handle AutoCut Panel
+  const handleOpenAutoCut = () => {
+    if (!selectedMedia || selectedMedia.type !== 'video') {
+      toast.error('Lütfen bir video seçin');
+      return;
+    }
+    setShowAutoCutPanel(true);
+    setShowTrimPanel(false);
+    setShowAudioPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+  };
+
+  // Handle AutoCut results - split video at suggested points
+  const handleApplyAutoCuts = (cutPoints: number[]) => {
+    if (!selectedClipId || !project || cutPoints.length === 0) return;
+
+    const clipIndex = project.timeline.findIndex((c) => c.id === selectedClipId);
+    if (clipIndex === -1) return;
+
+    const originalClip = project.timeline[clipIndex];
+    const allTimes = [originalClip.startTime, ...cutPoints, originalClip.endTime].sort((a, b) => a - b);
+    
+    // Create new clips from cut points
+    const newClips: TimelineClip[] = [];
+    for (let i = 0; i < allTimes.length - 1; i++) {
+      newClips.push({
+        id: i === 0 ? originalClip.id : uuidv4(),
+        mediaId: originalClip.mediaId,
+        startTime: allTimes[i],
+        endTime: allTimes[i + 1],
+        order: clipIndex + i,
+      });
+    }
+
+    // Replace original clip with new clips
+    const updatedTimeline = [
+      ...project.timeline.slice(0, clipIndex),
+      ...newClips,
+      ...project.timeline.slice(clipIndex + 1).map((c, idx) => ({
+        ...c,
+        order: clipIndex + newClips.length + idx,
+      })),
+    ];
+
+    saveProject({
+      ...project,
+      timeline: updatedTimeline,
+      duration: updatedTimeline.reduce((acc, clip) => acc + (clip.endTime - clip.startTime), 0),
+    });
+
+    toast.success(`Video ${newClips.length} parçaya bölündü`);
+  };
+
   // Handle More menu actions
   const handleMoreMenuAction = (actionId: string) => {
-    if (!selectedClipId || !project) return;
-    
     switch (actionId) {
+      case 'autocut':
+        handleOpenAutoCut();
+        return;
       case 'duplicate':
+        if (!selectedClipId || !project) return;
         const clipToDuplicate = project.timeline.find((c) => c.id === selectedClipId);
         if (clipToDuplicate) {
           const newClip: TimelineClip = {
@@ -1077,16 +1141,36 @@ const VideoEditorScreen = () => {
                 <Button
                   key={item.id}
                   variant="ghost"
-                  className="flex-col gap-1 h-auto py-3"
+                  className={cn(
+                    "flex-col gap-1 h-auto py-3 relative",
+                    item.isAI && "text-primary"
+                  )}
                   onClick={() => handleMoreMenuAction(item.id)}
-                  disabled={!selectedClipId && item.id !== 'enhance'}
+                  disabled={!selectedClipId && item.id !== 'enhance' && item.id !== 'autocut'}
                 >
+                  {item.isAI && (
+                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[8px] px-1 py-0.5 rounded font-medium">
+                      AI
+                    </span>
+                  )}
                   <item.icon className="w-5 h-5" />
                   <span className="text-xxs">{item.label}</span>
                 </Button>
               ))}
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* AutoCut Panel */}
+      <AnimatePresence>
+        {showAutoCutPanel && selectedMedia?.type === 'video' && selectedClip && (
+          <AutoCutPanel
+            videoRef={videoRef}
+            videoDuration={selectedMedia.duration || 10}
+            onClose={() => setShowAutoCutPanel(false)}
+            onApplyCuts={handleApplyAutoCuts}
+          />
         )}
       </AnimatePresence>
 
