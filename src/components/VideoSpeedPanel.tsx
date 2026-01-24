@@ -206,14 +206,10 @@ export const VideoSpeedPanel = ({
         <div className="bg-secondary rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <Timer className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Süre Etkisi</span>
+            <span className="text-sm font-medium">Süre Bilgisi</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {speed < 1 
-              ? `Klip süresi ${(1/speed).toFixed(1)}x uzayacak. Örn: 10s → ${(10/speed).toFixed(1)}s` 
-              : speed > 1 
-                ? `Klip süresi ${speed.toFixed(1)}x kısalacak. Örn: 10s → ${(10/speed).toFixed(1)}s`
-                : 'Klip süresi değişmeyecek.'}
+            Klip süresi değişmez, sadece oynatma hızı güncellenir.
           </p>
         </div>
       </div>

@@ -638,15 +638,9 @@ const VideoEditorScreen = () => {
     // Update the clip in timeline with new speed
     const updatedTimeline = project.timeline.map((clip) => {
       if (clip.id === selectedClipId) {
-        // Use stored original duration or calculate from current if not set
-        const originalDuration = clip.originalDuration || (clip.endTime - clip.startTime) * (clip.speed || 1);
-        // Calculate new duration based on speed (faster = shorter)
-        const newDuration = originalDuration / speed;
         return { 
           ...clip, 
-          speed,
-          originalDuration, // Store original for future speed changes
-          endTime: clip.startTime + newDuration
+          speed
         };
       }
       return clip;
