@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Languages, Mic, Volume2, FileText, Loader2, Check, Play, Pause, Globe } from 'lucide-react';
+import { X, Languages, Mic, Volume2, FileText, Loader2, Play, Pause, Globe, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -19,6 +19,7 @@ interface TranslationResult {
   translatedAudioUrl?: string;
   subtitlesUrl?: string;
   targetLanguage: string;
+  translatedScript?: string;
 }
 
 const languages = [
@@ -51,6 +52,40 @@ const VideoTranslatePanel = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
+  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const updateProgress = (value: number, step: string) => {
+    setProgress(value);
+    setCurrentStep(step);
+  };
+
+  const generateTTS = async (text: string, language: string): Promise<string> => {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ 
+          text, 
+          language 
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `TTS request failed: ${response.status}`);
+    }
+
+    const audioBlob = await response.blob();
+    return URL.createObjectURL(audioBlob);
+  };
 
   const handleTranslate = async () => {
     if (!videoUrl) {
@@ -65,20 +100,13 @@ const VideoTranslatePanel = ({
 
     setIsProcessing(true);
     setProgress(0);
-    setCurrentStep('Video analiz ediliyor...');
+    setGeneratedAudioUrl(null);
 
     try {
-      // Simulate progress steps
-      const steps = [
-        { progress: 20, step: 'Ses çıkarılıyor...' },
-        { progress: 40, step: 'Konuşma metne dönüştürülüyor...' },
-        { progress: 60, step: 'Metin çevriliyor...' },
-        { progress: 80, step: 'Ses sentezleniyor...' },
-        { progress: 100, step: 'Tamamlanıyor...' },
-      ];
-
-      // Call edge function
-      const { data, error } = await supabase.functions.invoke('video-translate', {
+      // Step 1: Analyze and translate text
+      updateProgress(10, 'Video analiz ediliyor...');
+      
+      const { data: translateData, error: translateError } = await supabase.functions.invoke('video-translate', {
         body: {
           videoUrl,
           sourceLanguage: sourceLanguage === 'auto' ? null : sourceLanguage,
@@ -91,34 +119,75 @@ const VideoTranslatePanel = ({
         },
       });
 
-      if (error) throw error;
+      if (translateError) throw translateError;
+      if (!translateData.success) throw new Error(translateData.error || 'Çeviri başarısız oldu');
 
-      // Simulate progress for demo
-      for (const step of steps) {
-        setProgress(step.progress);
-        setCurrentStep(step.step);
-        await new Promise((resolve) => setTimeout(resolve, 500));
+      updateProgress(40, 'Metin çevrildi...');
+
+      let audioUrl: string | undefined;
+
+      // Step 2: Generate TTS if audio translation is enabled
+      if (translateAudio && translateData.translatedScript) {
+        updateProgress(50, 'Ses sentezleniyor (ElevenLabs)...');
+        
+        try {
+          audioUrl = await generateTTS(translateData.translatedScript, targetLanguage);
+          setGeneratedAudioUrl(audioUrl);
+          updateProgress(90, 'Ses oluşturuldu!');
+        } catch (ttsError) {
+          console.error('TTS error:', ttsError);
+          toast.warning('Ses oluşturulamadı, sadece altyazı kullanılacak');
+        }
       }
 
-      if (data.success) {
-        toast.success('Video çevirisi tamamlandı!');
-        onTranslationComplete?.({
-          translatedAudioUrl: data.translatedAudioUrl,
-          subtitlesUrl: data.subtitlesUrl,
-          targetLanguage,
-        });
-        onClose();
-      } else {
-        throw new Error(data.error || 'Çeviri başarısız oldu');
-      }
+      updateProgress(100, 'Tamamlandı!');
+
+      toast.success('Video çevirisi tamamlandı!', {
+        description: audioUrl ? 'Ses dublajı hazır' : 'Altyazılar oluşturuldu',
+      });
+
+      onTranslationComplete?.({
+        translatedAudioUrl: audioUrl,
+        subtitlesUrl: translateData.subtitlesUrl,
+        targetLanguage,
+        translatedScript: translateData.translatedScript,
+      });
+
     } catch (error) {
       console.error('Translation error:', error);
       toast.error(error instanceof Error ? error.message : 'Çeviri sırasında bir hata oluştu');
     } finally {
       setIsProcessing(false);
-      setProgress(0);
-      setCurrentStep('');
     }
+  };
+
+  const togglePreview = () => {
+    if (!generatedAudioUrl) return;
+
+    if (!audioRef.current) {
+      audioRef.current = new Audio(generatedAudioUrl);
+      audioRef.current.onended = () => setIsPlayingPreview(false);
+    }
+
+    if (isPlayingPreview) {
+      audioRef.current.pause();
+      setIsPlayingPreview(false);
+    } else {
+      audioRef.current.play();
+      setIsPlayingPreview(true);
+    }
+  };
+
+  const handleClose = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setIsPlayingPreview(false);
+    setGeneratedAudioUrl(null);
+    setProgress(0);
+    setCurrentStep('');
+    onClose();
   };
 
   return (
@@ -133,7 +202,7 @@ const VideoTranslatePanel = ({
           {/* Backdrop */}
           <motion.div
             className="absolute inset-0 bg-black/60"
-            onClick={onClose}
+            onClick={handleClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -160,10 +229,13 @@ const VideoTranslatePanel = ({
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-foreground">Video Çevirmeni</h2>
-                  <p className="text-xs text-muted-foreground">AI destekli video çevirisi</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    ElevenLabs TTS ile ses dublajı
+                  </p>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={onClose}>
+              <Button variant="ghost" size="icon" onClick={handleClose}>
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -225,8 +297,8 @@ const VideoTranslatePanel = ({
                   <div className="flex items-center gap-3">
                     <Mic className="h-5 w-5 text-primary" />
                     <div>
-                      <p className="text-sm font-medium">Sesi Çevir</p>
-                      <p className="text-xs text-muted-foreground">AI ile ses dublajı oluştur</p>
+                      <p className="text-sm font-medium">Ses Dublajı</p>
+                      <p className="text-xs text-muted-foreground">ElevenLabs ile gerçekçi ses</p>
                     </div>
                   </div>
                   <Switch checked={translateAudio} onCheckedChange={setTranslateAudio} />
@@ -261,6 +333,47 @@ const VideoTranslatePanel = ({
                   </motion.div>
                 )}
               </div>
+
+              {/* Generated Audio Preview */}
+              {generatedAudioUrl && (
+                <motion.div
+                  className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border border-primary/20"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                        <Volume2 className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Dublaj Hazır</p>
+                        <p className="text-xs text-muted-foreground">
+                          {languages.find(l => l.code === targetLanguage)?.name} sesi oluşturuldu
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={togglePreview}
+                    >
+                      {isPlayingPreview ? (
+                        <>
+                          <Pause className="h-4 w-4" />
+                          Durdur
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4" />
+                          Önizle
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Progress */}
               {isProcessing && (
