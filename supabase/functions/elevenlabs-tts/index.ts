@@ -79,26 +79,38 @@ serve(async (req) => {
     );
 
     if (!response.ok) {
+      // NOTE: We can only consume the body once. Read as text and parse JSON safely.
       const errorText = await response.text();
       console.error("ElevenLabs API error:", response.status, errorText);
-      
+
+      let errorJson: any = null;
+      try {
+        errorJson = JSON.parse(errorText);
+      } catch {
+        errorJson = null;
+      }
+
+      const detail = errorJson?.detail;
+
       if (response.status === 401) {
-        const errorData = await response.json().catch(() => ({}));
-        const detail = errorData?.detail;
-        
         // Check for unusual activity / free tier restriction
-        if (detail?.status === 'detected_unusual_activity') {
+        if (detail?.status === "detected_unusual_activity") {
           return new Response(
-            JSON.stringify({ 
-              error: "ElevenLabs ücretsiz plan kısıtlaması. Lütfen ücretli plana geçin veya farklı bir API anahtarı kullanın.",
-              code: "FREE_TIER_RESTRICTED"
+            JSON.stringify({
+              error:
+                "ElevenLabs ücretsiz plan kısıtlaması (unusual activity). Ses dublajı için ücretli plan veya farklı bir ElevenLabs hesabı/API anahtarı gerekiyor.",
+              code: "FREE_TIER_RESTRICTED",
+              provider_status: detail?.status,
             }),
             { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        
+
         return new Response(
-          JSON.stringify({ error: "Geçersiz ElevenLabs API anahtarı" }),
+          JSON.stringify({
+            error: "Geçersiz ElevenLabs API anahtarı",
+            code: "INVALID_API_KEY",
+          }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
