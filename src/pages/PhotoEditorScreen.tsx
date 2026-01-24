@@ -203,8 +203,8 @@ const PhotoEditorScreen = () => {
     }
   };
 
-  const getImageStyle = (): React.CSSProperties => {
-    const filters = [
+  const getFilterString = () =>
+    [
       `brightness(${1 + adjustments.brightness / 100})`,
       `contrast(${1 + adjustments.contrast / 100})`,
       `saturate(${1 + adjustments.saturation / 100})`,
@@ -212,6 +212,9 @@ const PhotoEditorScreen = () => {
         ? `sepia(${adjustments.temperature / 100})`
         : `hue-rotate(${adjustments.temperature}deg)`,
     ].join(' ');
+
+  const getImageStyle = (): React.CSSProperties => {
+    const filters = getFilterString();
 
     return {
       filter: filters,
@@ -222,6 +225,54 @@ const PhotoEditorScreen = () => {
       `,
       transition: 'filter 0.2s, transform 0.3s',
     };
+  };
+
+  const handleSave = async () => {
+    if (!imageUrl) {
+      toast.error('Kaydedilecek görsel bulunamadı');
+      return;
+    }
+
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = imageUrl;
+
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Görsel yüklenemedi'));
+      });
+
+      const rotation = ((adjustments.rotation % 360) + 360) % 360;
+      const shouldSwapDimensions = rotation === 90 || rotation === 270;
+      const canvas = document.createElement('canvas');
+      canvas.width = shouldSwapDimensions ? img.height : img.width;
+      canvas.height = shouldSwapDimensions ? img.width : img.height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Canvas oluşturulamadı');
+      }
+
+      ctx.filter = getFilterString();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      const scaleX = adjustments.flipH ? -1 : 1;
+      const scaleY = adjustments.flipV ? -1 : 1;
+      ctx.scale(scaleX, scaleY);
+      ctx.rotate((rotation * Math.PI) / 180);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `photo-editor-${Date.now()}.png`;
+      link.click();
+      link.remove();
+      toast.success('Görsel indirildi');
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Görsel kaydedilemedi');
+    }
   };
 
   // AI Processing functions
@@ -362,7 +413,7 @@ const PhotoEditorScreen = () => {
             <Redo2 className="w-4 h-4" />
           </Button>
           {imageUrl && (
-            <Button variant="gradient" size="sm">
+            <Button variant="gradient" size="sm" onClick={handleSave}>
               <Download className="w-4 h-4" />
               Save
             </Button>
