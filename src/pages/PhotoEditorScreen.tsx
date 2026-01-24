@@ -227,6 +227,74 @@ const PhotoEditorScreen = () => {
     };
   };
 
+  const handleApplyCrop = useCallback(async () => {
+    if (!imageUrl) {
+      toast.error('Kırpılacak görsel bulunamadı');
+      return;
+    }
+
+    const selectedRatio = cropRatios.find((ratio) => ratio.id === selectedCropRatio)?.ratio ?? null;
+
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = imageUrl;
+
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Görsel yüklenemedi'));
+      });
+
+      let cropWidth = img.width;
+      let cropHeight = img.height;
+      let cropX = 0;
+      let cropY = 0;
+
+      if (selectedRatio) {
+        const currentRatio = img.width / img.height;
+
+        if (currentRatio > selectedRatio) {
+          cropHeight = img.height;
+          cropWidth = img.height * selectedRatio;
+          cropX = (img.width - cropWidth) / 2;
+        } else {
+          cropWidth = img.width;
+          cropHeight = img.width / selectedRatio;
+          cropY = (img.height - cropHeight) / 2;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(cropWidth);
+      canvas.height = Math.round(cropHeight);
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Canvas oluşturulamadı');
+      }
+
+      ctx.drawImage(
+        img,
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      const dataUrl = canvas.toDataURL('image/png');
+      setImageUrl(dataUrl);
+      setActiveTab('adjust');
+      toast.success('Kırpma uygulandı');
+    } catch (error) {
+      console.error('Crop error:', error);
+      toast.error('Kırpma uygulanamadı');
+    }
+  }, [imageUrl, selectedCropRatio]);
+
   const handleSave = async () => {
     if (!imageUrl) {
       toast.error('Kaydedilecek görsel bulunamadı');
@@ -607,7 +675,7 @@ const PhotoEditorScreen = () => {
                       <X className="w-4 h-4" />
                       Cancel
                     </Button>
-                    <Button variant="gradient">
+                    <Button variant="gradient" onClick={handleApplyCrop}>
                       <Check className="w-4 h-4" />
                       Apply Crop
                     </Button>
