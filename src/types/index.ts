@@ -21,6 +21,7 @@ export interface TimelineClip {
   order: number;
   filters?: string[];
   speed?: number;
+  originalDuration?: number; // original duration before speed changes
 }
 
 export interface AudioTrack {
