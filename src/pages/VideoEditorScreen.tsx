@@ -121,6 +121,8 @@ const TimelineClipItem = ({
   const duration = clip.endTime - clip.startTime;
   const width = Math.max(80, duration * 50); // 50px per second, min 80px
 
+  const isPhoto = media?.type === 'photo';
+  
   return (
     <motion.div
       className={cn(
@@ -142,8 +144,30 @@ const TimelineClipItem = ({
         )}
       </div>
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20" />
+      {/* Gradient overlay - different color for photos */}
+      <div className={cn(
+        "absolute inset-0",
+        isPhoto 
+          ? "bg-gradient-to-r from-accent/30 to-primary/20" 
+          : "bg-gradient-to-r from-primary/20 to-accent/20"
+      )} />
+
+      {/* Media type indicator */}
+      <div className="absolute top-1 left-1">
+        {isPhoto ? (
+          <div className="w-4 h-4 rounded bg-accent/80 flex items-center justify-center">
+            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+            </svg>
+          </div>
+        ) : (
+          <div className="w-4 h-4 rounded bg-primary/80 flex items-center justify-center">
+            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+            </svg>
+          </div>
+        )}
+      </div>
 
       {/* Duration label */}
       <div className="absolute bottom-1 left-2 text-xxs font-medium text-white bg-black/50 px-1 rounded">
@@ -288,17 +312,24 @@ const VideoEditorScreen = () => {
 
     const newMediaItems: MediaItem[] = [];
     const newClips: TimelineClip[] = [];
+    let videoCount = 0;
+    let photoCount = 0;
 
     for (const file of Array.from(files)) {
       const mediaItem = await MediaService.createMediaItem(file);
       newMediaItems.push(mediaItem);
 
+      if (mediaItem.type === 'video') videoCount++;
+      if (mediaItem.type === 'photo') photoCount++;
+
       if (mediaItem.type !== 'audio') {
+        // Photos get default 5 second duration, videos use their actual duration
+        const defaultDuration = mediaItem.type === 'photo' ? 5 : (mediaItem.duration || 5);
         const clip: TimelineClip = {
           id: uuidv4(),
           mediaId: mediaItem.id,
           startTime: 0,
-          endTime: mediaItem.duration || 5,
+          endTime: defaultDuration,
           order: project.timeline.length + newClips.length,
         };
         newClips.push(clip);
@@ -316,6 +347,16 @@ const VideoEditorScreen = () => {
     };
 
     saveProject(updatedProject);
+
+    // Show feedback toast
+    const parts = [];
+    if (videoCount > 0) parts.push(`${videoCount} video`);
+    if (photoCount > 0) parts.push(`${photoCount} fotoğraf`);
+    if (parts.length > 0) {
+      toast.success('Medya eklendi', {
+        description: `${parts.join(' ve ')} timeline'a eklendi`,
+      });
+    }
   };
 
   const handleDeleteClip = () => {
@@ -1000,7 +1041,7 @@ const VideoEditorScreen = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept={MediaService.getSupportedVideoFormats()}
+        accept={MediaService.getSupportedMediaFormats()}
         multiple
         className="hidden"
         onChange={(e) => handleAddMedia(e.target.files)}
