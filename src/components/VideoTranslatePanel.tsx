@@ -80,7 +80,10 @@ const VideoTranslatePanel = ({
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `TTS request failed: ${response.status}`);
+      const errorMessage = errorData.code === 'FREE_TIER_RESTRICTED' 
+        ? errorData.error 
+        : (errorData.error || `TTS isteği başarısız: ${response.status}`);
+      throw new Error(errorMessage);
     }
 
     const audioBlob = await response.blob();
@@ -134,9 +137,19 @@ const VideoTranslatePanel = ({
           audioUrl = await generateTTS(translateData.translatedScript, targetLanguage);
           setGeneratedAudioUrl(audioUrl);
           updateProgress(90, 'Ses oluşturuldu!');
-        } catch (ttsError) {
+        } catch (ttsError: any) {
           console.error('TTS error:', ttsError);
-          toast.warning('Ses oluşturulamadı, sadece altyazı kullanılacak');
+          const errorMessage = ttsError?.message || '';
+          
+          if (errorMessage.includes('FREE_TIER_RESTRICTED') || errorMessage.includes('ücretsiz plan')) {
+            toast.error('ElevenLabs ücretsiz plan kısıtlandı', {
+              description: 'Ses dublajı için ücretli plana geçmeniz gerekiyor. Altyazılar kullanılacak.',
+            });
+          } else {
+            toast.warning('Ses oluşturulamadı', {
+              description: 'Sadece altyazı kullanılacak',
+            });
+          }
         }
       }
 
