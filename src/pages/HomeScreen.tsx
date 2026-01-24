@@ -124,8 +124,15 @@ const HomeScreen = () => {
       toast.success('YZ Poster', { description: 'AI ile profesyonel poster tasarlayabilirsiniz.' });
       navigate('/photo-editor?tool=poster');
     }
+    // Video Translate
+    else if (toolId === 'translate') {
+      toast.success('Video Çevirmeni', { description: 'Videoyu farklı dillere çevirebilirsiniz.' });
+      const project = ProjectService.createProject();
+      ProjectService.saveProject(project);
+      navigate(`/editor/${project.id}?tool=translate`);
+    }
     // Inactive AI tools
-    else if (toolId === 'translate' || toolId === 'dialogue') {
+    else if (toolId === 'dialogue') {
       toast.info('Yakında', { description: 'Bu özellik çok yakında aktif olacak.' });
     }
   };

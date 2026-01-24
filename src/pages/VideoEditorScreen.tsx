@@ -33,6 +33,7 @@ import {
   Filter,
   SlidersHorizontal,
   Zap,
+  Languages,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AutoCutPanel } from '@/components/AutoCutPanel';
@@ -44,6 +45,7 @@ import { TextOverlayPanel } from '@/components/TextOverlayPanel';
 import { DraggableTextOverlay } from '@/components/DraggableTextOverlay';
 import { VideoMergePanel } from '@/components/VideoMergePanel';
 import VideoAIGeneratePanel from '@/components/VideoAIGeneratePanel';
+import VideoTranslatePanel from '@/components/VideoTranslatePanel';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -92,6 +94,7 @@ const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string
 const moreMenuItems = [
   { id: 'merge', icon: Layers, label: 'Birleştir' },
   { id: 'ai-generate', icon: Wand2, label: 'AI Video Üret', isAI: true, isPro: true },
+  { id: 'translate', icon: Languages, label: 'Video Çevirmeni', isAI: true, isPro: true },
   { id: 'autocut', icon: Zap, label: 'AutoCut', isAI: true },
   { id: 'enhance', icon: Wand2, label: 'AI Enhance', isAI: true },
   { id: 'stabilize', icon: Sparkles, label: 'Stabilize', isAI: true },
@@ -200,6 +203,7 @@ const VideoEditorScreen = () => {
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showMergePanel, setShowMergePanel] = useState(false);
   const [showAIGeneratePanel, setShowAIGeneratePanel] = useState(false);
+  const [showTranslatePanel, setShowTranslatePanel] = useState(false);
   
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
@@ -240,6 +244,8 @@ const VideoEditorScreen = () => {
       setShowAutoCutPanel(true);
     } else if (tool === 'enhance') {
       setShowEnhancePanel(true);
+    } else if (tool === 'translate') {
+      setShowTranslatePanel(true);
     }
   }, [searchParams]);
 
@@ -674,6 +680,23 @@ const VideoEditorScreen = () => {
     setShowSpeedPanel(false);
     setShowColorPanel(false);
     setShowMergePanel(false);
+    setShowTranslatePanel(false);
+  };
+
+  // Handle Translate Panel
+  const handleOpenTranslate = () => {
+    setShowTranslatePanel(true);
+    setShowTrimPanel(false);
+    setShowAudioPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+    setShowAutoCutPanel(false);
+    setShowEnhancePanel(false);
+    setShowStabilizePanel(false);
+    setShowSpeedPanel(false);
+    setShowColorPanel(false);
+    setShowMergePanel(false);
+    setShowAIGeneratePanel(false);
   };
 
   // Handle AI Generated Video - add to timeline
@@ -765,6 +788,9 @@ const VideoEditorScreen = () => {
         break;
       case 'ai-generate':
         handleOpenAIGenerate();
+        break;
+      case 'translate':
+        handleOpenTranslate();
         break;
       case 'autocut':
         handleOpenAutoCut();
@@ -1554,6 +1580,16 @@ const VideoEditorScreen = () => {
           />
         )}
       </AnimatePresence>
+
+      {/* Video Translate Panel */}
+      <VideoTranslatePanel
+        isOpen={showTranslatePanel}
+        onClose={() => setShowTranslatePanel(false)}
+        videoUrl={selectedMedia?.uri}
+        onTranslationComplete={(result) => {
+          toast.success(`Video ${result.targetLanguage} diline çevrildi`);
+        }}
+      />
 
       {/* Bottom toolbar */}
       <div className="flex items-center justify-around py-3 px-4 border-t border-border bg-card safe-area-bottom relative z-20">
