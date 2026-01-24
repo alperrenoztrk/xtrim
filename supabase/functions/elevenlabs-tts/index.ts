@@ -83,19 +83,33 @@ serve(async (req) => {
       console.error("ElevenLabs API error:", response.status, errorText);
       
       if (response.status === 401) {
+        const errorData = await response.json().catch(() => ({}));
+        const detail = errorData?.detail;
+        
+        // Check for unusual activity / free tier restriction
+        if (detail?.status === 'detected_unusual_activity') {
+          return new Response(
+            JSON.stringify({ 
+              error: "ElevenLabs ücretsiz plan kısıtlaması. Lütfen ücretli plana geçin veya farklı bir API anahtarı kullanın.",
+              code: "FREE_TIER_RESTRICTED"
+            }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
         return new Response(
-          JSON.stringify({ error: "Invalid ElevenLabs API key" }),
+          JSON.stringify({ error: "Geçersiz ElevenLabs API anahtarı" }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+          JSON.stringify({ error: "Rate limit aşıldı. Lütfen daha sonra tekrar deneyin." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
-      throw new Error(`ElevenLabs API error: ${response.status}`);
+      throw new Error(`ElevenLabs API hatası: ${response.status}`);
     }
 
     const audioBuffer = await response.arrayBuffer();
