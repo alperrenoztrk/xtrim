@@ -1,0 +1,316 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { X, Sparkles, Video, Wand2, Clock, Crown, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+interface VideoAIGeneratePanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onVideoGenerated: (videoUrl: string, duration: number) => void;
+}
+
+const videoStyles = [
+  { id: 'cinematic', name: 'Sinematik', description: 'Film kalitesinde görsel' },
+  { id: 'anime', name: 'Anime', description: 'Japon animasyon tarzı' },
+  { id: 'realistic', name: 'Gerçekçi', description: 'Fotogerçekçi görünüm' },
+  { id: 'artistic', name: 'Sanatsal', description: 'Artistik ve yaratıcı' },
+  { id: '3d', name: '3D Render', description: '3D modelleme tarzı' },
+  { id: 'vintage', name: 'Vintage', description: 'Retro film görünümü' },
+];
+
+const durationOptions = [
+  { value: 3, label: '3 saniye' },
+  { value: 5, label: '5 saniye' },
+  { value: 10, label: '10 saniye' },
+  { value: 15, label: '15 saniye (Pro+)' },
+];
+
+const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
+  isOpen,
+  onClose,
+  onVideoGenerated,
+}) => {
+  const [prompt, setPrompt] = useState('');
+  const [style, setStyle] = useState('cinematic');
+  const [duration, setDuration] = useState(5);
+  const [quality, setQuality] = useState([75]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
+
+  const handleGenerate = async () => {
+    if (!prompt.trim()) {
+      toast.error('Lütfen bir açıklama girin');
+      return;
+    }
+
+    setIsGenerating(true);
+    setProgress(0);
+    setGeneratedPreview(null);
+
+    try {
+      // Simulate progress for UX
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + Math.random() * 15;
+        });
+      }, 500);
+
+      const { data, error } = await supabase.functions.invoke('ai-video-generate', {
+        body: {
+          prompt,
+          style,
+          duration,
+          quality: quality[0],
+        },
+      });
+
+      clearInterval(progressInterval);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data?.success && data?.frameUrl) {
+        setProgress(100);
+        setGeneratedPreview(data.frameUrl);
+        toast.success('Video oluşturuldu!');
+      } else {
+        throw new Error(data?.error || 'Video oluşturulamadı');
+      }
+    } catch (error) {
+      console.error('Video generation error:', error);
+      toast.error(error instanceof Error ? error.message : 'Video oluşturma hatası');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleAddToTimeline = () => {
+    if (generatedPreview) {
+      onVideoGenerated(generatedPreview, duration);
+      toast.success('Video zaman çizelgesine eklendi');
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 100 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 100 }}
+      className="fixed inset-x-0 bottom-0 z-50 bg-background border-t border-border rounded-t-3xl shadow-2xl max-h-[85vh] overflow-hidden"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-purple-500/10 to-pink-500/10">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl">
+            <Wand2 className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground flex items-center gap-2">
+              AI Video Üretimi
+              <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs rounded-full flex items-center gap-1">
+                <Crown className="w-3 h-3" />
+                PRO
+              </span>
+            </h3>
+            <p className="text-xs text-muted-foreground">Metinden video oluştur</p>
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="w-5 h-5" />
+        </Button>
+      </div>
+
+      <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(85vh-80px)]">
+        {/* Prompt Input */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Video Açıklaması</Label>
+          <Textarea
+            placeholder="Örn: Gün batımında sahilde yürüyen bir çift, sinematik kamera hareketi ile..."
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            className="min-h-[100px] resize-none"
+            disabled={isGenerating}
+          />
+          <p className="text-xs text-muted-foreground">
+            Ne kadar detaylı açıklarsanız, o kadar iyi sonuç alırsınız
+          </p>
+        </div>
+
+        {/* Style Selection */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Video Stili</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {videoStyles.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setStyle(s.id)}
+                disabled={isGenerating}
+                className={`p-3 rounded-xl border-2 transition-all text-left ${
+                  style === s.id
+                    ? 'border-purple-500 bg-purple-500/10'
+                    : 'border-border hover:border-purple-500/50'
+                }`}
+              >
+                <p className="font-medium text-sm">{s.name}</p>
+                <p className="text-xs text-muted-foreground">{s.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Duration Selection */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            Video Süresi
+          </Label>
+          <Select
+            value={duration.toString()}
+            onValueChange={(v) => setDuration(parseInt(v))}
+            disabled={isGenerating}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {durationOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value.toString()}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Quality Slider */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium flex items-center justify-between">
+            <span>Kalite</span>
+            <span className="text-muted-foreground">{quality[0]}%</span>
+          </Label>
+          <Slider
+            value={quality}
+            onValueChange={setQuality}
+            min={50}
+            max={100}
+            step={5}
+            disabled={isGenerating}
+            className="py-2"
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Hızlı</span>
+            <span>Yüksek Kalite</span>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        {isGenerating && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Video oluşturuluyor...</span>
+              <span className="font-medium">{Math.round(progress)}%</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
+            <p className="text-xs text-center text-muted-foreground">
+              AI videonuzu oluşturuyor, bu birkaç dakika sürebilir...
+            </p>
+          </div>
+        )}
+
+        {/* Generated Preview */}
+        {generatedPreview && !isGenerating && (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Oluşturulan Video Önizleme</Label>
+            <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-black">
+              <img
+                src={generatedPreview}
+                alt="Generated video preview"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                <div className="p-4 bg-white/20 backdrop-blur-sm rounded-full">
+                  <Video className="w-8 h-8 text-white" />
+                </div>
+              </div>
+              <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/60 rounded text-white text-xs">
+                {duration}s
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-2">
+          {generatedPreview && !isGenerating ? (
+            <>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setGeneratedPreview(null);
+                  setProgress(0);
+                }}
+              >
+                Yeniden Oluştur
+              </Button>
+              <Button
+                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                onClick={handleAddToTimeline}
+              >
+                <Video className="w-4 h-4 mr-2" />
+                Videoya Ekle
+              </Button>
+            </>
+          ) : (
+            <Button
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              onClick={handleGenerate}
+              disabled={isGenerating || !prompt.trim()}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Oluşturuluyor...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Video Oluştur
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+
+        {/* Info */}
+        <p className="text-xs text-center text-muted-foreground pt-2">
+          AI Video üretimi Pro abonelik gerektirir. Her video için kredi kullanılır.
+        </p>
+      </div>
+    </motion.div>
+  );
+};
+
+export default VideoAIGeneratePanel;

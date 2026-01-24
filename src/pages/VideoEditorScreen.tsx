@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
   ArrowLeft,
@@ -43,6 +43,7 @@ import { VideoColorPanel } from '@/components/VideoColorPanel';
 import { TextOverlayPanel } from '@/components/TextOverlayPanel';
 import { DraggableTextOverlay } from '@/components/DraggableTextOverlay';
 import { VideoMergePanel } from '@/components/VideoMergePanel';
+import VideoAIGeneratePanel from '@/components/VideoAIGeneratePanel';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
@@ -90,6 +91,7 @@ const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string
 
 const moreMenuItems = [
   { id: 'merge', icon: Layers, label: 'Birleştir' },
+  { id: 'ai-generate', icon: Wand2, label: 'AI Video Üret', isAI: true, isPro: true },
   { id: 'autocut', icon: Zap, label: 'AutoCut', isAI: true },
   { id: 'enhance', icon: Wand2, label: 'AI Enhance', isAI: true },
   { id: 'stabilize', icon: Sparkles, label: 'Stabilize', isAI: true },
@@ -163,6 +165,7 @@ const TimelineClipItem = ({
 const VideoEditorScreen = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
+  const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -196,6 +199,7 @@ const VideoEditorScreen = () => {
   const [showSpeedPanel, setShowSpeedPanel] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showMergePanel, setShowMergePanel] = useState(false);
+  const [showAIGeneratePanel, setShowAIGeneratePanel] = useState(false);
   
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
@@ -210,6 +214,34 @@ const VideoEditorScreen = () => {
   const [isEditingTextOverlays, setIsEditingTextOverlays] = useState(false);
   const [selectedTextOverlayId, setSelectedTextOverlayId] = useState<string | null>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+
+  // Handle phone back button - navigate only one page back
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      event.preventDefault();
+      navigate(-1);
+    };
+
+    // Push a new state so back button triggers popstate
+    window.history.pushState({ page: 'editor' }, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [navigate]);
+
+  // Handle URL tool parameter to open panels automatically
+  useEffect(() => {
+    const tool = searchParams.get('tool');
+    if (tool === 'ai-generate') {
+      setShowAIGeneratePanel(true);
+    } else if (tool === 'autocut') {
+      setShowAutoCutPanel(true);
+    } else if (tool === 'enhance') {
+      setShowEnhancePanel(true);
+    }
+  }, [searchParams]);
 
   const saveProject = useCallback(
     (updatedProject: Project) => {
@@ -629,6 +661,61 @@ const VideoEditorScreen = () => {
     });
   };
 
+  // Handle AI Video Generate Panel
+  const handleOpenAIGenerate = () => {
+    setShowAIGeneratePanel(true);
+    setShowTrimPanel(false);
+    setShowAudioPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+    setShowAutoCutPanel(false);
+    setShowEnhancePanel(false);
+    setShowStabilizePanel(false);
+    setShowSpeedPanel(false);
+    setShowColorPanel(false);
+    setShowMergePanel(false);
+  };
+
+  // Handle AI Generated Video - add to timeline
+  const handleAIVideoGenerated = (videoUrl: string, duration: number) => {
+    if (!project) return;
+    
+    // Create a new media item for the generated video
+    const newMediaId = uuidv4();
+    const newMedia: MediaItem = {
+      id: newMediaId,
+      type: 'photo', // AI generates image frames
+      uri: videoUrl,
+      name: `AI Generated - ${new Date().toLocaleTimeString()}`,
+      duration: duration,
+      createdAt: new Date(),
+    };
+
+    // Create a new clip for the timeline
+    const currentDuration = project.timeline.reduce(
+      (acc, clip) => acc + (clip.endTime - clip.startTime),
+      0
+    );
+
+    const newClip: TimelineClip = {
+      id: uuidv4(),
+      mediaId: newMediaId,
+      startTime: 0,
+      endTime: duration,
+      order: project.timeline.length,
+    };
+
+    // Update project with new media and clip
+    saveProject({
+      ...project,
+      mediaItems: [...project.mediaItems, newMedia],
+      timeline: [...project.timeline, newClip],
+      duration: currentDuration + duration,
+    });
+
+    setShowAIGeneratePanel(false);
+  };
+
   // Handle AutoCut results - split video at suggested points
   const handleApplyAutoCuts = (cutPoints: number[]) => {
     if (!selectedClipId || !project || cutPoints.length === 0) return;
@@ -675,6 +762,9 @@ const VideoEditorScreen = () => {
     switch (actionId) {
       case 'merge':
         handleOpenMerge();
+        break;
+      case 'ai-generate':
+        handleOpenAIGenerate();
         break;
       case 'autocut':
         handleOpenAutoCut();
@@ -1450,6 +1540,17 @@ const VideoEditorScreen = () => {
             onClose={() => setShowMergePanel(false)}
             onApplyTransition={handleApplyTransition}
             onMergeAll={handleMergeAllClips}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* AI Video Generate Panel */}
+      <AnimatePresence>
+        {showAIGeneratePanel && (
+          <VideoAIGeneratePanel
+            isOpen={showAIGeneratePanel}
+            onClose={() => setShowAIGeneratePanel(false)}
+            onVideoGenerated={handleAIVideoGenerated}
           />
         )}
       </AnimatePresence>
