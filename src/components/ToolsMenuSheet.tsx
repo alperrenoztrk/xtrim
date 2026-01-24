@@ -41,7 +41,7 @@ const videoCategories: ToolCategory[] = [
       { id: 'ai-enhance-video', name: 'AI İyileştir', icon: Sparkles, isAI: true, isActive: true },
       { id: 'ai-generate', name: 'AI Video Üret', icon: Video, isPro: true, isAI: true, isActive: true },
       { id: 'avatars', name: 'YZ avatarlar', icon: Bot, isPro: true, isAI: true, isActive: true },
-      { id: 'translate', name: 'Video çevirmeni', icon: Languages, isPro: true, isAI: true },
+      { id: 'translate', name: 'Video çevirmeni', icon: Languages, isPro: true, isAI: true, isActive: true },
       { id: 'dialogue', name: 'YZ diyalog sahne', icon: MessageSquare, isPro: true, isAI: true },
     ],
   },
