@@ -18,6 +18,7 @@ interface VideoTranslatePanelProps {
 interface TranslationResult {
   translatedAudioUrl?: string;
   subtitlesUrl?: string;
+  subtitles?: Array<{ start: string; end: string; text: string }>;
   targetLanguage: string;
   translatedScript?: string;
 }
@@ -162,6 +163,7 @@ const VideoTranslatePanel = ({
       onTranslationComplete?.({
         translatedAudioUrl: audioUrl,
         subtitlesUrl: translateData.subtitlesUrl,
+        subtitles: translateData.subtitles,
         targetLanguage,
         translatedScript: translateData.translatedScript,
       });

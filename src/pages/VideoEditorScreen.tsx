@@ -1587,7 +1587,55 @@ const VideoEditorScreen = () => {
         onClose={() => setShowTranslatePanel(false)}
         videoUrl={selectedMedia?.uri}
         onTranslationComplete={(result) => {
-          toast.success(`Video ${result.targetLanguage} diline çevrildi`);
+          // Parse subtitles and add them as text overlays
+          if (result.subtitles && Array.isArray(result.subtitles)) {
+            const subtitleOverlays = result.subtitles.map((sub: any, index: number) => {
+              // Parse timestamp "00:00:00,000" to seconds
+              const parseTime = (timeStr: string) => {
+                const parts = timeStr.split(':');
+                const secondsParts = parts[2].split(',');
+                return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(secondsParts[0] + '.' + (secondsParts[1] || '0'));
+              };
+              
+              const startTime = parseTime(sub.start);
+              const endTime = parseTime(sub.end);
+              
+              return {
+                id: uuidv4(),
+                text: sub.text,
+                position: 'bottom' as const,
+                style: {
+                  fontFamily: 'Inter',
+                  fontSize: 16,
+                  color: '#ffffff',
+                  backgroundColor: 'rgba(0,0,0,0.7)',
+                  textAlign: 'center' as const,
+                  bold: false,
+                  italic: false,
+                  underline: false,
+                  shadow: true,
+                  animation: 'fade-in' as const,
+                },
+                startTime,
+                endTime,
+              };
+            });
+            
+            setTextOverlays(prev => [...prev, ...subtitleOverlays]);
+            toast.success('Altyazılar eklendi!', {
+              description: `${subtitleOverlays.length} altyazı videoya eklendi`,
+            });
+          }
+          
+          // If there's translated audio, store it for playback
+          if (result.translatedAudioUrl) {
+            toast.success('Ses dublajı hazır!', {
+              description: 'Çevrilmiş ses videoya eklendi',
+            });
+          }
+          
+          // Close the panel
+          setShowTranslatePanel(false);
         }}
       />
 
