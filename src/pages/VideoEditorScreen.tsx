@@ -112,11 +112,13 @@ const TimelineClipItem = ({
   media,
   isSelected,
   onSelect,
+  isDragging,
 }: {
   clip: TimelineClip;
   media?: MediaItem;
   isSelected: boolean;
   onSelect: () => void;
+  isDragging?: boolean;
 }) => {
   const duration = clip.endTime - clip.startTime;
   const width = Math.max(80, duration * 50); // 50px per second, min 80px
@@ -124,14 +126,14 @@ const TimelineClipItem = ({
   const isPhoto = media?.type === 'photo';
   
   return (
-    <motion.div
+    <div
       className={cn(
-        'relative h-16 rounded-lg overflow-hidden cursor-pointer transition-all border-2',
-        isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-transparent'
+        'relative h-16 rounded-lg overflow-hidden transition-all border-2 select-none',
+        isSelected ? 'border-primary ring-2 ring-primary/30' : 'border-transparent',
+        isDragging ? 'opacity-90 scale-105 shadow-lg shadow-primary/30 cursor-grabbing z-50' : 'cursor-grab'
       )}
       style={{ width }}
       onClick={onSelect}
-      whileTap={{ scale: 0.98 }}
     >
       {/* Thumbnail background */}
       <div className="absolute inset-0 bg-secondary">
@@ -139,21 +141,21 @@ const TimelineClipItem = ({
           <img
             src={media.thumbnail}
             alt=""
-            className="w-full h-full object-cover opacity-80"
+            className="w-full h-full object-cover opacity-80 pointer-events-none"
           />
         )}
       </div>
 
       {/* Gradient overlay - different color for photos */}
       <div className={cn(
-        "absolute inset-0",
+        "absolute inset-0 pointer-events-none",
         isPhoto 
           ? "bg-gradient-to-r from-accent/30 to-primary/20" 
           : "bg-gradient-to-r from-primary/20 to-accent/20"
       )} />
 
       {/* Media type indicator */}
-      <div className="absolute top-1 left-1">
+      <div className="absolute top-1 left-1 pointer-events-none">
         {isPhoto ? (
           <div className="w-4 h-4 rounded bg-accent/80 flex items-center justify-center">
             <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -169,13 +171,22 @@ const TimelineClipItem = ({
         )}
       </div>
 
+      {/* Drag indicator */}
+      <div className="absolute top-1 right-1 pointer-events-none">
+        <div className="w-4 h-4 rounded bg-black/50 flex items-center justify-center">
+          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+          </svg>
+        </div>
+      </div>
+
       {/* Duration label */}
-      <div className="absolute bottom-1 left-2 text-xxs font-medium text-white bg-black/50 px-1 rounded">
+      <div className="absolute bottom-1 left-2 text-xxs font-medium text-white bg-black/50 px-1 rounded pointer-events-none">
         {MediaService.formatDuration(duration)}
       </div>
 
-      {/* Drag handles */}
-      {isSelected && (
+      {/* Trim handles - only shown when selected */}
+      {isSelected && !isDragging && (
         <>
           <div className="absolute left-0 top-0 bottom-0 w-2 bg-primary cursor-ew-resize flex items-center justify-center">
             <div className="w-0.5 h-6 bg-white/50 rounded" />
@@ -185,7 +196,7 @@ const TimelineClipItem = ({
           </div>
         </>
       )}
-    </motion.div>
+    </div>
   );
 };
 
@@ -416,6 +427,7 @@ const VideoEditorScreen = () => {
       order: index,
     }));
     saveProject({ ...project, timeline: reorderedTimeline });
+    toast.success('Sıralama güncellendi');
   };
 
   // Handle Trim
@@ -1325,7 +1337,12 @@ const VideoEditorScreen = () => {
               {project.timeline
                 .sort((a, b) => a.order - b.order)
                 .map((clip) => (
-                  <Reorder.Item key={clip.id} value={clip}>
+                  <Reorder.Item 
+                    key={clip.id} 
+                    value={clip}
+                    whileDrag={{ scale: 1.05, zIndex: 50 }}
+                    className="cursor-grab active:cursor-grabbing"
+                  >
                     <TimelineClipItem
                       clip={clip}
                       media={project.mediaItems.find((m) => m.id === clip.mediaId)}
