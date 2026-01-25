@@ -44,6 +44,7 @@ import { VideoColorPanel } from '@/components/VideoColorPanel';
 import { TextOverlayPanel } from '@/components/TextOverlayPanel';
 import { DraggableTextOverlay } from '@/components/DraggableTextOverlay';
 import { VideoMergePanel } from '@/components/VideoMergePanel';
+import { VideoRotateCropPanel } from '@/components/VideoRotateCropPanel';
 import VideoAIGeneratePanel from '@/components/VideoAIGeneratePanel';
 import VideoTranslatePanel from '@/components/VideoTranslatePanel';
 import { Button } from '@/components/ui/button';
@@ -239,6 +240,7 @@ const VideoEditorScreen = () => {
   const [showMergePanel, setShowMergePanel] = useState(false);
   const [showAIGeneratePanel, setShowAIGeneratePanel] = useState(false);
   const [showTranslatePanel, setShowTranslatePanel] = useState(false);
+  const [showRotateCropPanel, setShowRotateCropPanel] = useState(false);
   
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
@@ -748,7 +750,57 @@ const VideoEditorScreen = () => {
     setShowAIGeneratePanel(false);
   };
 
-  // Handle AI Generated Video - add to timeline
+  // Handle Rotate/Crop Panel
+  const handleOpenRotateCrop = () => {
+    if (!selectedClipId || !project) {
+      toast.error('Lütfen bir klip seçin');
+      return;
+    }
+    setShowRotateCropPanel(true);
+    setShowTrimPanel(false);
+    setShowAudioPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+    setShowAutoCutPanel(false);
+    setShowEnhancePanel(false);
+    setShowStabilizePanel(false);
+    setShowSpeedPanel(false);
+    setShowColorPanel(false);
+    setShowMergePanel(false);
+    setShowAIGeneratePanel(false);
+    setShowTranslatePanel(false);
+  };
+
+  // Handle apply rotation to clip
+  const handleApplyRotation = (rotation: number, flipH: boolean, flipV: boolean) => {
+    if (!selectedClipId || !project) return;
+
+    const updatedTimeline = project.timeline.map((clip) => {
+      if (clip.id === selectedClipId) {
+        return { ...clip, rotation, flipH, flipV };
+      }
+      return clip;
+    });
+
+    saveProject({ ...project, timeline: updatedTimeline });
+    toast.success('Döndürme uygulandı');
+  };
+
+  // Handle apply crop to clip
+  const handleApplyCrop = (cropRatio: string) => {
+    if (!selectedClipId || !project) return;
+
+    const updatedTimeline = project.timeline.map((clip) => {
+      if (clip.id === selectedClipId) {
+        return { ...clip, cropRatio };
+      }
+      return clip;
+    });
+
+    saveProject({ ...project, timeline: updatedTimeline });
+    toast.success('Kırpma uygulandı');
+  };
+
   const handleAIVideoGenerated = (videoUrl: string, duration: number) => {
     if (!project) return;
     
@@ -874,7 +926,8 @@ const VideoEditorScreen = () => {
         handleOpenColor();
         break;
       case 'rotate':
-        // Rotate logic - for now just toggle a state
+      case 'crop':
+        handleOpenRotateCrop();
         break;
       default:
         break;
@@ -1109,7 +1162,10 @@ const VideoEditorScreen = () => {
               <video
                 ref={videoRef}
                 src={selectedMedia.uri}
-                className="max-h-full max-w-full object-contain"
+                className="max-h-full max-w-full object-contain transition-transform duration-200"
+                style={{
+                  transform: `rotate(${selectedClip?.rotation || 0}deg) scaleX(${selectedClip?.flipH ? -1 : 1}) scaleY(${selectedClip?.flipV ? -1 : 1})`,
+                }}
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={handleVideoEnded}
                 onError={() => setVideoError(true)}
@@ -1163,7 +1219,10 @@ const VideoEditorScreen = () => {
               <img
                 src={selectedMedia.uri}
                 alt=""
-                className="max-h-full max-w-full object-contain"
+                className="max-h-full max-w-full object-contain transition-transform duration-200"
+                style={{
+                  transform: `rotate(${selectedClip?.rotation || 0}deg) scaleX(${selectedClip?.flipH ? -1 : 1}) scaleY(${selectedClip?.flipV ? -1 : 1})`,
+                }}
               />
               {/* Draggable Text Overlays on Image */}
               {textOverlays.map((overlay) => (
@@ -1692,6 +1751,19 @@ const VideoEditorScreen = () => {
           setShowTranslatePanel(false);
         }}
       />
+
+      {/* Rotate/Crop Panel */}
+      {selectedClip && (
+        <VideoRotateCropPanel
+          isOpen={showRotateCropPanel}
+          onClose={() => setShowRotateCropPanel(false)}
+          onApplyRotation={handleApplyRotation}
+          onApplyCrop={handleApplyCrop}
+          currentRotation={selectedClip.rotation || 0}
+          currentFlipH={selectedClip.flipH || false}
+          currentFlipV={selectedClip.flipV || false}
+        />
+      )}
 
       {/* Bottom toolbar */}
       <div className="flex items-center justify-around py-3 px-4 border-t border-border bg-card safe-area-bottom relative z-20">
