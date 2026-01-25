@@ -21,6 +21,12 @@ export interface TimelineClip {
   order: number;
   filters?: string[];
   speed?: number;
+  rotation?: number;
+  flipH?: boolean;
+  flipV?: boolean;
+  cropRatio?: string;
+  originalDuration?: number;
+  transition?: string;
 }
 
 export interface AudioTrack {
