@@ -155,15 +155,14 @@ const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect }: ToolsMenuSheetP
 
           {/* Bottom Button */}
           <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background via-background to-transparent">
-            <Button
-              variant="gradient"
-              size="lg"
-              className="w-full h-14 bg-gradient-to-r from-primary to-accent"
-              onClick={() => onToolSelect('new-project')}
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Yeni proje
-            </Button>
+          <Button
+            variant="gradient"
+            size="lg"
+            className="w-full h-14 bg-gradient-to-r from-primary to-accent"
+            onClick={() => onToolSelect('new-project')}
+          >
+            Yeni proje
+          </Button>
           </div>
         </motion.div>
       )}
