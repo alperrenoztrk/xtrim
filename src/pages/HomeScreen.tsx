@@ -62,6 +62,19 @@ const HomeScreen = () => {
   const handleToolSelect = (toolId: string) => {
     setMenuOpen(false);
     
+    // Handle named project creation
+    if (toolId.startsWith('new-project-named:')) {
+      const projectName = toolId.replace('new-project-named:', '');
+      if (menuType === 'video') {
+        const project = ProjectService.createProject(projectName);
+        ProjectService.saveProject(project);
+        navigate(`/editor/${project.id}`);
+      } else {
+        navigate('/photo-editor');
+      }
+      return;
+    }
+    
     // Video tools
     if (toolId === 'new-project') {
       if (menuType === 'video') {
@@ -135,6 +148,11 @@ const HomeScreen = () => {
     else if (toolId === 'dialogue') {
       toast.info('Yakında', { description: 'Bu özellik çok yakında aktif olacak.' });
     }
+  };
+
+  const handleProjectOpen = (projectId: string) => {
+    setMenuOpen(false);
+    navigate(`/editor/${projectId}`);
   };
 
   return (
@@ -215,6 +233,7 @@ const HomeScreen = () => {
         onClose={() => setMenuOpen(false)}
         type={menuType}
         onToolSelect={handleToolSelect}
+        onProjectOpen={handleProjectOpen}
       />
 
       {/* Text to Image Panel */}

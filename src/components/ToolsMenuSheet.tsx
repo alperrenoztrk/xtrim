@@ -1,49 +1,171 @@
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Video, Image, Trash2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ProjectService } from '@/services/ProjectService';
+import { ProjectNameDialog } from './ProjectNameDialog';
+import type { Project } from '@/types';
 
 interface ToolsMenuSheetProps {
   isOpen: boolean;
   onClose: () => void;
   type: 'video' | 'photo';
   onToolSelect: (toolId: string) => void;
+  onProjectOpen?: (projectId: string) => void;
 }
 
-const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect }: ToolsMenuSheetProps) => {
+const formatDate = (date: Date) => {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  
+  if (days === 0) return 'Bugün';
+  if (days === 1) return 'Dün';
+  if (days < 7) return `${days} gün önce`;
+  
+  return date.toLocaleDateString('tr-TR', {
+    day: 'numeric',
+    month: 'short',
+  });
+};
+
+const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect, onProjectOpen }: ToolsMenuSheetProps) => {
   const title = type === 'video' ? 'Video' : 'Fotoğraf';
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [showNameDialog, setShowNameDialog] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Load projects when menu opens
+      const allProjects = ProjectService.getProjects();
+      // Filter projects based on type (video projects have timeline, photo projects don't)
+      // For now, show all projects in video menu
+      setProjects(type === 'video' ? allProjects : []);
+    }
+  }, [isOpen, type]);
+
+  const handleNewProject = () => {
+    setShowNameDialog(true);
+  };
+
+  const handleCreateProject = (name: string) => {
+    setShowNameDialog(false);
+    onToolSelect('new-project-named:' + name);
+  };
+
+  const handleOpenProject = (projectId: string) => {
+    if (onProjectOpen) {
+      onProjectOpen(projectId);
+    }
+    onClose();
+  };
+
+  const handleDeleteProject = (e: React.MouseEvent, projectId: string) => {
+    e.stopPropagation();
+    ProjectService.deleteProject(projectId);
+    setProjects(projects.filter(p => p.id !== projectId));
+  };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          className="fixed inset-0 z-50 bg-background"
-          initial={{ opacity: 0, y: '100%' }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: '100%' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-            <h1 className="text-xl font-bold text-foreground">{title}</h1>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-6 w-6" />
-            </Button>
-          </div>
+    <>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 bg-background"
+            initial={{ opacity: 0, y: '100%' }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h1 className="text-xl font-bold text-foreground">{title}</h1>
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X className="h-6 w-6" />
+              </Button>
+            </div>
 
-          {/* Content - Centered New Project Button */}
-          <div className="flex-1 flex items-center justify-center p-6">
-            <Button
-              variant="gradient"
-              size="lg"
-              className="w-full max-w-sm h-14 bg-gradient-to-r from-primary to-accent"
-              onClick={() => onToolSelect('new-project')}
-            >
-              Yeni proje
-            </Button>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6 pb-32">
+              {/* New Project Button */}
+              <Button
+                variant="gradient"
+                size="lg"
+                className="w-full h-14 bg-gradient-to-r from-primary to-accent mb-6"
+                onClick={handleNewProject}
+              >
+                Yeni proje
+              </Button>
+
+              {/* Saved Projects */}
+              {type === 'video' && projects.length > 0 && (
+                <div>
+                  <h2 className="text-base font-semibold text-foreground mb-4">
+                    Kaydedilen Projeler
+                  </h2>
+                  <div className="space-y-3">
+                    {projects.map((project) => (
+                      <motion.div
+                        key={project.id}
+                        className="flex items-center gap-4 p-4 bg-muted/50 rounded-xl cursor-pointer hover:bg-muted transition-colors"
+                        onClick={() => handleOpenProject(project.id)}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        {/* Project Icon */}
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center flex-shrink-0">
+                          <Video className="h-5 w-5 text-primary" />
+                        </div>
+
+                        {/* Project Info */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-foreground truncate">
+                            {project.name}
+                          </h3>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" />
+                            <span>{formatDate(project.updatedAt)}</span>
+                            {project.timeline.length > 0 && (
+                              <>
+                                <span>•</span>
+                                <span>{project.timeline.length} klip</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Delete Button */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="flex-shrink-0 text-muted-foreground hover:text-destructive"
+                          onClick={(e) => handleDeleteProject(e, project.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {type === 'video' && projects.length === 0 && (
+                <div className="text-center text-muted-foreground py-8">
+                  <Video className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>Henüz kaydedilmiş proje yok</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Project Name Dialog */}
+      <ProjectNameDialog
+        isOpen={showNameDialog}
+        onClose={() => setShowNameDialog(false)}
+        onConfirm={handleCreateProject}
+      />
+    </>
   );
 };
 
