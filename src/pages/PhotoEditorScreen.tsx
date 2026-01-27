@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import BackgroundRemover from '@/components/BackgroundRemover';
 import { AIToolsService } from '@/services/AIToolsService';
+import samplePhoto from '@/assets/sample-photo.jpg';
 
 type EditorTab = 'adjust' | 'crop' | 'filters' | 'background' | 'ai';
 type AIToolType = 'enhance' | 'expand' | 'generate' | 'avatar' | 'poster' | null;
@@ -511,15 +512,20 @@ const PhotoEditorScreen = () => {
               <ImagePlus className="w-10 h-10 text-muted-foreground" />
             </motion.div>
             <div>
-              <p className="text-foreground font-medium">Select a photo to edit</p>
+              <p className="text-foreground font-medium">Düzenlemek için bir fotoğraf seçin</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Choose from your device
+                Cihazınızdan seçin veya demo fotoğrafı deneyin
               </p>
             </div>
-            <Button variant="gradient" onClick={() => fileInputRef.current?.click()}>
-              <ImagePlus className="w-4 h-4" />
-              Choose Photo
-            </Button>
+            <div className="flex gap-3">
+              <Button variant="gradient" onClick={() => fileInputRef.current?.click()}>
+                <ImagePlus className="w-4 h-4" />
+                Fotoğraf Seç
+              </Button>
+              <Button variant="outline" onClick={() => setImageUrl(samplePhoto)}>
+                Demo Fotoğraf
+              </Button>
+            </div>
           </div>
         )}
 
