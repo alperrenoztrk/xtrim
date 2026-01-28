@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Download, Brush, Eraser, ZoomIn, ZoomOut, RotateCcw, Sparkles } from 'lucide-react';
+import { X, Download, Brush, Eraser, ZoomIn, ZoomOut, RotateCcw, Sparkles, MessageSquare, Paintbrush, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -13,6 +15,7 @@ interface BackgroundRemoverProps {
 }
 
 type Tool = 'brush' | 'eraser';
+type RemovalMode = 'auto' | 'brush' | 'prompt';
 
 const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -27,6 +30,9 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
   const [zoom, setZoom] = useState(1);
   const [isDrawing, setIsDrawing] = useState(false);
   const [lastPos, setLastPos] = useState<{ x: number; y: number } | null>(null);
+  const [removalMode, setRemovalMode] = useState<RemovalMode>('auto');
+  const [promptText, setPromptText] = useState('');
+  const [isBrushMode, setIsBrushMode] = useState(false);
 
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
   const [maskData, setMaskData] = useState<ImageData | null>(null);
@@ -72,13 +78,14 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     }
   };
 
-  const processWithAI = async () => {
+  const processWithAI = async (customPrompt?: string) => {
     setIsProcessing(true);
     setProgress(0);
 
     try {
       const canvas = canvasRef.current;
-      if (!canvas || !originalImage) {
+      const maskCanvas = maskCanvasRef.current;
+      if (!canvas || !originalImage || !maskCanvas) {
         throw new Error('Canvas not ready');
       }
 
@@ -94,9 +101,28 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
         setProgress(prev => Math.min(prev + 5, 90));
       }, 500);
 
+      // Build the prompt based on mode
+      let promptMessage = "Remove the background from this image completely. Keep only the main subject/object with a fully transparent background. Output the result as a PNG with transparency.";
+      
+      if (customPrompt && customPrompt.trim()) {
+        promptMessage = `Remove the background from this image. Specific instruction: ${customPrompt.trim()}. Keep only the specified elements with a fully transparent background. Output the result as a PNG with transparency.`;
+      }
+      
+      // If brush mode, include the mask information
+      if (isBrushMode) {
+        const maskCtx = maskCanvas.getContext('2d');
+        if (maskCtx) {
+          const maskBase64 = maskCanvas.toDataURL('image/png');
+          promptMessage = `Remove the background from this image. The user has marked areas in black that should be removed. Use the marked areas as guidance for what to remove. Output the result as a PNG with transparency.`;
+        }
+      }
+
       // Call edge function
       const { data, error } = await supabase.functions.invoke('remove-background', {
-        body: { imageBase64 }
+        body: { 
+          imageBase64,
+          customPrompt: customPrompt || undefined
+        }
       });
 
       clearInterval(progressInterval);
@@ -161,6 +187,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
 
         setIsProcessing(false);
         setIsProcessed(true);
+        setIsBrushMode(false);
         toast.success('AI arka plan kaldırma tamamlandı! Fırça ile düzeltebilirsiniz.');
       };
 
@@ -187,6 +214,63 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     }
   };
 
+  const startBrushMode = () => {
+    setIsBrushMode(true);
+    setActiveTool('eraser');
+    
+    // Clear mask to white (keep everything)
+    const maskCanvas = maskCanvasRef.current;
+    if (maskCanvas) {
+      const maskCtx = maskCanvas.getContext('2d');
+      if (maskCtx) {
+        maskCtx.fillStyle = 'white';
+        maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+      }
+    }
+    
+    toast.info('Kaldırmak istediğiniz alanları boyayın, sonra "Uygula" butonuna basın.');
+  };
+
+  const applyBrushMask = () => {
+    const canvas = canvasRef.current;
+    const maskCanvas = maskCanvasRef.current;
+    if (!canvas || !maskCanvas || !originalImage) return;
+
+    const ctx = canvas.getContext('2d');
+    const maskCtx = maskCanvas.getContext('2d');
+    if (!ctx || !maskCtx) return;
+
+    // Apply mask to create result
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw checkerboard pattern for transparency
+    const patternSize = 10;
+    for (let y = 0; y < canvas.height; y += patternSize) {
+      for (let x = 0; x < canvas.width; x += patternSize) {
+        ctx.fillStyle = (x / patternSize + y / patternSize) % 2 === 0 ? '#e0e0e0' : '#ffffff';
+        ctx.fillRect(x, y, patternSize, patternSize);
+      }
+    }
+
+    // Draw image with mask applied
+    ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+    
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      const maskValue = maskData.data[i];
+      if (maskValue < 128) {
+        imageData.data[i + 3] = 0;
+      }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    setIsProcessed(true);
+    setIsBrushMode(false);
+    toast.success('Arka plan manuel olarak kaldırıldı!');
+  };
+
   const applyMaskToCanvas = () => {
     const canvas = canvasRef.current;
     const maskCanvas = maskCanvasRef.current;
@@ -199,30 +283,51 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     // Redraw original image
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw checkerboard pattern for transparency
-    const patternSize = 10;
-    for (let y = 0; y < canvas.height; y += patternSize) {
-      for (let x = 0; x < canvas.width; x += patternSize) {
-        ctx.fillStyle = (x / patternSize + y / patternSize) % 2 === 0 ? '#e0e0e0' : '#ffffff';
-        ctx.fillRect(x, y, patternSize, patternSize);
-      }
-    }
-
-    // Draw image with mask
+    // Draw original image first
     ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
-    
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
 
-    for (let i = 0; i < imageData.data.length; i += 4) {
-      const maskValue = maskData.data[i]; // R channel of mask
-      if (maskValue < 128) {
-        // Transparent pixel
-        imageData.data[i + 3] = 0;
+    if (isBrushMode) {
+      // In brush mode, show the mask overlay
+      const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        const maskValue = maskData.data[i];
+        if (maskValue < 128) {
+          // Show removed area with red tint
+          imageData.data[i] = Math.min(255, imageData.data[i] + 100);
+          imageData.data[i + 1] = Math.max(0, imageData.data[i + 1] - 50);
+          imageData.data[i + 2] = Math.max(0, imageData.data[i + 2] - 50);
+          imageData.data[i + 3] = 180;
+        }
       }
-    }
+      ctx.putImageData(imageData, 0, 0);
+    } else if (isProcessed) {
+      // Draw checkerboard pattern for transparency
+      const patternSize = 10;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < canvas.height; y += patternSize) {
+        for (let x = 0; x < canvas.width; x += patternSize) {
+          ctx.fillStyle = (x / patternSize + y / patternSize) % 2 === 0 ? '#e0e0e0' : '#ffffff';
+          ctx.fillRect(x, y, patternSize, patternSize);
+        }
+      }
 
-    ctx.putImageData(imageData, 0, 0);
+      // Draw image with mask
+      ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        const maskValue = maskData.data[i];
+        if (maskValue < 128) {
+          imageData.data[i + 3] = 0;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+    }
   };
 
   const getCanvasCoords = (e: React.MouseEvent | React.TouchEvent) => {
@@ -248,7 +353,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
 
   const draw = useCallback((x: number, y: number) => {
     const maskCanvas = maskCanvasRef.current;
-    if (!maskCanvas || !isProcessed) return;
+    if (!maskCanvas || (!isProcessed && !isBrushMode)) return;
 
     const maskCtx = maskCanvas.getContext('2d');
     if (!maskCtx) return;
@@ -269,10 +374,10 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     }
 
     applyMaskToCanvas();
-  }, [activeTool, brushSize, lastPos, isProcessed]);
+  }, [activeTool, brushSize, lastPos, isProcessed, isBrushMode]);
 
   const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isProcessed) return;
+    if (!isProcessed && !isBrushMode) return;
     e.preventDefault();
     const coords = getCanvasCoords(e);
     if (coords) {
@@ -283,7 +388,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
   };
 
   const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing || !isProcessed) return;
+    if (!isDrawing || (!isProcessed && !isBrushMode)) return;
     e.preventDefault();
     const coords = getCanvasCoords(e);
     if (coords) {
@@ -301,7 +406,9 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     if (originalImage) {
       initializeCanvas(originalImage);
       setIsProcessed(false);
+      setIsBrushMode(false);
       setMaskData(null);
+      setPromptText('');
     }
   };
 
@@ -356,15 +463,17 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
         </div>
 
         <div className="flex items-center gap-2">
-          {isProcessed && (
+          {(isProcessed || isBrushMode) && (
             <>
               <Button variant="iconGhost" size="iconSm" onClick={handleReset}>
                 <RotateCcw className="w-4 h-4" />
               </Button>
-              <Button variant="gradient" size="sm" onClick={handleSave}>
-                <Download className="w-4 h-4" />
-                Kaydet
-              </Button>
+              {isProcessed && (
+                <Button variant="gradient" size="sm" onClick={handleSave}>
+                  <Download className="w-4 h-4" />
+                  Kaydet
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -414,23 +523,160 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
           )}
         </AnimatePresence>
 
-        {/* Start button */}
-        {!isProcessing && !isProcessed && (
+        {/* Mode selection - show when not processing and not processed */}
+        {!isProcessing && !isProcessed && !isBrushMode && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Button
-              variant="gradient"
-              size="lg"
-              onClick={processWithAI}
-              className="shadow-2xl"
-            >
-              <Sparkles className="w-5 h-5 mr-2" />
-              AI ile Arka Planı Kaldır
-            </Button>
+            <div className="bg-card/95 backdrop-blur-sm rounded-2xl p-6 mx-4 max-w-md w-full shadow-2xl border border-border">
+              <h2 className="text-lg font-semibold text-foreground mb-4 text-center">
+                Arka Plan Kaldırma Yöntemi
+              </h2>
+              
+              <Tabs value={removalMode} onValueChange={(v) => setRemovalMode(v as RemovalMode)} className="w-full">
+                <TabsList className="grid w-full grid-cols-3 mb-4">
+                  <TabsTrigger value="auto" className="text-xs">
+                    <Wand2 className="w-3 h-3 mr-1" />
+                    Otomatik
+                  </TabsTrigger>
+                  <TabsTrigger value="brush" className="text-xs">
+                    <Paintbrush className="w-3 h-3 mr-1" />
+                    Fırça
+                  </TabsTrigger>
+                  <TabsTrigger value="prompt" className="text-xs">
+                    <MessageSquare className="w-3 h-3 mr-1" />
+                    Açıklama
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="auto" className="space-y-4">
+                  <p className="text-sm text-muted-foreground text-center">
+                    AI otomatik olarak ana nesneyi algılayıp arka planı kaldırır.
+                  </p>
+                  <Button
+                    variant="gradient"
+                    size="lg"
+                    onClick={() => processWithAI()}
+                    className="w-full"
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    AI ile Başla
+                  </Button>
+                </TabsContent>
+
+                <TabsContent value="brush" className="space-y-4">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Kaldırmak istediğiniz alanları fırça ile boyayın.
+                  </p>
+                  <Button
+                    variant="gradient"
+                    size="lg"
+                    onClick={startBrushMode}
+                    className="w-full"
+                  >
+                    <Paintbrush className="w-5 h-5 mr-2" />
+                    Fırça ile Boyamaya Başla
+                  </Button>
+                </TabsContent>
+
+                <TabsContent value="prompt" className="space-y-4">
+                  <p className="text-sm text-muted-foreground text-center">
+                    AI'ya hangi alanları kaldırmak istediğinizi açıklayın.
+                  </p>
+                  <Textarea
+                    placeholder="Örnek: Sadece insanı koru, arka plandaki tüm binaları ve ağaçları kaldır..."
+                    value={promptText}
+                    onChange={(e) => setPromptText(e.target.value)}
+                    className="min-h-[80px] resize-none"
+                  />
+                  <Button
+                    variant="gradient"
+                    size="lg"
+                    onClick={() => processWithAI(promptText)}
+                    disabled={!promptText.trim()}
+                    className="w-full"
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Açıklama ile Kaldır
+                  </Button>
+                </TabsContent>
+              </Tabs>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Tools panel */}
+      {/* Brush mode tools */}
+      {isBrushMode && (
+        <motion.div
+          className="bg-card border-t border-border p-4 space-y-4"
+          initial={{ y: 100 }}
+          animate={{ y: 0 }}
+        >
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant={activeTool === 'eraser' ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTool('eraser')}
+            >
+              <Eraser className="w-4 h-4 mr-1" />
+              Kaldır
+            </Button>
+            <Button
+              variant={activeTool === 'brush' ? 'secondary' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTool('brush')}
+            >
+              <Brush className="w-4 h-4 mr-1" />
+              Geri Al
+            </Button>
+            <div className="w-px h-6 bg-border mx-2" />
+            <Button
+              variant="outline"
+              size="iconSm"
+              onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
+            >
+              <ZoomOut className="w-4 h-4" />
+            </Button>
+            <span className="text-xs text-muted-foreground w-12 text-center">{Math.round(zoom * 100)}%</span>
+            <Button
+              variant="outline"
+              size="iconSm"
+              onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
+            >
+              <ZoomIn className="w-4 h-4" />
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Fırça Boyutu</span>
+              <span className="text-xs font-medium text-foreground">{brushSize}px</span>
+            </div>
+            <Slider
+              value={[brushSize]}
+              min={5}
+              max={100}
+              step={1}
+              onValueChange={([value]) => setBrushSize(value)}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleReset} className="flex-1">
+              İptal
+            </Button>
+            <Button variant="gradient" size="sm" onClick={applyBrushMask} className="flex-1">
+              <Sparkles className="w-4 h-4 mr-1" />
+              Uygula
+            </Button>
+          </div>
+
+          <p className="text-xs text-muted-foreground text-center">
+            🎨 Kırmızı alanlar kaldırılacak bölgeleri gösterir
+          </p>
+        </motion.div>
+      )}
+
+      {/* Post-processing tools */}
       {isProcessed && (
         <motion.div
           className="bg-card border-t border-border p-4 space-y-4"
