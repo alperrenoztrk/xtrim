@@ -705,17 +705,60 @@ const VideoEditorScreen = () => {
 
   // Handle merge all clips with transition
   const handleMergeAllClips = (transitionId: string) => {
-    if (!project) return;
-    // Mark all clips with the selected transition
-    const updatedTimeline = project.timeline.map((clip, index) => ({
-      ...clip,
-      transition: index < project.timeline.length - 1 ? transitionId : undefined,
-    }));
+    if (!project || project.timeline.length < 2) return;
 
-    saveProject({
+    const orderedClips = [...project.timeline].sort((a, b) => a.order - b.order);
+    const totalDuration = orderedClips.reduce(
+      (acc, clip) => acc + (clip.endTime - clip.startTime),
+      0
+    );
+
+    const primaryClip = orderedClips[0];
+    const primaryMedia = project.mediaItems.find((item) => item.id === primaryClip.mediaId);
+    const firstVideoMedia = orderedClips
+      .map((clip) => project.mediaItems.find((item) => item.id === clip.mediaId))
+      .find((item) => item?.type === 'video');
+    const mergedMediaSource = firstVideoMedia ?? primaryMedia;
+
+    if (!mergedMediaSource) {
+      toast.error('Birleştirme için uygun medya bulunamadı');
+      return;
+    }
+
+    const mergedMediaId = uuidv4();
+    const mergedMedia: MediaItem = {
+      id: mergedMediaId,
+      type: mergedMediaSource.type,
+      uri: mergedMediaSource.uri,
+      name: `Birleştirilmiş ${mergedMediaSource.type === 'video' ? 'Video' : 'Medya'} (${orderedClips.length} klip)`,
+      duration: totalDuration,
+      thumbnail: mergedMediaSource.thumbnail,
+      width: mergedMediaSource.width,
+      height: mergedMediaSource.height,
+      size: mergedMediaSource.size,
+      createdAt: new Date(),
+    };
+
+    const mergedClip: TimelineClip = {
+      id: uuidv4(),
+      mediaId: mergedMediaId,
+      startTime: 0,
+      endTime: totalDuration,
+      order: 0,
+      transition: transitionId === 'none' ? undefined : transitionId,
+    };
+
+    const updatedProject = {
       ...project,
-      timeline: updatedTimeline,
-    });
+      mediaItems: [...project.mediaItems, mergedMedia],
+      timeline: [mergedClip],
+      duration: totalDuration,
+    };
+
+    saveProject(updatedProject);
+    setSelectedClipId(mergedClip.id);
+    setCurrentTime(0);
+    setIsPlaying(false);
   };
 
   // Handle AI Video Generate Panel
