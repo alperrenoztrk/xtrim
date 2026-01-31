@@ -126,16 +126,21 @@ serve(async (req) => {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       
+      // IMPORTANT:
+      // supabase.functions.invoke treats non-2xx responses as `error`, which can surface
+      // as "Edge function returned 402" in the client and may crash flows if not handled.
+      // For quota/payment/rate-limit cases we return HTTP 200 + success:false so the UI
+      // can show a friendly message without hard-failing.
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: "Rate limit exceeded. Please try again later." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "API credits exhausted. Please add funds." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: "API credits exhausted. Please add funds." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
