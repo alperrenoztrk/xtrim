@@ -31,6 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { ProjectService } from '@/services/ProjectService';
 import { MediaService } from '@/services/MediaService';
 import { nativeExportService } from '@/services/NativeExportService';
+import { ffmpegService } from '@/services/FFmpegService';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { Project, ExportSettings } from '@/types';
@@ -215,62 +216,37 @@ const ExportScreen = () => {
 
     setExportStatus('preparing');
     setProgress(0);
-    setProgressMessage('Proje hazırlanıyor...');
+    setProgressMessage('FFmpeg yükleniyor...');
 
-    // Simulate export process
-    const steps = [
-      { status: 'preparing' as ExportStatus, message: 'Medya dosyaları analiz ediliyor...', duration: 1000 },
-      { status: 'exporting' as ExportStatus, message: `${selectedFormat.toUpperCase()} formatında kodlanıyor...`, duration: 3000 },
-      { status: 'exporting' as ExportStatus, message: 'Ses işleniyor...', duration: removeAudio ? 500 : 1500 },
-      { status: 'exporting' as ExportStatus, message: 'Efektler uygulanıyor...', duration: 2000 },
-      { status: 'finalizing' as ExportStatus, message: enableFastStart ? 'Fast-start optimize ediliyor...' : 'Dosya oluşturuluyor...', duration: 1500 },
-      { status: 'complete' as ExportStatus, message: 'Dışa aktarma tamamlandı!', duration: 0 },
-    ];
+    try {
+      const videoBlob = await ffmpegService.mergeAndExport(
+        project,
+        { ...settings, format: selectedFormat },
+        selectedFormat,
+        (p) => {
+          setProgress(p.progress);
+          setProgressMessage(p.message);
+          if (p.stage === 'encoding') setExportStatus('exporting');
+          else if (p.stage === 'finalizing') setExportStatus('finalizing');
+        }
+      );
 
-    let currentProgress = 0;
-    const progressPerStep = 100 / steps.length;
+      setExportedVideoBlob(videoBlob);
+      setExportStatus('complete');
+      setProgress(100);
+      setProgressMessage('Dışa aktarma tamamlandı!');
 
-    for (const step of steps) {
-      setExportStatus(step.status);
-      setProgressMessage(step.message);
+      // Save export settings to project
+      const updatedProject = { ...project, exportSettings: { ...settings, format: selectedFormat } };
+      ProjectService.saveProject(updatedProject);
 
-      if (step.duration > 0) {
-        const startProgress = currentProgress;
-        const endProgress = currentProgress + progressPerStep;
-        const startTime = Date.now();
-
-        await new Promise<void>((resolve) => {
-          const interval = setInterval(() => {
-            const elapsed = Date.now() - startTime;
-            const stepProgress = Math.min(elapsed / step.duration, 1);
-            setProgress(startProgress + (endProgress - startProgress) * stepProgress);
-
-            if (elapsed >= step.duration) {
-              clearInterval(interval);
-              resolve();
-            }
-          }, 50);
-        });
-      }
-
-      currentProgress += progressPerStep;
+      toast.success('Video başarıyla oluşturuldu!');
+    } catch (error) {
+      console.error('Export error:', error);
+      setExportStatus('error');
+      setProgressMessage(error instanceof Error ? error.message : 'Dışa aktarma hatası');
+      toast.error(error instanceof Error ? error.message : 'Dışa aktarma başarısız');
     }
-
-    setProgress(100);
-
-    // Create a simulated video blob
-    const sampleVideoData = new Uint8Array([0, 0, 0, 32, 102, 116, 121, 112]);
-    const mimeType = selectedFormat === 'webm' ? 'video/webm' : 
-                     selectedFormat === 'mov' ? 'video/quicktime' : 
-                     selectedFormat === 'gif' ? 'image/gif' : 'video/mp4';
-    const videoBlob = new Blob([sampleVideoData], { type: mimeType });
-    setExportedVideoBlob(videoBlob);
-
-    // Save export settings to project
-    const updatedProject = { ...project, exportSettings: { ...settings, format: selectedFormat } };
-    ProjectService.saveProject(updatedProject);
-
-    toast.success('Video başarıyla oluşturuldu!');
   };
 
   const handleCancelExport = () => {
