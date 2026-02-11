@@ -25,6 +25,9 @@ import {
   Type,
   Bot,
   Loader2,
+  Share2,
+  FolderDown,
+  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -33,6 +36,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import BackgroundRemover from '@/components/BackgroundRemover';
 import { AIToolsService } from '@/services/AIToolsService';
+import { nativeExportService } from '@/services/NativeExportService';
 import samplePhoto from '@/assets/sample-photo.jpg';
 
 type EditorTab = 'adjust' | 'crop' | 'filters' | 'background' | 'ai';
@@ -106,6 +110,8 @@ const PhotoEditorScreen = () => {
   const [aiPrompt, setAiPrompt] = useState('');
   const [isAIProcessing, setIsAIProcessing] = useState(false);
   const [aiProgress, setAIProgress] = useState(0);
+  const [showSaveSharePanel, setShowSaveSharePanel] = useState(false);
+  const [savedImageBlob, setSavedImageBlob] = useState<Blob | null>(null);
 
   // Handle URL params for AI tools and generated images
   useEffect(() => {
@@ -331,16 +337,66 @@ const PhotoEditorScreen = () => {
       ctx.rotate((rotation * Math.PI) / 180);
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
 
-      const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `photo-editor-${Date.now()}.png`;
-      link.click();
-      link.remove();
-      toast.success('Görsel indirildi');
+      canvas.toBlob((blob) => {
+        if (blob) {
+          setSavedImageBlob(blob);
+          setShowSaveSharePanel(true);
+        } else {
+          toast.error('Görsel oluşturulamadı');
+        }
+      }, 'image/png');
     } catch (error) {
       console.error('Save error:', error);
       toast.error('Görsel kaydedilemedi');
+    }
+  };
+
+  const handleSaveToDevice = async () => {
+    if (!savedImageBlob) return;
+    const fileName = `Xtrim_photo_${Date.now()}.png`;
+    const result = await nativeExportService.saveVideoToDevice(savedImageBlob, fileName);
+    if (result.success) {
+      toast.success('Görsel cihaza kaydedildi!');
+    } else {
+      // Web fallback - direct download
+      const url = URL.createObjectURL(savedImageBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success('Görsel indirildi!');
+    }
+  };
+
+  const handleShareImage = async () => {
+    if (!savedImageBlob) return;
+    const fileName = `Xtrim_photo_${Date.now()}.png`;
+    
+    // Try Web Share API first
+    if (navigator.share && navigator.canShare) {
+      try {
+        const file = new File([savedImageBlob], fileName, { type: 'image/png' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: 'Xtrim Photo',
+            text: 'Xtrim ile düzenlendi',
+            files: [file],
+          });
+          toast.success('Paylaşıldı!');
+          return;
+        }
+      } catch (e) {
+        // User cancelled or not supported
+      }
+    }
+
+    // Native share fallback
+    const success = await nativeExportService.shareVideoBlob(savedImageBlob, fileName);
+    if (success) {
+      toast.success('Paylaşıldı!');
+    } else {
+      toast.error('Paylaşım desteklenmiyor');
     }
   };
 
@@ -886,6 +942,57 @@ const PhotoEditorScreen = () => {
               setShowBackgroundRemover(false);
             }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Save & Share Panel */}
+      <AnimatePresence>
+        {showSaveSharePanel && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+            onClick={() => setShowSaveSharePanel(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="w-full max-w-lg bg-card rounded-t-2xl p-6 space-y-4 safe-area-bottom"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-center">
+                <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+              </div>
+              
+              <div className="flex flex-col items-center gap-2">
+                <CheckCircle2 className="w-10 h-10 text-green-500" />
+                <h3 className="text-lg font-semibold text-foreground">Görsel Hazır!</h3>
+                <p className="text-sm text-muted-foreground">Fotoğrafınız başarıyla işlendi</p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-14 flex-col gap-1"
+                  onClick={handleShareImage}
+                >
+                  <Share2 className="w-5 h-5" />
+                  <span className="text-xs">Paylaş</span>
+                </Button>
+                <Button
+                  variant="gradient"
+                  className="flex-1 h-14 flex-col gap-1"
+                  onClick={handleSaveToDevice}
+                >
+                  <FolderDown className="w-5 h-5" />
+                  <span className="text-xs">Kaydet</span>
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
