@@ -37,7 +37,7 @@ import { toast } from 'sonner';
 import BackgroundRemover from '@/components/BackgroundRemover';
 import { AIToolsService } from '@/services/AIToolsService';
 import { nativeExportService } from '@/services/NativeExportService';
-import samplePhoto from '@/assets/sample-photo.jpg';
+
 
 type EditorTab = 'adjust' | 'crop' | 'filters' | 'background' | 'ai';
 type AIToolType = 'enhance' | 'expand' | 'generate' | 'avatar' | 'poster' | null;
@@ -577,9 +577,6 @@ const PhotoEditorScreen = () => {
               <Button variant="gradient" onClick={() => fileInputRef.current?.click()}>
                 <ImagePlus className="w-4 h-4" />
                 Fotoğraf Seç
-              </Button>
-              <Button variant="outline" onClick={() => setImageUrl(samplePhoto)}>
-                Demo Fotoğraf
               </Button>
             </div>
           </div>
