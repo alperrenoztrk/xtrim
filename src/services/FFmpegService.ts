@@ -1,0 +1,244 @@
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile } from '@ffmpeg/util';
+import type { Project, TimelineClip, MediaItem, ExportSettings } from '@/types';
+
+export interface FFmpegProgress {
+  stage: 'loading' | 'preparing' | 'processing' | 'encoding' | 'finalizing' | 'complete';
+  progress: number;
+  message: string;
+}
+
+class FFmpegService {
+  private ffmpeg: FFmpeg | null = null;
+  private loaded = false;
+  private loading = false;
+
+  async load(onProgress?: (p: FFmpegProgress) => void): Promise<void> {
+    if (this.loaded) return;
+    if (this.loading) {
+      // Wait for existing load
+      while (this.loading) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      return;
+    }
+
+    this.loading = true;
+    onProgress?.({ stage: 'loading', progress: 0, message: 'FFmpeg yükleniyor...' });
+
+    try {
+      this.ffmpeg = new FFmpeg();
+
+      this.ffmpeg.on('progress', ({ progress }) => {
+        onProgress?.({
+          stage: 'encoding',
+          progress: Math.min(20 + progress * 70, 90),
+          message: `Kodlanıyor... %${Math.round(progress * 100)}`,
+        });
+      });
+
+      this.ffmpeg.on('log', ({ message }) => {
+        console.log('[FFmpeg]', message);
+      });
+
+      await this.ffmpeg.load({
+        coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js',
+        wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.wasm',
+      });
+
+      this.loaded = true;
+      onProgress?.({ stage: 'loading', progress: 10, message: 'FFmpeg hazır' });
+    } catch (error) {
+      console.error('FFmpeg load error:', error);
+      throw new Error('FFmpeg yüklenemedi. Lütfen sayfayı yenileyin.');
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  async mergeAndExport(
+    project: Project,
+    settings: ExportSettings,
+    format: string,
+    onProgress?: (p: FFmpegProgress) => void
+  ): Promise<Blob> {
+    await this.load(onProgress);
+
+    if (!this.ffmpeg) throw new Error('FFmpeg başlatılamadı');
+
+    const ffmpeg = this.ffmpeg;
+    const sortedClips = [...project.timeline].sort((a, b) => a.order - b.order);
+
+    if (sortedClips.length === 0) {
+      throw new Error('Timeline boş, dışa aktarılacak klip yok');
+    }
+
+    onProgress?.({ stage: 'preparing', progress: 12, message: 'Medya dosyaları hazırlanıyor...' });
+
+    // Write all media files to FFmpeg virtual filesystem
+    const inputFiles: string[] = [];
+    const concatEntries: string[] = [];
+
+    for (let i = 0; i < sortedClips.length; i++) {
+      const clip = sortedClips[i];
+      const media = project.mediaItems.find(m => m.id === clip.mediaId);
+      if (!media) continue;
+
+      const ext = this.getExtension(media.uri, media.type);
+      const inputName = `input_${i}.${ext}`;
+
+      onProgress?.({
+        stage: 'preparing',
+        progress: 12 + (i / sortedClips.length) * 8,
+        message: `Dosya yükleniyor (${i + 1}/${sortedClips.length})...`,
+      });
+
+      try {
+        const fileData = await fetchFile(media.uri);
+        await ffmpeg.writeFile(inputName, fileData);
+
+        if (media.type === 'photo') {
+          // Convert photo to a short video clip
+          const duration = clip.endTime - clip.startTime;
+          const photoVideoName = `pv_${i}.mp4`;
+          await ffmpeg.exec([
+            '-loop', '1',
+            '-i', inputName,
+            '-c:v', 'libx264',
+            '-t', String(duration),
+            '-pix_fmt', 'yuv420p',
+            '-vf', `scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2`,
+            '-r', String(settings.fps),
+            photoVideoName,
+          ]);
+          inputFiles.push(photoVideoName);
+          concatEntries.push(`file '${photoVideoName}'`);
+        } else {
+          // Trim video clip if needed
+          const clipDuration = clip.endTime - clip.startTime;
+          const trimmedName = `trimmed_${i}.mp4`;
+          
+          const trimArgs = [
+            '-i', inputName,
+            '-ss', String(clip.startTime),
+            '-t', String(clipDuration),
+            '-c:v', 'libx264',
+            '-c:a', 'aac',
+            '-pix_fmt', 'yuv420p',
+            '-vf', `scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2`,
+            '-r', String(settings.fps),
+            trimmedName,
+          ];
+
+          // Apply speed if set
+          if (clip.speed && clip.speed !== 1) {
+            const speedFilter = `setpts=${1 / clip.speed}*PTS`;
+            trimArgs[trimArgs.indexOf('-vf') + 1] = 
+              `scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,${speedFilter}`;
+          }
+
+          await ffmpeg.exec(trimArgs);
+          inputFiles.push(trimmedName);
+          concatEntries.push(`file '${trimmedName}'`);
+        }
+      } catch (err) {
+        console.error(`Error processing clip ${i}:`, err);
+        // Skip failed clips
+      }
+    }
+
+    if (concatEntries.length === 0) {
+      throw new Error('Hiçbir klip işlenemedi');
+    }
+
+    onProgress?.({ stage: 'encoding', progress: 20, message: 'Videolar birleştiriliyor...' });
+
+    // Write concat list
+    const concatList = concatEntries.join('\n');
+    await ffmpeg.writeFile('concat.txt', concatList);
+
+    // Get output settings
+    const { outputExt, codecArgs } = this.getOutputSettings(format, settings);
+    const outputName = `output.${outputExt}`;
+
+    // Concatenate all clips
+    await ffmpeg.exec([
+      '-f', 'concat',
+      '-safe', '0',
+      '-i', 'concat.txt',
+      ...codecArgs,
+      outputName,
+    ]);
+
+    onProgress?.({ stage: 'finalizing', progress: 92, message: 'Dosya oluşturuluyor...' });
+
+    // Read output
+    const outputData = await ffmpeg.readFile(outputName);
+    const mimeType = this.getMimeType(format);
+    const blob = new Blob([new Uint8Array(outputData as Uint8Array)], { type: mimeType });
+
+    // Cleanup virtual filesystem
+    try {
+      for (const file of inputFiles) {
+        await ffmpeg.deleteFile(file).catch(() => {});
+      }
+      await ffmpeg.deleteFile('concat.txt').catch(() => {});
+      await ffmpeg.deleteFile(outputName).catch(() => {});
+    } catch {
+      // Cleanup errors are non-critical
+    }
+
+    onProgress?.({ stage: 'complete', progress: 100, message: 'Dışa aktarma tamamlandı!' });
+
+    return blob;
+  }
+
+  private getExtension(uri: string, type: string): string {
+    if (type === 'photo') {
+      if (uri.includes('image/png') || uri.endsWith('.png')) return 'png';
+      return 'jpg';
+    }
+    if (uri.includes('video/webm') || uri.endsWith('.webm')) return 'webm';
+    if (uri.includes('video/quicktime') || uri.endsWith('.mov')) return 'mov';
+    return 'mp4';
+  }
+
+  private getOutputSettings(format: string, settings: ExportSettings) {
+    const bitrateMap = { low: '2M', medium: '5M', high: '10M' };
+    const bitrate = bitrateMap[settings.bitrate] || '5M';
+
+    switch (format) {
+      case 'webm':
+        return {
+          outputExt: 'webm',
+          codecArgs: ['-c:v', 'libvpx', '-b:v', bitrate, '-c:a', 'libvorbis'],
+        };
+      case 'gif':
+        return {
+          outputExt: 'gif',
+          codecArgs: ['-vf', `fps=${Math.min(settings.fps, 15)},scale=480:-1:flags=lanczos`],
+        };
+      default: // mp4, mov
+        return {
+          outputExt: format === 'mov' ? 'mov' : 'mp4',
+          codecArgs: ['-c:v', 'libx264', '-b:v', bitrate, '-c:a', 'aac', '-movflags', '+faststart'],
+        };
+    }
+  }
+
+  private getMimeType(format: string): string {
+    switch (format) {
+      case 'webm': return 'video/webm';
+      case 'mov': return 'video/quicktime';
+      case 'gif': return 'image/gif';
+      default: return 'video/mp4';
+    }
+  }
+
+  isLoaded(): boolean {
+    return this.loaded;
+  }
+}
+
+export const ffmpegService = new FFmpegService();
+export default ffmpegService;
