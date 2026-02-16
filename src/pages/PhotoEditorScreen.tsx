@@ -124,7 +124,7 @@ const PhotoEditorScreen = () => {
       if (generatedImage) {
         setImageUrl(generatedImage);
         sessionStorage.removeItem('generatedImage');
-        toast.success('Görsel yüklendi', { description: 'AI ile oluşturulan görsel düzenlemeye hazır.' });
+        toast.success('Image uploaded', { description: 'AI-generated image is ready to edit.' });
       }
     }
     
@@ -236,7 +236,7 @@ const PhotoEditorScreen = () => {
 
   const handleApplyCrop = useCallback(async () => {
     if (!imageUrl) {
-      toast.error('Kırpılacak görsel bulunamadı');
+      toast.error('No image found to crop');
       return;
     }
 
@@ -249,7 +249,7 @@ const PhotoEditorScreen = () => {
 
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Görsel yüklenemedi'));
+        img.onerror = () => reject(new Error('Image could not be loaded'));
       });
 
       let cropWidth = img.width;
@@ -277,7 +277,7 @@ const PhotoEditorScreen = () => {
 
       const ctx = canvas.getContext('2d');
       if (!ctx) {
-        throw new Error('Canvas oluşturulamadı');
+        throw new Error('Canvas could not be created');
       }
 
       ctx.drawImage(
@@ -295,16 +295,16 @@ const PhotoEditorScreen = () => {
       const dataUrl = canvas.toDataURL('image/png');
       setImageUrl(dataUrl);
       setActiveTab('adjust');
-      toast.success('Kırpma uygulandı');
+      toast.success('Crop applied');
     } catch (error) {
       console.error('Crop error:', error);
-      toast.error('Kırpma uygulanamadı');
+      toast.error('Crop could not be applied');
     }
   }, [imageUrl, selectedCropRatio]);
 
   const handleSave = async () => {
     if (!imageUrl) {
-      toast.error('Kaydedilecek görsel bulunamadı');
+      toast.error('No image found to save');
       return;
     }
 
@@ -315,7 +315,7 @@ const PhotoEditorScreen = () => {
 
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Görsel yüklenemedi'));
+        img.onerror = () => reject(new Error('Image could not be loaded'));
       });
 
       const rotation = ((adjustments.rotation % 360) + 360) % 360;
@@ -326,7 +326,7 @@ const PhotoEditorScreen = () => {
 
       const ctx = canvas.getContext('2d');
       if (!ctx) {
-        throw new Error('Canvas oluşturulamadı');
+        throw new Error('Canvas could not be created');
       }
 
       ctx.filter = getFilterString();
@@ -342,12 +342,12 @@ const PhotoEditorScreen = () => {
           setSavedImageBlob(blob);
           setShowSaveSharePanel(true);
         } else {
-          toast.error('Görsel oluşturulamadı');
+          toast.error('Image could not be created');
         }
       }, 'image/png');
     } catch (error) {
       console.error('Save error:', error);
-      toast.error('Görsel kaydedilemedi');
+      toast.error('Image could not be saved');
     }
   };
 
@@ -356,7 +356,7 @@ const PhotoEditorScreen = () => {
     const fileName = `Xtrim_photo_${Date.now()}.png`;
     const result = await nativeExportService.saveVideoToDevice(savedImageBlob, fileName);
     if (result.success) {
-      toast.success('Görsel cihaza kaydedildi!');
+      toast.success('Image saved to device!');
     } else {
       // Web fallback - direct download
       const url = URL.createObjectURL(savedImageBlob);
@@ -365,7 +365,7 @@ const PhotoEditorScreen = () => {
       link.download = fileName;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success('Görsel indirildi!');
+      toast.success('Image downloaded!');
     }
   };
 
@@ -380,10 +380,10 @@ const PhotoEditorScreen = () => {
         if (navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: 'Xtrim Photo',
-            text: 'Xtrim ile düzenlendi',
+            text: 'Edited with Xtrim',
             files: [file],
           });
-          toast.success('Paylaşıldı!');
+          toast.success('Shared!');
           return;
         }
       } catch (e) {
@@ -394,21 +394,21 @@ const PhotoEditorScreen = () => {
     // Native share fallback
     const success = await nativeExportService.shareVideoBlob(savedImageBlob, fileName);
     if (success) {
-      toast.success('Paylaşıldı!');
+      toast.success('Shared!');
     } else {
-      toast.error('Paylaşım desteklenmiyor');
+      toast.error('Sharing is not supported');
     }
   };
 
   // AI Processing functions
   const processAITool = async () => {
     if (!imageUrl && activeAITool !== 'generate') {
-      toast.error('Lütfen önce bir fotoğraf seçin');
+      toast.error('Please select a photo first');
       return;
     }
 
     if ((activeAITool === 'generate' || activeAITool === 'expand' || activeAITool === 'poster') && !aiPrompt.trim()) {
-      toast.error('Lütfen bir açıklama girin');
+      toast.error('Please enter a description');
       return;
     }
 
@@ -461,23 +461,23 @@ const PhotoEditorScreen = () => {
         const outputUrl = result.outputUrl || result.imageUrl;
         if (outputUrl) {
           setImageUrl(outputUrl);
-          toast.success('AI işlemi tamamlandı!');
+          toast.success('AI operation completed!');
         } else {
-          throw new Error('Sonuç alınamadı');
+          throw new Error('No result received');
         }
       } else {
-        throw new Error(result.error || 'AI işlemi başarısız');
+        throw new Error(result.error || 'AI operation failed');
       }
     } catch (error) {
       console.error('AI processing error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Bir hata oluştu';
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
       
       if (errorMessage.includes('Rate limit') || errorMessage.includes('429')) {
-        toast.error('Çok fazla istek. Lütfen biraz bekleyin.');
+        toast.error('Too many requests. Please wait a bit.');
       } else if (errorMessage.includes('402') || errorMessage.includes('credits')) {
-        toast.error('API kredileri tükendi.');
+        toast.error('API credits exhausted.');
       } else {
-        toast.error(`AI hatası: ${errorMessage}`);
+        toast.error(`AI error: ${errorMessage}`);
       }
     } finally {
       clearInterval(progressInterval);
@@ -494,10 +494,10 @@ const PhotoEditorScreen = () => {
   ];
 
   const aiTools = [
-    { id: 'enhance', name: 'Kalite İyileştir', icon: Sparkles, description: 'Fotoğraf kalitesini artır' },
-    { id: 'expand', name: 'Genişlet', icon: Expand, description: 'Fotoğrafı AI ile genişlet' },
-    { id: 'generate', name: 'Metinden Resim', icon: Type, description: 'Açıklamadan resim oluştur' },
-    { id: 'avatar', name: 'Avatar Oluştur', icon: Bot, description: 'AI avatar tasarla' },
+    { id: 'enhance', name: 'Enhance Quality', icon: Sparkles, description: 'Improve photo quality' },
+    { id: 'expand', name: 'Expand', icon: Expand, description: 'Expand photo with AI' },
+    { id: 'generate', name: 'Image from Text', icon: Type, description: 'Create image from description' },
+    { id: 'avatar', name: 'Avatar Generator', icon: Bot, description: 'Design AI avatar' },
     { id: 'poster', name: 'Poster Yap', icon: Palette, description: 'Profesyonel poster tasarla' },
   ];
 
@@ -568,15 +568,15 @@ const PhotoEditorScreen = () => {
               <ImagePlus className="w-10 h-10 text-muted-foreground" />
             </motion.div>
             <div>
-              <p className="text-foreground font-medium">Düzenlemek için bir fotoğraf seçin</p>
+              <p className="text-foreground font-medium">Select a photo to edit</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Cihazınızdan seçin veya demo fotoğrafı deneyin
+                Choose from your device or try a demo photo
               </p>
             </div>
             <div className="flex gap-3">
               <Button variant="gradient" onClick={() => fileInputRef.current?.click()}>
                 <ImagePlus className="w-4 h-4" />
-                Fotoğraf Seç
+                Photo Select
               </Button>
             </div>
           </div>
@@ -599,7 +599,7 @@ const PhotoEditorScreen = () => {
                   animate={{ width: `${aiProgress}%` }}
                 />
               </div>
-              <p className="text-white text-sm">AI işleniyor... %{aiProgress}</p>
+              <p className="text-white text-sm">AI processing... %{aiProgress}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -611,10 +611,10 @@ const PhotoEditorScreen = () => {
           <div className="flex border-b border-border bg-card overflow-x-auto scrollbar-hide">
             {[
               { id: 'adjust', label: 'Ayarla', icon: Sun },
-              { id: 'crop', label: 'Kırp', icon: Crop },
+              { id: 'crop', label: 'Crop', icon: Crop },
               { id: 'filters', label: 'Filtreler', icon: Palette },
               { id: 'background', label: 'Arka Plan', icon: Eraser },
-              { id: 'ai', label: 'AI Araçları', icon: Sparkles },
+              { id: 'ai', label: 'AI Tools', icon: Sparkles },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -804,9 +804,9 @@ const PhotoEditorScreen = () => {
                       <Eraser className="w-8 h-8 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">Arka Plan Kaldır</h3>
+                      <h3 className="font-semibold text-foreground">Remove Background</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Fotoğrafınızın arka planını AI ile otomatik olarak kaldırın
+                        Automatically remove your photo background with AI
                       </p>
                     </div>
                     <Button
@@ -814,7 +814,7 @@ const PhotoEditorScreen = () => {
                       onClick={() => setShowBackgroundRemover(true)}
                     >
                       <Sparkles className="w-4 h-4" />
-                      AI ile Başla
+                      Start with AI
                     </Button>
                   </div>
                 </motion.div>
@@ -871,15 +871,15 @@ const PhotoEditorScreen = () => {
                       {(activeAITool === 'generate' || activeAITool === 'expand' || activeAITool === 'poster') && (
                         <div className="space-y-2">
                           <label className="text-xs text-muted-foreground">
-                            {activeAITool === 'generate' ? 'Ne oluşturmak istiyorsunuz?' : 'Açıklama ekleyin'}
+                            {activeAITool === 'generate' ? 'What would you like to create?' : 'Add a description'}
                           </label>
                           <Input
                             placeholder={
                               activeAITool === 'generate'
-                                ? 'Örn: Gün batımında bir deniz manzarası'
+                                ? 'e.g.: A sea view at sunset'
                                 : activeAITool === 'expand'
-                                ? 'Örn: Yanlara doğru genişlet, gökyüzü ekle'
-                                : 'Örn: Minimalist film posteri tasarımı'
+                                ? 'e.g.: Expand to the sides, add sky'
+                                : 'e.g.: Minimalist movie poster design'
                             }
                             value={aiPrompt}
                             onChange={(e) => setAiPrompt(e.target.value)}
@@ -891,7 +891,7 @@ const PhotoEditorScreen = () => {
                         <div className="space-y-2">
                           <label className="text-xs text-muted-foreground">Avatar stili (opsiyonel)</label>
                           <Input
-                            placeholder="Örn: Profesyonel, anime tarzı, 3D..."
+                            placeholder="e.g.: Professional, anime style, 3D..."
                             value={aiPrompt}
                             onChange={(e) => setAiPrompt(e.target.value)}
                           />
@@ -907,12 +907,12 @@ const PhotoEditorScreen = () => {
                         {isAIProcessing ? (
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            İşleniyor...
+                            Processing...
                           </>
                         ) : (
                           <>
                             <Sparkles className="w-4 h-4" />
-                            {activeAITool === 'generate' ? 'Oluştur' : 'Uygula'}
+                            {activeAITool === 'generate' ? 'Create' : 'Apply'}
                           </>
                         )}
                       </Button>
@@ -966,8 +966,8 @@ const PhotoEditorScreen = () => {
               
               <div className="flex flex-col items-center gap-2">
                 <CheckCircle2 className="w-10 h-10 text-green-500" />
-                <h3 className="text-lg font-semibold text-foreground">Görsel Hazır!</h3>
-                <p className="text-sm text-muted-foreground">Fotoğrafınız başarıyla işlendi</p>
+                <h3 className="text-lg font-semibold text-foreground">Image Ready!</h3>
+                <p className="text-sm text-muted-foreground">Your photo was processed successfully</p>
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -977,7 +977,7 @@ const PhotoEditorScreen = () => {
                   onClick={handleShareImage}
                 >
                   <Share2 className="w-5 h-5" />
-                  <span className="text-xs">Paylaş</span>
+                  <span className="text-xs">Share</span>
                 </Button>
                 <Button
                   variant="gradient"
@@ -985,7 +985,7 @@ const PhotoEditorScreen = () => {
                   onClick={handleSaveToDevice}
                 >
                   <FolderDown className="w-5 h-5" />
-                  <span className="text-xs">Kaydet</span>
+                  <span className="text-xs">Save</span>
                 </Button>
               </div>
             </motion.div>

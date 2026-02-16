@@ -27,7 +27,7 @@ export class AIToolsService {
       });
 
       if (error) {
-        throw new Error(error.message || 'AI işlemi başarısız oldu');
+        throw new Error(error.message || 'AI operation failed');
       }
 
       return data as AIToolResult;
@@ -35,7 +35,7 @@ export class AIToolsService {
       console.error('AI tool error:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Bir hata oluştu'
+        error: error instanceof Error ? error.message : 'An error occurred'
       };
     }
   }
@@ -53,7 +53,7 @@ export class AIToolsService {
       });
 
       if (error) {
-        throw new Error(error.message || 'Görsel oluşturma başarısız oldu');
+        throw new Error(error.message || 'Image generation failed');
       }
 
       return data as AIToolResult;
@@ -61,7 +61,7 @@ export class AIToolsService {
       console.error('AI generation error:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Bir hata oluştu'
+        error: error instanceof Error ? error.message : 'An error occurred'
       };
     }
   }
@@ -74,7 +74,7 @@ export class AIToolsService {
       });
 
       if (error) {
-        throw new Error(error.message || 'Arka plan kaldırma başarısız oldu');
+        throw new Error(error.message || 'Background removal failed');
       }
 
       return {
@@ -86,7 +86,7 @@ export class AIToolsService {
       console.error('Background removal error:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Bir hata oluştu'
+        error: error instanceof Error ? error.message : 'An error occurred'
       };
     }
   }
@@ -124,7 +124,7 @@ export class AIToolsService {
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'AutoCut analizi başarısız'
+        error: error instanceof Error ? error.message : 'AutoCut analysis failed'
       };
     }
   }

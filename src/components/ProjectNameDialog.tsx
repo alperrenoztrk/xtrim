@@ -17,8 +17,8 @@ export const ProjectNameDialog = ({
   isOpen,
   onClose,
   onConfirm,
-  title = 'Proje Adı',
-  placeholder = 'Proje adını girin...',
+  title = 'Project Name',
+  placeholder = 'Enter project name...',
 }: ProjectNameDialogProps) => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -26,15 +26,15 @@ export const ProjectNameDialog = ({
   const handleSubmit = () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError('Proje adı zorunludur');
+      setError('Project name is required');
       return;
     }
     if (trimmedName.length < 2) {
-      setError('Proje adı en az 2 karakter olmalıdır');
+      setError('Project name must be at least 2 characters');
       return;
     }
     if (trimmedName.length > 50) {
-      setError('Proje adı en fazla 50 karakter olabilir');
+      setError('Project name can be at most 50 characters');
       return;
     }
     onConfirm(trimmedName);
@@ -74,7 +74,7 @@ export const ProjectNameDialog = ({
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="project-name">Proje Adı *</Label>
+                <Label htmlFor="project-name">Project Name *</Label>
                 <Input
                   id="project-name"
                   value={name}
@@ -100,14 +100,14 @@ export const ProjectNameDialog = ({
                   className="flex-1"
                   onClick={handleClose}
                 >
-                  İptal
+                  Cancel
                 </Button>
                 <Button
                   variant="gradient"
                   className="flex-1 bg-gradient-to-r from-primary to-accent"
                   onClick={handleSubmit}
                 >
-                  Oluştur
+                  Create
                 </Button>
               </div>
             </div>

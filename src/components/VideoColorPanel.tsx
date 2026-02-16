@@ -53,19 +53,19 @@ const filterPresets: FilterPreset[] = [
   },
   { 
     id: 'vivid', 
-    name: 'Canlı', 
+    name: 'Vivid', 
     settings: { saturation: 140, contrast: 110, brightness: 105 },
     gradient: 'bg-gradient-to-br from-pink-500 to-orange-500'
   },
   { 
     id: 'warm', 
-    name: 'Sıcak', 
+    name: 'Warm', 
     settings: { temperature: 30, saturation: 110 },
     gradient: 'bg-gradient-to-br from-orange-400 to-red-500'
   },
   { 
     id: 'cool', 
-    name: 'Soğuk', 
+    name: 'Cool', 
     settings: { temperature: -30, saturation: 90 },
     gradient: 'bg-gradient-to-br from-blue-400 to-cyan-500'
   },
@@ -89,7 +89,7 @@ const filterPresets: FilterPreset[] = [
   },
   { 
     id: 'cinematic', 
-    name: 'Sinematik', 
+    name: 'Cinematic', 
     settings: { contrast: 120, saturation: 85, temperature: -10, tint: 5 },
     gradient: 'bg-gradient-to-br from-teal-600 to-orange-400'
   },
@@ -190,15 +190,15 @@ export const VideoColorPanel = ({
     if (onApplySettings) {
       onApplySettings(settings, activeFilter);
     }
-    toast.success('Renk ayarları uygulandı');
+    toast.success('Color settings applied');
     onClose();
   };
 
   const adjustmentControls = [
-    { key: 'brightness' as const, label: 'Parlaklık', icon: Sun, min: 0, max: 200, default: 100 },
+    { key: 'brightness' as const, label: 'Brightness', icon: Sun, min: 0, max: 200, default: 100 },
     { key: 'contrast' as const, label: 'Kontrast', icon: Contrast, min: 0, max: 200, default: 100 },
     { key: 'saturation' as const, label: 'Doygunluk', icon: Droplets, min: 0, max: 200, default: 100 },
-    { key: 'temperature' as const, label: 'Sıcaklık', icon: Thermometer, min: -50, max: 50, default: 0 },
+    { key: 'temperature' as const, label: 'Temperature', icon: Thermometer, min: -50, max: 50, default: 0 },
   ];
 
   return (
@@ -237,7 +237,7 @@ export const VideoColorPanel = ({
           onClick={() => setActiveTab('adjust')}
         >
           <Sun className="w-4 h-4 mr-2" />
-          Ayarlar
+          Settings
         </Button>
       </div>
 
@@ -321,14 +321,14 @@ export const VideoColorPanel = ({
           disabled={activeFilter === 'normal' && JSON.stringify(settings) === JSON.stringify(defaultSettings)}
         >
           <RotateCcw className="w-4 h-4 mr-1" />
-          Sıfırla
+          Reset
         </Button>
         <Button 
           variant="outline" 
           className="flex-1"
           onClick={onClose}
         >
-          İptal
+          Cancel
         </Button>
         <Button 
           variant="gradient" 
@@ -336,7 +336,7 @@ export const VideoColorPanel = ({
           onClick={handleApply}
         >
           <Check className="w-4 h-4" />
-          Uygula
+          Apply
         </Button>
       </div>
     </motion.div>

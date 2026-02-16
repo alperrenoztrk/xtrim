@@ -47,7 +47,7 @@ export const VideoStabilizePanel = ({
   const analyzeVideoStability = useCallback(async () => {
     const video = videoRef.current;
     if (!video) {
-      toast.error('Video bulunamadı');
+      toast.error('Video not found');
       return;
     }
 
@@ -95,7 +95,7 @@ export const VideoStabilizePanel = ({
       setProgress(90);
 
       if (!result.success) {
-        throw new Error(result.error || 'Stabilizasyon analizi başarısız');
+        throw new Error(result.error || 'Stabilization analysis failed');
       }
 
       // Parse analysis result
@@ -104,8 +104,8 @@ export const VideoStabilizePanel = ({
       let shakeLevelPercent = 20;
 
       // Simple heuristic based on keywords in analysis
-      const lowKeywords = ['stable', 'minimal', 'slight', 'little', 'az', 'düşük', 'stabil'];
-      const highKeywords = ['severe', 'significant', 'heavy', 'extreme', 'yüksek', 'şiddetli', 'fazla'];
+      const lowKeywords = ['stable', 'minimal', 'slight', 'little', 'az', 'low', 'stabil'];
+      const highKeywords = ['severe', 'significant', 'heavy', 'extreme', 'high', 'severe', 'high'];
       const mediumKeywords = ['moderate', 'some', 'orta', 'biraz'];
 
       const analysisLower = analysis.toLowerCase();
@@ -126,9 +126,9 @@ export const VideoStabilizePanel = ({
       }
 
       const recommendations: Record<typeof shakeLevel, string> = {
-        low: 'Video oldukça stabil görünüyor. Hafif düzeltme yeterli olacaktır.',
-        medium: 'Orta düzeyde titreme tespit edildi. Standart stabilizasyon önerilir.',
-        high: 'Yüksek düzeyde titreme tespit edildi. Güçlü stabilizasyon gerekli.'
+        low: 'Video looks quite stable. Slight correction should be enough.',
+        medium: 'Medium level shake detected. Standard stabilization is recommended.',
+        high: 'High level shake detected. Strong stabilization required.'
       };
 
       setAnalysisResult({
@@ -152,11 +152,11 @@ export const VideoStabilizePanel = ({
 
       setShowSettings(true);
       setProgress(100);
-      toast.success('Stabilizasyon analizi tamamlandı');
+      toast.success('Stabilization analysis completed');
 
     } catch (err) {
       console.error('Stabilization analysis error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Bir hata oluştu';
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -168,7 +168,7 @@ export const VideoStabilizePanel = ({
     if (onApplyStabilization) {
       onApplyStabilization({ strength, smoothness });
     }
-    toast.success('Stabilizasyon ayarları uygulandı');
+    toast.success('Stabilization settings applied');
     onClose();
   };
 
@@ -190,9 +190,9 @@ export const VideoStabilizePanel = ({
 
   const getShakeLevelLabel = (level: StabilizationResult['shakeLevel']) => {
     switch (level) {
-      case 'low': return 'Düşük Titreme';
-      case 'medium': return 'Orta Titreme';
-      case 'high': return 'Yüksek Titreme';
+      case 'low': return 'Low Shake';
+      case 'medium': return 'Middle Titreme';
+      case 'high': return 'High Shake';
     }
   };
 
@@ -225,7 +225,7 @@ export const VideoStabilizePanel = ({
             <div className="text-center">
               <p className="text-sm font-medium">Video Titreme Analizi</p>
               <p className="text-xs text-muted-foreground mt-1">
-                AI, videonuzdaki titreme seviyesini analiz edecek ve uygun stabilizasyon ayarlarını önerecek
+                AI, will analyze shake levels in your video and suggest suitable stabilization settings
               </p>
             </div>
             <Button 
@@ -234,7 +234,7 @@ export const VideoStabilizePanel = ({
               className="gap-2"
             >
               <Camera className="w-4 h-4" />
-              Analizi Başlat
+              Start Analysis
             </Button>
           </div>
         )}
@@ -246,9 +246,9 @@ export const VideoStabilizePanel = ({
             <div className="text-center">
               <p className="text-sm font-medium">Analiz ediliyor...</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {progress < 50 ? 'Video kareleri yakalanıyor' : 
-                 progress < 90 ? 'AI titreme analizi yapıyor' : 
-                 'Sonuçlar hazırlanıyor'}
+                {progress < 50 ? 'Capturing video frames' : 
+                 progress < 90 ? 'AI is analyzing shake' : 
+                 'Preparing results'}
               </p>
             </div>
             <div className="w-full max-w-xs">
@@ -265,7 +265,7 @@ export const VideoStabilizePanel = ({
           <div className="flex flex-col items-center justify-center py-6 gap-4">
             <AlertCircle className="w-12 h-12 text-destructive" />
             <div className="text-center">
-              <p className="text-sm font-medium text-destructive">Hata Oluştu</p>
+              <p className="text-sm font-medium text-destructive">An Error Occurred</p>
               <p className="text-xs text-muted-foreground mt-1">{error}</p>
             </div>
             <Button variant="outline" onClick={analyzeVideoStability}>
@@ -311,14 +311,14 @@ export const VideoStabilizePanel = ({
             {/* Stabilization Settings */}
             {showSettings && (
               <div className="space-y-4 pt-2">
-                <p className="text-xs text-muted-foreground font-medium">Stabilizasyon Ayarları</p>
+                <p className="text-xs text-muted-foreground font-medium">Stabilization Settings</p>
                 
                 {/* Strength */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Gauge className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">Güç</span>
+                      <span className="text-sm">Strength</span>
                     </div>
                     <span className="text-sm font-medium">%{strength}</span>
                   </div>
@@ -330,7 +330,7 @@ export const VideoStabilizePanel = ({
                     onValueChange={([v]) => setStrength(v)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Düzeltme gücünü ayarlar. Yüksek değerler daha fazla stabilizasyon sağlar.
+                    Adjusts correction strength. Higher values provide more stabilization.
                   </p>
                 </div>
 
@@ -339,7 +339,7 @@ export const VideoStabilizePanel = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Activity className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">Yumuşaklık</span>
+                      <span className="text-sm">Smoothness</span>
                     </div>
                     <span className="text-sm font-medium">%{smoothness}</span>
                   </div>
@@ -351,7 +351,7 @@ export const VideoStabilizePanel = ({
                     onValueChange={([v]) => setSmoothness(v)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Hareket geçişlerinin yumuşaklığını belirler.
+                    Determines smoothness of motion transitions.
                   </p>
                 </div>
               </div>
@@ -376,7 +376,7 @@ export const VideoStabilizePanel = ({
             onClick={handleApply}
           >
             <Check className="w-4 h-4" />
-            Uygula
+            Apply
           </Button>
         </div>
       )}

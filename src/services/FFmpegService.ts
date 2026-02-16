@@ -24,7 +24,7 @@ class FFmpegService {
     }
 
     this.loading = true;
-    onProgress?.({ stage: 'loading', progress: 0, message: 'FFmpeg yükleniyor...' });
+    onProgress?.({ stage: 'loading', progress: 0, message: 'Loading FFmpeg...' });
 
     try {
       this.ffmpeg = new FFmpeg();
@@ -33,7 +33,7 @@ class FFmpegService {
         onProgress?.({
           stage: 'encoding',
           progress: Math.min(20 + progress * 70, 90),
-          message: `Kodlanıyor... %${Math.round(progress * 100)}`,
+          message: `Encoding... %${Math.round(progress * 100)}`,
         });
       });
 
@@ -47,10 +47,10 @@ class FFmpegService {
       });
 
       this.loaded = true;
-      onProgress?.({ stage: 'loading', progress: 10, message: 'FFmpeg hazır' });
+      onProgress?.({ stage: 'loading', progress: 10, message: 'FFmpeg ready' });
     } catch (error) {
       console.error('FFmpeg load error:', error);
-      throw new Error('FFmpeg yüklenemedi. Lütfen sayfayı yenileyin.');
+      throw new Error('FFmpeg failed to load. Please refresh the page.');
     } finally {
       this.loading = false;
     }
@@ -64,16 +64,16 @@ class FFmpegService {
   ): Promise<Blob> {
     await this.load(onProgress);
 
-    if (!this.ffmpeg) throw new Error('FFmpeg başlatılamadı');
+    if (!this.ffmpeg) throw new Error('FFmpeg could not be initialized');
 
     const ffmpeg = this.ffmpeg;
     const sortedClips = [...project.timeline].sort((a, b) => a.order - b.order);
 
     if (sortedClips.length === 0) {
-      throw new Error('Timeline boş, dışa aktarılacak klip yok');
+      throw new Error('Timeline is empty, no clips to export');
     }
 
-    onProgress?.({ stage: 'preparing', progress: 12, message: 'Medya dosyaları hazırlanıyor...' });
+    onProgress?.({ stage: 'preparing', progress: 12, message: 'Preparing media files...' });
 
     // Write all media files to FFmpeg virtual filesystem
     const inputFiles: string[] = [];
@@ -90,7 +90,7 @@ class FFmpegService {
       onProgress?.({
         stage: 'preparing',
         progress: 12 + (i / sortedClips.length) * 8,
-        message: `Dosya yükleniyor (${i + 1}/${sortedClips.length})...`,
+        message: `Uploading file (${i + 1}/${sortedClips.length})...`,
       });
 
       try {
@@ -148,10 +148,10 @@ class FFmpegService {
     }
 
     if (concatEntries.length === 0) {
-      throw new Error('Hiçbir klip işlenemedi');
+      throw new Error('No clips could be processed');
     }
 
-    onProgress?.({ stage: 'encoding', progress: 20, message: 'Videolar birleştiriliyor...' });
+    onProgress?.({ stage: 'encoding', progress: 20, message: 'Merging videos...' });
 
     // Write concat list
     const concatList = concatEntries.join('\n');
@@ -170,7 +170,7 @@ class FFmpegService {
       outputName,
     ]);
 
-    onProgress?.({ stage: 'finalizing', progress: 92, message: 'Dosya oluşturuluyor...' });
+    onProgress?.({ stage: 'finalizing', progress: 92, message: 'Creating file...' });
 
     // Read output
     const outputData = await ffmpeg.readFile(outputName);
@@ -188,7 +188,7 @@ class FFmpegService {
       // Cleanup errors are non-critical
     }
 
-    onProgress?.({ stage: 'complete', progress: 100, message: 'Dışa aktarma tamamlandı!' });
+    onProgress?.({ stage: 'complete', progress: 100, message: 'Export completed!' });
 
     return blob;
   }

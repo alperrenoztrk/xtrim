@@ -74,7 +74,7 @@ class NativeExportService {
       console.error('Save video error:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Kaydetme hatası',
+        error: error instanceof Error ? error.message : 'Save error',
       };
     }
   }
@@ -87,7 +87,7 @@ class NativeExportService {
         if (navigator.share) {
           await navigator.share({
             title,
-            text: 'Xtrim ile oluşturuldu',
+            text: 'Created with Xtrim',
           });
           return true;
         }
@@ -96,9 +96,9 @@ class NativeExportService {
 
       await Share.share({
         title,
-        text: 'Xtrim ile oluşturuldu',
+        text: 'Created with Xtrim',
         url: videoPath,
-        dialogTitle: 'Videoyu Paylaş',
+        dialogTitle: 'Share Video',
       });
 
       return true;

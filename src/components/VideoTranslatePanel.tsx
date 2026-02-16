@@ -24,19 +24,19 @@ interface TranslationResult {
 }
 
 const languages = [
-  { code: 'en', name: 'İngilizce', flag: '🇬🇧' },
-  { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
-  { code: 'es', name: 'İspanyolca', flag: '🇪🇸' },
-  { code: 'fr', name: 'Fransızca', flag: '🇫🇷' },
-  { code: 'de', name: 'Almanca', flag: '🇩🇪' },
-  { code: 'it', name: 'İtalyanca', flag: '🇮🇹' },
-  { code: 'pt', name: 'Portekizce', flag: '🇵🇹' },
-  { code: 'ru', name: 'Rusça', flag: '🇷🇺' },
-  { code: 'ja', name: 'Japonca', flag: '🇯🇵' },
-  { code: 'ko', name: 'Korece', flag: '🇰🇷' },
-  { code: 'zh', name: 'Çince', flag: '🇨🇳' },
-  { code: 'ar', name: 'Arapça', flag: '🇸🇦' },
-  { code: 'hi', name: 'Hintçe', flag: '🇮🇳' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
+  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+  { code: 'fr', name: 'French', flag: '🇫🇷' },
+  { code: 'de', name: 'German', flag: '🇩🇪' },
+  { code: 'it', name: 'Italian', flag: '🇮🇹' },
+  { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
+  { code: 'ru', name: 'Russian', flag: '🇷🇺' },
+  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+  { code: 'ko', name: 'Korean', flag: '🇰🇷' },
+  { code: 'zh', name: 'Chinese', flag: '🇨🇳' },
+  { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
+  { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
 ];
 
 const VideoTranslatePanel = ({ 
@@ -83,7 +83,7 @@ const VideoTranslatePanel = ({
       const errorData = await response.json().catch(() => ({}));
       const errorMessage = errorData.code === 'FREE_TIER_RESTRICTED' 
         ? errorData.error 
-        : (errorData.error || `TTS isteği başarısız: ${response.status}`);
+        : (errorData.error || `TTS request failed: ${response.status}`);
       throw new Error(errorMessage);
     }
 
@@ -93,12 +93,12 @@ const VideoTranslatePanel = ({
 
   const handleTranslate = async () => {
     if (!videoUrl) {
-      toast.error('Lütfen önce bir video ekleyin');
+      toast.error('Please add a video first');
       return;
     }
 
     if (sourceLanguage === targetLanguage && sourceLanguage !== 'auto') {
-      toast.error('Kaynak ve hedef dil aynı olamaz');
+      toast.error('Source and target languages cannot be the same');
       return;
     }
 
@@ -108,7 +108,7 @@ const VideoTranslatePanel = ({
 
     try {
       // Step 1: Analyze and translate text
-      updateProgress(10, 'Video analiz ediliyor...');
+      updateProgress(10, 'Analyzing video...');
       
       const { data: translateData, error: translateError } = await supabase.functions.invoke('video-translate', {
         body: {
@@ -124,40 +124,40 @@ const VideoTranslatePanel = ({
       });
 
       if (translateError) throw translateError;
-      if (!translateData.success) throw new Error(translateData.error || 'Çeviri başarısız oldu');
+      if (!translateData.success) throw new Error(translateData.error || 'Translation failed');
 
-      updateProgress(40, 'Metin çevrildi...');
+      updateProgress(40, 'Text translated...');
 
       let audioUrl: string | undefined;
 
       // Step 2: Generate TTS if audio translation is enabled
       if (translateAudio && translateData.translatedScript) {
-        updateProgress(50, 'Ses sentezleniyor (ElevenLabs)...');
+        updateProgress(50, 'Synthesizing audio (ElevenLabs)...');
         
         try {
           audioUrl = await generateTTS(translateData.translatedScript, targetLanguage);
           setGeneratedAudioUrl(audioUrl);
-          updateProgress(90, 'Ses oluşturuldu!');
+          updateProgress(90, 'Audio created!');
         } catch (ttsError: any) {
           console.error('TTS error:', ttsError);
           const errorMessage = ttsError?.message || '';
           
-          if (errorMessage.includes('FREE_TIER_RESTRICTED') || errorMessage.includes('ücretsiz plan')) {
-            toast.error('ElevenLabs ücretsiz plan kısıtlandı', {
-              description: 'Ses dublajı için ücretli plana geçmeniz gerekiyor. Altyazılar kullanılacak.',
+          if (errorMessage.includes('FREE_TIER_RESTRICTED') || errorMessage.includes('free plan')) {
+            toast.error('ElevenLabs free plan restricted', {
+              description: 'You need a paid plan for voice dubbing. Subtitles will be used.',
             });
           } else {
-            toast.warning('Ses oluşturulamadı', {
-              description: 'Sadece altyazı kullanılacak',
+            toast.warning('Audio could not be created', {
+              description: 'Only subtitles will be used',
             });
           }
         }
       }
 
-      updateProgress(100, 'Tamamlandı!');
+      updateProgress(100, 'Completed!');
 
-      toast.success('Video çevirisi tamamlandı!', {
-        description: audioUrl ? 'Ses dublajı hazır' : 'Altyazılar oluşturuldu',
+      toast.success('Video translation completed!', {
+        description: audioUrl ? 'Voice dubbing ready' : 'Subtitles generated',
       });
 
       onTranslationComplete?.({
@@ -170,7 +170,7 @@ const VideoTranslatePanel = ({
 
     } catch (error) {
       console.error('Translation error:', error);
-      toast.error(error instanceof Error ? error.message : 'Çeviri sırasında bir hata oluştu');
+      toast.error(error instanceof Error ? error.message : 'An error occurred during translation');
     } finally {
       setIsProcessing(false);
     }
@@ -243,10 +243,10 @@ const VideoTranslatePanel = ({
                   <Languages className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-foreground">Video Çevirmeni</h2>
+                  <h2 className="text-lg font-bold text-foreground">Video Translator</h2>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Sparkles className="h-3 w-3" />
-                    ElevenLabs TTS ile ses dublajı
+                    ElevenLabs TTS ile voice dubbing
                   </p>
                 </div>
               </div>
@@ -260,16 +260,16 @@ const VideoTranslatePanel = ({
               {/* Language Selection */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Kaynak Dil</Label>
+                  <Label className="text-sm font-medium">Kaynak Language</Label>
                   <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
                     <SelectTrigger className="bg-muted/50">
-                      <SelectValue placeholder="Otomatik algıla" />
+                      <SelectValue placeholder="Auto detect" />
                     </SelectTrigger>
                     <SelectContent className="bg-background border-border z-[60]">
                       <SelectItem value="auto">
                         <div className="flex items-center gap-2">
                           <Globe className="h-4 w-4" />
-                          <span>Otomatik Algıla</span>
+                          <span>Auto Detect</span>
                         </div>
                       </SelectItem>
                       {languages.map((lang) => (
@@ -285,7 +285,7 @@ const VideoTranslatePanel = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Hedef Dil</Label>
+                  <Label className="text-sm font-medium">Hedef Language</Label>
                   <Select value={targetLanguage} onValueChange={setTargetLanguage}>
                     <SelectTrigger className="bg-muted/50">
                       <SelectValue />
@@ -306,14 +306,14 @@ const VideoTranslatePanel = ({
 
               {/* Translation Options */}
               <div className="space-y-4 pt-2">
-                <h3 className="text-sm font-semibold text-foreground">Çeviri Seçenekleri</h3>
+                <h3 className="text-sm font-semibold text-foreground">Translation Options</h3>
                 
                 <div className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
                   <div className="flex items-center gap-3">
                     <Mic className="h-5 w-5 text-primary" />
                     <div>
-                      <p className="text-sm font-medium">Ses Dublajı</p>
-                      <p className="text-xs text-muted-foreground">ElevenLabs ile gerçekçi ses</p>
+                      <p className="text-sm font-medium">Voice Dubbing</p>
+                      <p className="text-xs text-muted-foreground">Realistic voice with ElevenLabs</p>
                     </div>
                   </div>
                   <Switch checked={translateAudio} onCheckedChange={setTranslateAudio} />
@@ -323,8 +323,8 @@ const VideoTranslatePanel = ({
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-primary" />
                     <div>
-                      <p className="text-sm font-medium">Altyazı Oluştur</p>
-                      <p className="text-xs text-muted-foreground">Çevrilmiş altyazılar ekle</p>
+                      <p className="text-sm font-medium">Create Subtitles</p>
+                      <p className="text-xs text-muted-foreground">Add translated subtitles</p>
                     </div>
                   </div>
                   <Switch checked={generateSubtitles} onCheckedChange={setGenerateSubtitles} />
@@ -362,9 +362,9 @@ const VideoTranslatePanel = ({
                         <Volume2 className="h-5 w-5 text-primary" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-foreground">Dublaj Hazır</p>
+                        <p className="text-sm font-semibold text-foreground">Dubbing Ready</p>
                         <p className="text-xs text-muted-foreground">
-                          {languages.find(l => l.code === targetLanguage)?.name} sesi oluşturuldu
+                          {languages.find(l => l.code === targetLanguage)?.name} voice created
                         </p>
                       </div>
                     </div>
@@ -382,7 +382,7 @@ const VideoTranslatePanel = ({
                       ) : (
                         <>
                           <Play className="h-4 w-4" />
-                          Önizle
+                          Preview
                         </>
                       )}
                     </Button>
@@ -421,19 +421,19 @@ const VideoTranslatePanel = ({
                 {isProcessing ? (
                   <>
                     <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    Çevriliyor...
+                    Translating...
                   </>
                 ) : (
                   <>
                     <Languages className="h-5 w-5 mr-2" />
-                    Videoyu Çevir
+                    Translate Video
                   </>
                 )}
               </Button>
 
               {!videoUrl && (
                 <p className="text-center text-xs text-muted-foreground">
-                  Çeviri için önce bir video ekleyin
+                  Add a video first for translation
                 </p>
               )}
             </div>

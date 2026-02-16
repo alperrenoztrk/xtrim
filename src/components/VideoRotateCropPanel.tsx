@@ -83,7 +83,7 @@ export const VideoRotateCropPanel = ({
               <Button variant="ghost" size="iconSm" onClick={onClose}>
                 <X className="w-5 h-5" />
               </Button>
-              <span className="font-medium text-foreground">Döndür & Kırp</span>
+              <span className="font-medium text-foreground">Rotate & Crop</span>
             </div>
             <Button
               variant="gradient"
@@ -91,7 +91,7 @@ export const VideoRotateCropPanel = ({
               onClick={activeTab === 'rotate' ? handleApplyRotation : handleApplyCrop}
             >
               <Check className="w-4 h-4 mr-1" />
-              Uygula
+              Apply
             </Button>
           </div>
 
@@ -107,7 +107,7 @@ export const VideoRotateCropPanel = ({
               onClick={() => setActiveTab('rotate')}
             >
               <RotateCw className="w-4 h-4 inline mr-2" />
-              Döndür
+              Rotate
             </button>
             <button
               className={cn(
@@ -119,7 +119,7 @@ export const VideoRotateCropPanel = ({
               onClick={() => setActiveTab('crop')}
             >
               <Crop className="w-4 h-4 inline mr-2" />
-              Kırp
+              Crop
             </button>
           </div>
 
@@ -129,9 +129,9 @@ export const VideoRotateCropPanel = ({
               <div className="space-y-4">
                 {/* Rotation preview indicator */}
                 <div className="text-center text-sm text-muted-foreground">
-                  Döndürme: {((rotation % 360) + 360) % 360}° 
-                  {flipH && ' | Yatay Çevrildi'}
-                  {flipV && ' | Dikey Çevrildi'}
+                  Rotation: {((rotation % 360) + 360) % 360}° 
+                  {flipH && ' | Flipped Horizontally'}
+                  {flipV && ' | Flipped Vertically'}
                 </div>
 
                 {/* Transform buttons */}
@@ -162,7 +162,7 @@ export const VideoRotateCropPanel = ({
                 {/* Reset button */}
                 <div className="flex justify-center">
                   <Button variant="ghost" size="sm" onClick={handleReset}>
-                    Sıfırla
+                    Reset
                   </Button>
                 </div>
               </div>
@@ -183,7 +183,7 @@ export const VideoRotateCropPanel = ({
                 </div>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  Seçilen oran ile video kırpılacaktır
+                  Video will be cropped with selected ratio
                 </p>
               </div>
             )}

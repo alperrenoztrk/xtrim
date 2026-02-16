@@ -33,45 +33,45 @@ import { applyTheme } from '@/lib/theme';
 import type { AppSettings, ExportSettings } from '@/types';
 
 const languages = [
-  { value: 'auto', label: 'Otomatik (Sistem)', flag: '🌐' },
-  { value: 'tr', label: 'Türkçe', flag: '🇹🇷' },
+  { value: 'auto', label: 'Automatic (System)', flag: '🌐' },
+  { value: 'tr', label: 'Turkish', flag: '🇹🇷' },
   { value: 'en', label: 'English', flag: '🇺🇸' },
-  { value: 'es', label: 'Español', flag: '🇪🇸' },
-  { value: 'fr', label: 'Français', flag: '🇫🇷' },
-  { value: 'de', label: 'Deutsch', flag: '🇩🇪' },
+  { value: 'es', label: 'Spanish', flag: '🇪🇸' },
+  { value: 'fr', label: 'French', flag: '🇫🇷' },
+  { value: 'de', label: 'German', flag: '🇩🇪' },
   { value: 'ja', label: '日本語', flag: '🇯🇵' },
   { value: 'ko', label: '한국어', flag: '🇰🇷' },
   { value: 'zh', label: '中文', flag: '🇨🇳' },
 ];
 
 const themes = [
-  { value: 'auto', label: 'Sistem', icon: Monitor, description: 'Cihaz ayarlarını takip et' },
-  { value: 'dark', label: 'Koyu', icon: Moon, description: 'Göz yorgunluğunu azalt' },
-  { value: 'light', label: 'Açık', icon: Sun, description: 'Aydınlık ortamlar için' },
+  { value: 'auto', label: 'System', icon: Monitor, description: 'Follow device settings' },
+  { value: 'dark', label: 'Dark', icon: Moon, description: 'Reduce eye strain' },
+  { value: 'light', label: 'Light', icon: Sun, description: 'For bright environments' },
 ];
 
 const resolutions = [
-  { value: '720p', label: '720p HD', description: 'Hızlı dışa aktarım' },
-  { value: '1080p', label: '1080p Full HD', description: 'Önerilen' },
-  { value: '4k', label: '4K Ultra HD', description: 'En yüksek kalite' },
+  { value: '720p', label: '720p HD', description: 'Fast export' },
+  { value: '1080p', label: '1080p Full HD', description: 'Recommended' },
+  { value: '4k', label: '4K Ultra HD', description: 'Highest quality' },
 ];
 
 const formats = [
-  { value: 'mp4', label: 'MP4 (H.264)', description: 'Evrensel uyumluluk' },
-  { value: 'webm', label: 'WebM (VP9)', description: 'Web için optimize' },
-  { value: 'mov', label: 'MOV (ProRes)', description: 'Apple cihazlar' },
+  { value: 'mp4', label: 'MP4 (H.264)', description: 'Universal compatibility' },
+  { value: 'webm', label: 'WebM (VP9)', description: 'Optimized for web' },
+  { value: 'mov', label: 'MOV (ProRes)', description: 'Apple devices' },
 ];
 
 const frameRates = [
-  { value: 24, label: '24 FPS', description: 'Sinematik' },
-  { value: 30, label: '30 FPS', description: 'Standart' },
-  { value: 60, label: '60 FPS', description: 'Akıcı hareket' },
+  { value: 24, label: '24 FPS', description: 'Cinematic' },
+  { value: 30, label: '30 FPS', description: 'Standard' },
+  { value: 60, label: '60 FPS', description: 'Smooth motion' },
 ];
 
 const qualities = [
-  { value: 'speed', label: 'Hızlı', description: 'Düşük dosya boyutu' },
-  { value: 'balanced', label: 'Dengeli', description: 'Önerilen' },
-  { value: 'quality', label: 'Kalite', description: 'Maksimum kalite' },
+  { value: 'speed', label: 'Fast', description: 'Smaller file size' },
+  { value: 'balanced', label: 'Balanced', description: 'Recommended' },
+  { value: 'quality', label: 'Quality', description: 'Maximum quality' },
 ];
 
 interface ExtendedSettings extends AppSettings {
@@ -145,7 +145,7 @@ const SettingsScreen = () => {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="text-lg font-semibold">Ayarlar</h1>
+        <h1 className="text-lg font-semibold">Settings</h1>
       </header>
 
       <div className="p-4 space-y-6 pb-20">
@@ -161,8 +161,8 @@ const SettingsScreen = () => {
                 <Sparkles className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="font-medium">YZ Özellikleri (Beta)</p>
-                <p className="text-xs text-muted-foreground">Yapay zeka ile güçlendirilmiş özellikler</p>
+                <p className="font-medium">AI Features (Beta)</p>
+                <p className="text-xs text-muted-foreground">AI-powered features</p>
               </div>
             </div>
             <Switch checked={settings.aiBetaEnabled} onCheckedChange={(v) => updateSetting('aiBetaEnabled', v)} />
@@ -173,14 +173,14 @@ const SettingsScreen = () => {
               animate={{ opacity: 1, height: 'auto' }}
               className="mt-3 text-xs text-muted-foreground bg-background/50 p-2 rounded-lg"
             >
-              ⚠️ YZ özellikleri deneyseldir. Sonuçlar değişiklik gösterebilir.
+              ⚠️ AI features are experimental. Results may vary.
             </motion.p>
           )}
         </motion.div>
 
         {/* Appearance */}
         <div className="space-y-1">
-          <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">Görünüm</h2>
+          <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">Appearance</h2>
           <div className="rounded-xl bg-card border border-border divide-y divide-border overflow-hidden">
             {/* Theme */}
             <button 
@@ -192,7 +192,7 @@ const SettingsScreen = () => {
                   <Palette className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div className="text-left">
-                  <span className="block">Tema</span>
+                  <span className="block">Theme</span>
                   <span className="text-xs text-muted-foreground">{getCurrentTheme().label}</span>
                 </div>
               </div>
@@ -209,7 +209,7 @@ const SettingsScreen = () => {
                   <Globe className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div className="text-left">
-                  <span className="block">Dil</span>
+                  <span className="block">Language</span>
                   <span className="text-xs text-muted-foreground">
                     {getCurrentLanguage().flag} {getCurrentLanguage().label}
                   </span>
@@ -226,7 +226,7 @@ const SettingsScreen = () => {
                 </div>
                 <div>
                   <span className="block">Ses Efektleri</span>
-                  <span className="text-xs text-muted-foreground">Uygulama içi sesler</span>
+                  <span className="text-xs text-muted-foreground">In-app sounds</span>
                 </div>
               </div>
               <Switch checked={settings.soundEffects} onCheckedChange={(v) => updateSetting('soundEffects', v)} />
@@ -236,7 +236,7 @@ const SettingsScreen = () => {
 
         {/* Default Export Settings */}
         <div className="space-y-1">
-          <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">Varsayılan Dışa Aktarma</h2>
+          <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">Default Export</h2>
           <div className="rounded-xl bg-card border border-border divide-y divide-border overflow-hidden">
             {/* Resolution */}
             <div className="p-4">
@@ -245,7 +245,7 @@ const SettingsScreen = () => {
                   <Film className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <span className="block font-medium">Çözünürlük</span>
+                  <span className="block font-medium">Resolution</span>
                   <span className="text-xs text-muted-foreground">Video kalitesi</span>
                 </div>
               </div>
@@ -275,7 +275,7 @@ const SettingsScreen = () => {
                 </div>
                 <div>
                   <span className="block font-medium">Format</span>
-                  <span className="text-xs text-muted-foreground">Dosya türü</span>
+                  <span className="text-xs text-muted-foreground">File type</span>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -303,8 +303,8 @@ const SettingsScreen = () => {
                   <Gauge className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <span className="block font-medium">Kare Hızı</span>
-                  <span className="text-xs text-muted-foreground">Saniyedeki kare sayısı</span>
+                  <span className="block font-medium">Frame Rate</span>
+                  <span className="text-xs text-muted-foreground">Frames per second</span>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -333,7 +333,7 @@ const SettingsScreen = () => {
                 </div>
                 <div>
                   <span className="block font-medium">Kalite Modu</span>
-                  <span className="text-xs text-muted-foreground">Hız vs kalite dengesi</span>
+                  <span className="text-xs text-muted-foreground">Speed vs quality balance</span>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -361,7 +361,7 @@ const SettingsScreen = () => {
                   <Save className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <span className="block">Otomatik Kayıt</span>
+                  <span className="block">Auto Save</span>
                   <span className="text-xs text-muted-foreground">Projeleri otomatik kaydet</span>
                 </div>
               </div>
@@ -372,14 +372,14 @@ const SettingsScreen = () => {
 
         {/* About */}
         <div className="space-y-1">
-          <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">Hakkında</h2>
+          <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">About</h2>
           <div className="rounded-xl bg-card border border-border divide-y divide-border overflow-hidden">
             <button className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
                   <Shield className="w-5 h-5 text-muted-foreground" />
                 </div>
-                <span>Gizlilik Politikası</span>
+                <span>Privacy Policy</span>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
@@ -415,7 +415,7 @@ const SettingsScreen = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-6" />
-              <h3 className="text-lg font-semibold mb-4">Tema Seç</h3>
+              <h3 className="text-lg font-semibold mb-4">Theme Select</h3>
               <div className="space-y-2">
                 {themes.map((theme) => {
                   const Icon = theme.icon;
@@ -473,7 +473,7 @@ const SettingsScreen = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-6" />
-              <h3 className="text-lg font-semibold mb-4">Dil Seç</h3>
+              <h3 className="text-lg font-semibold mb-4">Language Select</h3>
               <div className="space-y-2">
                 {languages.map((lang) => {
                   const isSelected = settings.language === lang.value;

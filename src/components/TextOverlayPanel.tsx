@@ -79,20 +79,20 @@ const colors = [
 ];
 
 const animations: { id: TextAnimation; name: string; icon?: string }[] = [
-  { id: 'none', name: 'Yok' },
+  { id: 'none', name: 'None' },
   { id: 'fade-in', name: 'Fade In' },
-  { id: 'slide-up', name: 'Yukarı Kayma' },
-  { id: 'slide-down', name: 'Aşağı Kayma' },
-  { id: 'scale', name: 'Büyüme' },
+  { id: 'slide-up', name: 'Slide Up' },
+  { id: 'slide-down', name: 'Slide Down' },
+  { id: 'scale', name: 'Grow' },
   { id: 'typewriter', name: 'Daktilo' },
-  { id: 'bounce', name: 'Zıplama' },
+  { id: 'bounce', name: 'Bounce' },
   { id: 'glow', name: 'Parlama' },
 ];
 
 const presets = [
   {
     id: 'title',
-    name: 'Başlık',
+    name: 'Title',
     style: {
       fontFamily: 'Bebas Neue, sans-serif',
       fontSize: 48,
@@ -108,7 +108,7 @@ const presets = [
   },
   {
     id: 'subtitle',
-    name: 'Altyazı',
+    name: 'Subtitle',
     style: {
       fontFamily: 'Inter, sans-serif',
       fontSize: 20,
@@ -124,7 +124,7 @@ const presets = [
   },
   {
     id: 'caption',
-    name: 'Açıklama',
+    name: 'Description',
     style: {
       fontFamily: 'Inter, sans-serif',
       fontSize: 16,
@@ -140,7 +140,7 @@ const presets = [
   },
   {
     id: 'quote',
-    name: 'Alıntı',
+    name: 'Quote',
     style: {
       fontFamily: 'Playfair Display, serif',
       fontSize: 28,
@@ -325,7 +325,7 @@ export const TextOverlayPanel = ({
               className="gap-1"
             >
               <Move className="w-4 h-4" />
-              {isEditingMode ? 'Bitti' : 'Taşı'}
+              {isEditingMode ? 'Done' : 'Move'}
             </Button>
           )}
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -345,7 +345,7 @@ export const TextOverlayPanel = ({
               : 'text-muted-foreground'
           )}
         >
-          {editingOverlayId ? 'Düzenle' : 'Yeni Ekle'}
+          {editingOverlayId ? 'Edit' : 'Add New'}
         </button>
         <button
           onClick={() => {
@@ -405,7 +405,7 @@ export const TextOverlayPanel = ({
 
             {/* Presets */}
             <div>
-              <label className="text-xs text-muted-foreground mb-2 block">Hazır Stiller</label>
+              <label className="text-xs text-muted-foreground mb-2 block">Preset Styles</label>
               <div className="grid grid-cols-3 gap-2">
                 {presets.map((preset) => (
                   <button
@@ -450,7 +450,7 @@ export const TextOverlayPanel = ({
                   >
                     <Move className="w-4 h-4" />
                     <span className="text-sm capitalize">
-                      {pos === 'top' ? 'Üst' : pos === 'center' ? 'Orta' : 'Alt'}
+                      {pos === 'top' ? 'Top' : pos === 'center' ? 'Middle' : 'Bottom'}
                     </span>
                   </button>
                 ))}
@@ -462,7 +462,7 @@ export const TextOverlayPanel = ({
               onClick={() => setShowStyleEditor(!showStyleEditor)}
               className="w-full flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
             >
-              <span className="text-sm font-medium">Gelişmiş Stil</span>
+              <span className="text-sm font-medium">Advanced Style</span>
               {showStyleEditor ? (
                 <ChevronUp className="w-4 h-4" />
               ) : (
@@ -481,7 +481,7 @@ export const TextOverlayPanel = ({
                 >
                   {/* Font Family */}
                   <div>
-                    <label className="text-xs text-muted-foreground mb-2 block">Yazı Tipi</label>
+                    <label className="text-xs text-muted-foreground mb-2 block">Font</label>
                     <div className="grid grid-cols-4 gap-2">
                       {fonts.map((font) => (
                         <button
@@ -504,7 +504,7 @@ export const TextOverlayPanel = ({
                   {/* Font Size */}
                   <div>
                     <label className="text-xs text-muted-foreground mb-2 flex justify-between">
-                      <span>Yazı Boyutu</span>
+                      <span>Font Size</span>
                       <span className="text-primary">{style.fontSize}px</span>
                     </label>
                     <Slider
@@ -518,7 +518,7 @@ export const TextOverlayPanel = ({
 
                   {/* Text Formatting */}
                   <div>
-                    <label className="text-xs text-muted-foreground mb-2 block">Biçimlendirme</label>
+                    <label className="text-xs text-muted-foreground mb-2 block">Formatting</label>
                     <div className="flex gap-2">
                       <Button
                         variant={style.bold ? 'secondary' : 'outline'}
@@ -621,13 +621,13 @@ export const TextOverlayPanel = ({
 
                   {/* Shadow Toggle */}
                   <div className="flex items-center justify-between p-3 rounded-lg border border-border">
-                    <span className="text-sm">Gölge Efekti</span>
+                    <span className="text-sm">Shadow Effect</span>
                     <Button
                       variant={style.shadow ? 'secondary' : 'outline'}
                       size="sm"
                       onClick={() => setStyle(s => ({ ...s, shadow: !s.shadow }))}
                     >
-                      {style.shadow ? 'Açık' : 'Kapalı'}
+                      {style.shadow ? 'Light' : 'Off'}
                     </Button>
                   </div>
 
@@ -635,7 +635,7 @@ export const TextOverlayPanel = ({
                   <div>
                     <label className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
                       <Sparkles className="w-3 h-3" />
-                      Animasyon
+                      Animation
                     </label>
                     <div className="grid grid-cols-4 gap-2">
                       {animations.map((anim) => (
@@ -662,7 +662,7 @@ export const TextOverlayPanel = ({
             <div className="space-y-3 p-3 rounded-lg border border-border">
               <div>
                 <label className="text-xs text-muted-foreground mb-2 flex justify-between">
-                  <span>Başlangıç</span>
+                  <span>Start</span>
                   <span className="text-primary">{formatTime(timing.startTime)}</span>
                 </label>
                 <Slider
@@ -675,7 +675,7 @@ export const TextOverlayPanel = ({
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-2 flex justify-between">
-                  <span>Süre</span>
+                  <span>Duration</span>
                   <span className="text-primary">{timing.duration.toFixed(1)}s</span>
                 </label>
                 <Slider
@@ -698,7 +698,7 @@ export const TextOverlayPanel = ({
               {editingOverlayId ? (
                 <>
                   <Check className="w-4 h-4" />
-                  Güncelle
+                  Update
                 </>
               ) : (
                 <>
@@ -717,7 +717,7 @@ export const TextOverlayPanel = ({
                   setNewText('');
                 }}
               >
-                İptal
+                Cancel
               </Button>
             )}
           </div>
@@ -727,7 +727,7 @@ export const TextOverlayPanel = ({
             {textOverlays.length === 0 ? (
               <div className="text-center py-8">
                 <Type className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">Henüz metin eklenmedi</p>
+                <p className="text-muted-foreground">No text added yet</p>
                 <Button
                   variant="outline"
                   size="sm"
@@ -759,7 +759,7 @@ export const TextOverlayPanel = ({
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span className="capitalize">
-                          {overlay.position === 'top' ? 'Üst' : overlay.position === 'center' ? 'Orta' : 'Alt'}
+                          {overlay.position === 'top' ? 'Top' : overlay.position === 'center' ? 'Middle' : 'Bottom'}
                         </span>
                         <span>•</span>
                         <span>{formatTime(overlay.startTime)} - {formatTime(overlay.endTime)}</span>
