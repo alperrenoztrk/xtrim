@@ -177,7 +177,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
         <div className="space-y-2">
           <Label className="text-sm font-medium flex items-center gap-2">
             <Clock className="w-4 h-4" />
-            Video Durationsi
+            Video Duration
           </Label>
           <Select
             value={duration.toString()}
@@ -200,7 +200,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
         {/* Quality Slider */}
         <div className="space-y-2">
           <Label className="text-sm font-medium flex items-center justify-between">
-            <span>Kalite</span>
+            <span>Quality</span>
             <span className="text-muted-foreground">{quality[0]}%</span>
           </Label>
           <Slider
@@ -214,7 +214,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Fast</span>
-            <span>High Kalite</span>
+            <span>High Quality</span>
           </div>
         </div>
 
@@ -280,7 +280,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
                 onClick={handleAddToTimeline}
               >
                 <Video className="w-4 h-4 mr-2" />
-                Videoya Ekle
+                Add to Video
               </Button>
             </>
           ) : (

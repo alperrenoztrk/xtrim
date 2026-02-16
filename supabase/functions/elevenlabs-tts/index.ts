@@ -98,7 +98,7 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({
               error:
-                "ElevenLabs ücretsiz plan kısıtlaması (unusual activity). Ses dublajı için ücretli plan veya farklı bir ElevenLabs hesabı/API anahtarı gerekiyor.",
+                "ElevenLabs free plan restriction (unusual activity). Voice dubbing requires a paid plan or a different ElevenLabs account/API key.",
               code: "FREE_TIER_RESTRICTED",
               provider_status: detail?.status,
             }),
@@ -108,7 +108,7 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({
-            error: "Geçersiz ElevenLabs API anahtarı",
+            error: "Invalid ElevenLabs API key",
             code: "INVALID_API_KEY",
           }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -116,12 +116,12 @@ serve(async (req) => {
       }
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit aşıldı. Lütfen daha sonra tekrar deneyin." }),
+          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
-      throw new Error(`ElevenLabs API hatası: ${response.status}`);
+      throw new Error(`ElevenLabs API error: ${response.status}`);
     }
 
     const audioBuffer = await response.arrayBuffer();

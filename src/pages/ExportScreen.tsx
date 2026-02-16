@@ -87,20 +87,20 @@ const resolutionOptions: ResolutionOption[] = [
 
 const fpsOptions: FpsOption[] = [
   { value: 24, label: '24', description: 'Cinematic' },
-  { value: 30, label: '30', description: 'Standart' },
+  { value: 30, label: '30', description: 'Standard' },
   { value: 60, label: '60', description: 'Smooth' },
 ];
 
 const qualityOptions: QualityOption[] = [
   { id: 'low', label: 'Economy', description: 'Small size', bitrateMbps: 4 },
   { id: 'medium', label: 'Balanced', description: 'Recommended', bitrateMbps: 8 },
-  { id: 'high', label: 'Maksimum', description: 'En iyi kalite', bitrateMbps: 16 },
+  { id: 'high', label: 'Maximum', description: 'Best quality', bitrateMbps: 16 },
 ];
 
 const formatOptions: FormatOption[] = [
-  { id: 'mp4', label: 'MP4', codec: 'H.264/AAC', description: 'En uyumlu format', icon: FileVideo },
+  { id: 'mp4', label: 'MP4', codec: 'H.264/AAC', description: 'Most compatible format', icon: FileVideo },
   { id: 'webm', label: 'WebM', codec: 'VP9/Opus', description: 'Optimized for web', icon: Clapperboard },
-  { id: 'mov', label: 'MOV', codec: 'ProRes', description: 'Apple cihazlar', icon: Film },
+  { id: 'mov', label: 'MOV', codec: 'ProRes', description: 'Apple devices', icon: Film },
   { id: 'gif', label: 'GIF', codec: 'Animation', description: 'For short clips', icon: Zap },
 ];
 
@@ -293,7 +293,7 @@ const ExportScreen = () => {
       toast.success(
         isNative 
           ? `Xtrim saved to Xtrim folder: ${result.filePath?.split('/').pop() || fileName}`
-          : `Xtrim_${fileName} olarak indirildi!`
+          : `Downloaded as Xtrim_${fileName}!`
       );
     } else {
       toast.error(result.error || 'Save error');
@@ -541,7 +541,7 @@ const ExportScreen = () => {
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Settings2 className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="font-medium text-foreground text-sm">Kalite</h3>
+                  <h3 className="font-medium text-foreground text-sm">Quality</h3>
                 </div>
                 <div className="flex gap-1">
                   {qualityOptions.map((option) => (

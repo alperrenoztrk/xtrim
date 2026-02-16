@@ -233,7 +233,7 @@ export const AutoCutPanel = ({
               <Camera className="w-8 h-8 text-primary" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium">Video Karelerini Analiz Et</p>
+              <p className="text-sm font-medium">Analyze Video Frames</p>
               <p className="text-xs text-muted-foreground mt-1">
                 AI, will analyze your video and suggest the best cut points
               </p>
@@ -253,7 +253,7 @@ export const AutoCutPanel = ({
           <div className="flex flex-col items-center justify-center py-6 gap-4">
             <Loader2 className="w-10 h-10 text-primary animate-spin" />
             <div className="text-center">
-              <p className="text-sm font-medium">Analiz ediliyor...</p>
+              <p className="text-sm font-medium">Analyzing...</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {progress < 50 ? 'Capturing video frames' : 'AI is analyzing'}
               </p>
@@ -275,7 +275,7 @@ export const AutoCutPanel = ({
               <p className="text-xs text-muted-foreground mt-1">{error}</p>
             </div>
             <Button variant="outline" onClick={captureFramesAndAnalyze}>
-              Tekrar Dene
+              Try Again
             </Button>
           </div>
         )}
@@ -348,7 +348,7 @@ export const AutoCutPanel = ({
               </p>
             </div>
             <Button variant="outline" onClick={captureFramesAndAnalyze}>
-              Tekrar Analiz Et
+              Analyze Again
             </Button>
           </div>
         )}
@@ -358,7 +358,7 @@ export const AutoCutPanel = ({
       {analysisComplete && cutPoints.length > 0 && (
         <div className="flex gap-2 pt-4 border-t border-border mt-4">
           <Button variant="outline" className="flex-1" onClick={captureFramesAndAnalyze}>
-            Yeniden Analiz
+            Re-analyze
           </Button>
           <Button 
             variant="gradient" 
