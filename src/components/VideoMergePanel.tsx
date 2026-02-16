@@ -28,23 +28,23 @@ interface TransitionEffect {
 
 const transitionEffects: TransitionEffect[] = [
   // Free transitions
-  { id: 'none', name: 'Yok', icon: Layers, description: 'Doğrudan kesme', isPro: false, duration: 0 },
-  { id: 'fade', name: 'Solma', icon: Sparkles, description: 'Yumuşak geçiş', isPro: false, duration: 0.5 },
-  { id: 'dissolve', name: 'Çözünme', icon: Sparkles, description: 'Kademeli geçiş', isPro: false, duration: 0.75 },
-  { id: 'slide-left', name: 'Sola Kayma', icon: ChevronRight, description: 'Sola doğru kayar', isPro: false, duration: 0.5 },
-  { id: 'slide-right', name: 'Sağa Kayma', icon: ChevronRight, description: 'Sağa doğru kayar', isPro: false, duration: 0.5 },
-  { id: 'zoom', name: 'Yakınlaştırma', icon: Sparkles, description: 'Zoom efekti', isPro: false, duration: 0.5 },
+  { id: 'none', name: 'None', icon: Layers, description: 'Direct cut', isPro: false, duration: 0 },
+  { id: 'fade', name: 'Fade', icon: Sparkles, description: 'Smooth transition', isPro: false, duration: 0.5 },
+  { id: 'dissolve', name: 'Dissolve', icon: Sparkles, description: 'Gradual transition', isPro: false, duration: 0.75 },
+  { id: 'slide-left', name: 'Slide Left', icon: ChevronRight, description: 'Slides to the left', isPro: false, duration: 0.5 },
+  { id: 'slide-right', name: 'Slide Right', icon: ChevronRight, description: 'Slides to the right', isPro: false, duration: 0.5 },
+  { id: 'zoom', name: 'Zoom', icon: Sparkles, description: 'Zoom effect', isPro: false, duration: 0.5 },
   
   // Pro transitions
   { id: 'glitch', name: 'Glitch', icon: Zap, description: 'Dijital bozulma efekti', isPro: true, duration: 0.75 },
-  { id: 'whip', name: 'Hızlı Geçiş', icon: Zap, description: 'Hızlı pan efekti', isPro: true, duration: 0.3 },
-  { id: 'morph', name: 'Dönüşüm', icon: Wand2, description: 'Şekil dönüşümü', isPro: true, duration: 1 },
-  { id: 'light-leak', name: 'Işık Sızması', icon: Sparkles, description: 'Sinematik ışık efekti', isPro: true, duration: 0.75 },
+  { id: 'whip', name: 'Quick Transition', icon: Zap, description: 'Quick pan effect', isPro: true, duration: 0.3 },
+  { id: 'morph', name: 'Morph', icon: Wand2, description: 'Shape morph', isPro: true, duration: 1 },
+  { id: 'light-leak', name: 'Light Leak', icon: Sparkles, description: 'Cinematic light effect', isPro: true, duration: 0.75 },
   
   // AI Pro transitions
-  { id: 'ai-smooth', name: 'AI Akıcı Geçiş', icon: Wand2, description: 'Yapay zeka ile mükemmel geçiş', isPro: true, isAI: true, duration: 1 },
-  { id: 'ai-match', name: 'AI Eşleştirme', icon: Wand2, description: 'Renk ve hareket eşleştirme', isPro: true, isAI: true, duration: 1.5 },
-  { id: 'ai-cinematic', name: 'AI Sinematik', icon: Wand2, description: 'Profesyonel film geçişi', isPro: true, isAI: true, duration: 1.25 },
+  { id: 'ai-smooth', name: 'AI Smooth Transition', icon: Wand2, description: 'Perfect transition with AI', isPro: true, isAI: true, duration: 1 },
+  { id: 'ai-match', name: 'AI Matching', icon: Wand2, description: 'Color and motion matching', isPro: true, isAI: true, duration: 1.5 },
+  { id: 'ai-cinematic', name: 'AI Cinematic', icon: Wand2, description: 'Professional film transition', isPro: true, isAI: true, duration: 1.25 },
 ];
 
 interface VideoMergePanelProps {
@@ -68,10 +68,10 @@ export const VideoMergePanel = ({
 
   const handleSelectTransition = (effect: TransitionEffect) => {
     if (effect.isPro && !isPro) {
-      toast.error('Bu özellik Pro sürümde kullanılabilir', {
+      toast.error('This feature is available in Pro version', {
         action: {
-          label: 'Pro\'ya Geç',
-          onClick: () => toast.info('Pro özelliği yakında!'),
+          label: 'Upgrade to Pro',
+          onClick: () => toast.info('Pro feature coming soon!'),
         },
       });
       return;
@@ -89,7 +89,7 @@ export const VideoMergePanel = ({
     if (!effect) return;
     
     onApplyTransition(selectedTransition, effect.duration);
-    toast.success(`"${effect.name}" geçişi uygulandı`);
+    toast.success(`"${effect.name}" transition applied`);
   };
 
   const handleMergeAll = async () => {
@@ -104,7 +104,7 @@ export const VideoMergePanel = ({
     }
 
     onMergeAll(selectedTransition);
-    toast.success(`${clipCount} klip "${effect.name}" geçişiyle birleştirildi`);
+    toast.success(`${clipCount} clip "${effect.name}" merged with transition`);
     onClose();
   };
 
@@ -146,9 +146,9 @@ export const VideoMergePanel = ({
             <Merge className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-semibold">Video Birleştir</h3>
+            <h3 className="font-semibold">Merge Video</h3>
             <p className="text-xs text-muted-foreground">
-              {clipCount} klip seçili • Geçiş efekti seçin
+              {clipCount} clip selected • Select a transition effect
             </p>
           </div>
         </div>
@@ -195,7 +195,7 @@ export const VideoMergePanel = ({
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-primary/10 flex items-center justify-center"
             >
-              <span className="text-xs text-primary font-medium">Önizleme</span>
+              <span className="text-xs text-primary font-medium">Preview</span>
             </motion.div>
           )}
         </div>
@@ -207,7 +207,7 @@ export const VideoMergePanel = ({
         <div>
           <p className="text-xs text-muted-foreground mb-2 font-medium flex items-center gap-1">
             <Layers className="w-3 h-3" />
-            Ücretsiz Geçişler
+            Free Transitions
           </p>
           <div className="grid grid-cols-3 gap-2">
             {freeTransitions.map((effect) => (
@@ -236,7 +236,7 @@ export const VideoMergePanel = ({
         <div>
           <p className="text-xs text-muted-foreground mb-2 font-medium flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-amber-500" />
-            Pro Geçişler
+            Pro Transitions
             {!isPro && <Lock className="w-3 h-3 ml-1" />}
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -272,7 +272,7 @@ export const VideoMergePanel = ({
         <div>
           <p className="text-xs text-muted-foreground mb-2 font-medium flex items-center gap-1">
             <Wand2 className="w-3 h-3 text-purple-500" />
-            AI Geçişler
+            AI Transitions
             {!isPro && <Lock className="w-3 h-3 ml-1" />}
           </p>
           <div className="space-y-2">
@@ -314,7 +314,7 @@ export const VideoMergePanel = ({
         {selectedTransition && (
           <div className="bg-secondary rounded-lg p-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Geçiş Süresi</span>
+              <span className="text-xs text-muted-foreground">Transition Duration</span>
               <span className="text-sm font-medium">
                 {transitionEffects.find(e => e.id === selectedTransition)?.duration || 0}s
               </span>
@@ -332,7 +332,7 @@ export const VideoMergePanel = ({
           disabled={clipCount < 2}
         >
           <Play className="w-4 h-4" />
-          Seçili Kliplere Uygula
+          Apply to Selected Clips
         </Button>
         <Button
           variant="gradient"
@@ -348,12 +348,12 @@ export const VideoMergePanel = ({
               >
                 <Sparkles className="w-4 h-4" />
               </motion.div>
-              AI İşleniyor...
+              AI Processing...
             </>
           ) : (
             <>
               <Merge className="w-4 h-4" />
-              Tümünü Birleştir
+              Merge All
               <Check className="w-4 h-4" />
             </>
           )}

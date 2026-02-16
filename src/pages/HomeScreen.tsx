@@ -29,7 +29,7 @@ const tools: Tool[] = [
   },
   {
     id: 'photo',
-    name: 'Fotoğraf',
+    name: 'Photo',
     description: 'Edit and enhance photos',
     icon: Image,
     route: '/photo-editor',
@@ -37,7 +37,7 @@ const tools: Tool[] = [
   },
   {
     id: 'settings',
-    name: 'Ayarlar',
+    name: 'Settings',
     description: 'App preferences',
     icon: Settings,
     route: '/settings',
@@ -89,29 +89,29 @@ const HomeScreen = () => {
       ProjectService.saveProject(project);
       navigate(`/editor/${project.id}`);
     } else if (toolId === 'record') {
-      toast.info('Ses kaydı özelliği', { description: 'Video editöründen ses kaydı ekleyebilirsiniz.' });
+      toast.info('Voice recording feature', { description: 'You can add voice recording from the video editor.' });
       const project = ProjectService.createProject();
       ProjectService.saveProject(project);
       navigate(`/editor/${project.id}`);
     } else if (toolId === 'desktop') {
-      toast.info('Masaüstü düzenleyici', { description: 'Bu özellik masaüstü uygulamasında kullanılabilir.' });
+      toast.info('Desktop editor', { description: 'This feature is available in the desktop app.' });
     }
     // Video AI tools
     else if (toolId === 'autocut') {
-      toast.success('AutoCut', { description: 'Video editöründe AI ile otomatik kesim yapabilirsiniz.' });
+      toast.success('AutoCut', { description: 'You can auto-cut with AI in the video editor.' });
       const project = ProjectService.createProject();
       ProjectService.saveProject(project);
       navigate(`/editor/${project.id}?tool=autocut`);
     } else if (toolId === 'ai-enhance-video') {
-      toast.success('AI İyileştirme', { description: 'Video kalitesini AI ile artırabilirsiniz.' });
+      toast.success('AI Enhancement', { description: 'You can improve video quality with AI.' });
       const project = ProjectService.createProject();
       ProjectService.saveProject(project);
       navigate(`/editor/${project.id}?tool=enhance`);
     } else if (toolId === 'avatars') {
-      toast.info('YZ Avatarlar', { description: 'AI avatar oluşturma özelliği.' });
+      toast.info('AI Avatars', { description: 'AI avatar creation feature.' });
       navigate('/photo-editor?tool=avatar');
     } else if (toolId === 'ai-generate') {
-      toast.success('AI Video Üret', { description: 'Metin ile video oluşturabilirsiniz.' });
+      toast.success('AI Video Generate', { description: 'You can create videos with text.' });
       const project = ProjectService.createProject();
       ProjectService.saveProject(project);
       navigate(`/editor/${project.id}?tool=ai-generate`);
@@ -122,31 +122,31 @@ const HomeScreen = () => {
     } else if (toolId === 'background') {
       navigate('/photo-editor?tool=background');
     } else if (toolId === 'expand') {
-      toast.success('AI Genişletme', { description: 'Fotoğrafınızı AI ile genişletebilirsiniz.' });
+      toast.success('AI Expand', { description: 'Your photo can be expanded with AI.' });
       navigate('/photo-editor?tool=expand');
     } else if (toolId === 'generate') {
       setMenuOpen(false);
       setTextToImageOpen(true);
     } else if (toolId === 'enhance') {
-      toast.success('AI Kalite İyileştirme', { description: 'Fotoğraf kalitesini AI ile artırabilirsiniz.' });
+      toast.success('AI Quality Enhancement', { description: 'You can improve photo quality with AI.' });
       navigate('/photo-editor?tool=enhance');
     } else if (toolId === 'ai-avatars') {
-      toast.success('YZ Avatarlar', { description: 'AI avatar oluşturma özelliği.' });
+      toast.success('AI Avatars', { description: 'AI avatar creation feature.' });
       navigate('/photo-editor?tool=avatar');
     } else if (toolId === 'poster') {
-      toast.success('YZ Poster', { description: 'AI ile profesyonel poster tasarlayabilirsiniz.' });
+      toast.success('AI Poster', { description: 'You can design professional posters with AI.' });
       navigate('/photo-editor?tool=poster');
     }
     // Video Translate
     else if (toolId === 'translate') {
-      toast.success('Video Çevirmeni', { description: 'Videoyu farklı dillere çevirebilirsiniz.' });
+      toast.success('Video Translator', { description: 'You can translate the video into different languages.' });
       const project = ProjectService.createProject();
       ProjectService.saveProject(project);
       navigate(`/editor/${project.id}?tool=translate`);
     }
     // Inactive AI tools
     else if (toolId === 'dialogue') {
-      toast.info('Yakında', { description: 'Bu özellik çok yakında aktif olacak.' });
+      toast.info('Coming soon', { description: 'This feature will be active very soon.' });
     }
   };
 
@@ -165,7 +165,7 @@ const HomeScreen = () => {
         transition={{ duration: 0.4 }}
       >
         <h1 className="text-4xl font-bold xtrim-gradient-text mb-2">Xtrim</h1>
-        <p className="text-muted-foreground">Video & Fotoğraf Düzenleyici</p>
+        <p className="text-muted-foreground">Video & Photo Editor</p>
       </motion.header>
 
       {/* Main Tools */}
@@ -241,7 +241,7 @@ const HomeScreen = () => {
         isOpen={textToImageOpen}
         onClose={() => setTextToImageOpen(false)}
         onImageGenerated={(imageUrl) => {
-          toast.success('Görsel oluşturuldu!', { description: 'Görseli indirebilir veya düzenleyebilirsiniz.' });
+          toast.success('Image created!', { description: 'You can download or edit the image.' });
         }}
         onEditInPhotoEditor={(imageUrl) => {
           setTextToImageOpen(false);

@@ -14,10 +14,10 @@ interface TextToImagePanelProps {
 }
 
 const stylePresets = [
-  { id: 'realistic', name: 'Gerçekçi', prompt: 'photorealistic, high quality, detailed' },
-  { id: 'artistic', name: 'Sanatsal', prompt: 'artistic, painterly, creative' },
+  { id: 'realistic', name: 'Realistic', prompt: 'photorealistic, high quality, detailed' },
+  { id: 'artistic', name: 'Artistic', prompt: 'artistic, painterly, creative' },
   { id: 'anime', name: 'Anime', prompt: 'anime style, vibrant colors, japanese animation' },
-  { id: 'cinematic', name: 'Sinematik', prompt: 'cinematic, dramatic lighting, movie still' },
+  { id: 'cinematic', name: 'Cinematic', prompt: 'cinematic, dramatic lighting, movie still' },
   { id: 'minimalist', name: 'Minimalist', prompt: 'minimalist, clean, simple, modern' },
   { id: '3d', name: '3D Render', prompt: '3D render, octane render, high quality CGI' },
 ];
@@ -42,7 +42,7 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
     if (!prompt.trim()) {
       toast({
         title: 'Hata',
-        description: 'Lütfen bir açıklama girin',
+        description: 'Please enter a description',
         variant: 'destructive',
       });
       return;
@@ -65,18 +65,18 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
       if (result.success && result.imageUrl) {
         setGeneratedImage(result.imageUrl);
         toast({
-          title: 'Başarılı',
-          description: 'Görsel oluşturuldu!',
+          title: 'Success',
+          description: 'Image created!',
         });
         onImageGenerated?.(result.imageUrl);
       } else {
-        throw new Error(result.error || 'Görsel oluşturulamadı');
+        throw new Error(result.error || 'Image could not be created');
       }
     } catch (error) {
       console.error('Generation error:', error);
       toast({
         title: 'Hata',
-        description: error instanceof Error ? error.message : 'Görsel oluşturulurken bir hata oluştu',
+        description: error instanceof Error ? error.message : 'An error occurred while creating the image',
         variant: 'destructive',
       });
     } finally {
@@ -96,13 +96,13 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
       document.body.removeChild(link);
       
       toast({
-        title: 'İndirildi',
-        description: 'Görsel indirildi',
+        title: 'Downloadildi',
+        description: 'Image downloaded',
       });
     } catch (error) {
       toast({
         title: 'Hata',
-        description: 'İndirme başarısız oldu',
+        description: 'Download failed',
         variant: 'destructive',
       });
     }
@@ -125,13 +125,13 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast({
-        title: 'Kopyalandı',
-        description: 'Görsel panoya kopyalandı',
+        title: 'Copied',
+        description: 'Image copied to clipboard',
       });
     } catch (error) {
       toast({
         title: 'Hata',
-        description: 'Kopyalama başarısız oldu',
+        description: 'Copy failed',
         variant: 'destructive',
       });
     }
@@ -153,7 +153,7 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                 <Sparkles className="h-4 w-4 text-primary" />
               </div>
-              <h1 className="text-lg font-semibold text-foreground">Metinden Resim Oluştur</h1>
+              <h1 className="text-lg font-semibold text-foreground">Create Image from Text</h1>
             </div>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="h-5 w-5" />
@@ -164,16 +164,16 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
           <div className="flex-1 overflow-y-auto overscroll-contain p-4 pb-28 space-y-6" style={{ WebkitOverflowScrolling: 'touch' }}>
             {/* Prompt Input */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Açıklama</label>
+              <label className="text-sm font-medium text-foreground">Description</label>
               <Textarea
-                placeholder="Oluşturmak istediğiniz görseli detaylı bir şekilde açıklayın... Örn: Gün batımında deniz kenarında yürüyen bir kadın"
+                placeholder="Describe the image you want to create in detail... e.g.: A woman walking by the sea at sunset"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 className="min-h-[100px] resize-none"
                 disabled={isGenerating}
               />
               <p className="text-xs text-muted-foreground">
-                Ne kadar detaylı açıklarsanız, sonuç o kadar iyi olur
+                The more detailed your description, the better the result.
               </p>
             </div>
 
@@ -205,7 +205,7 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
 
             {/* Aspect Ratio */}
             <div className="space-y-3">
-              <label className="text-sm font-medium text-foreground">En Boy Oranı</label>
+              <label className="text-sm font-medium text-foreground">Aspect Ratio</label>
               <div className="flex gap-2">
                 {aspectRatios.map((ratio) => (
                   <motion.button
@@ -235,12 +235,12 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
             {/* Generated Image Preview */}
             {(generatedImage || isGenerating) && (
               <div className="space-y-3">
-                <label className="text-sm font-medium text-foreground">Sonuç</label>
+                <label className="text-sm font-medium text-foreground">Result</label>
                 <div className="relative aspect-square rounded-xl overflow-hidden bg-muted/30 border border-border">
                   {isGenerating ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <p className="text-sm text-muted-foreground">Görsel oluşturuluyor...</p>
+                      <p className="text-sm text-muted-foreground">Creating image...</p>
                     </div>
                   ) : generatedImage ? (
                     <>
@@ -256,7 +256,7 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
                           onClick={handleEditInPhotoEditor}
                         >
                           <Edit className="h-4 w-4 mr-1" />
-                          Düzenle
+                          Edit
                         </Button>
                         <div className="flex gap-2">
                           <Button
@@ -286,12 +286,12 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
             {/* Example Prompts */}
             {!generatedImage && !isGenerating && (
               <div className="space-y-3">
-                <label className="text-sm font-medium text-muted-foreground">Örnek Açıklamalar</label>
+                <label className="text-sm font-medium text-muted-foreground">Example Prompts</label>
                 <div className="space-y-2">
                   {[
-                    'Karlı dağların arasında ahşap bir kulübe, gece gökyüzü ve kuzey ışıkları',
-                    'Neon ışıklarla aydınlatılmış fütüristik bir şehir, yağmurlu gece',
-                    'Pastel renklerde çiçeklerle çevrili antik bir tapınak',
+                    'A wooden cabin among snowy mountains, night sky and northern lights',
+                    'A futuristic city lit with neon lights, rainy night',
+                    'An ancient temple surrounded by pastel-colored flowers',
                   ].map((example, index) => (
                     <motion.button
                       key={index}
@@ -317,12 +317,12 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
               {isGenerating ? (
                 <>
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Oluşturuluyor...
+                  Generating...
                 </>
               ) : (
                 <>
                   <Image className="h-5 w-5 mr-2" />
-                  Görsel Oluştur
+                  Generate Image
                 </>
               )}
             </Button>

@@ -19,9 +19,9 @@ const formatDate = (date: Date) => {
   const diff = now.getTime() - date.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
   
-  if (days === 0) return 'Bugün';
-  if (days === 1) return 'Dün';
-  if (days < 7) return `${days} gün önce`;
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days} days ago`;
   
   return date.toLocaleDateString('tr-TR', {
     day: 'numeric',
@@ -30,7 +30,7 @@ const formatDate = (date: Date) => {
 };
 
 const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect, onProjectOpen }: ToolsMenuSheetProps) => {
-  const title = type === 'video' ? 'Video' : 'Fotoğraf';
+  const title = type === 'video' ? 'Video' : 'Photo';
   const [projects, setProjects] = useState<Project[]>([]);
   const [showNameDialog, setShowNameDialog] = useState(false);
 
@@ -132,7 +132,7 @@ const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect, onProjectOpen }: 
                             {project.timeline.length > 0 && (
                               <>
                                 <span>•</span>
-                                <span>{project.timeline.length} klip</span>
+                                <span>{project.timeline.length} clip</span>
                               </>
                             )}
                           </div>
@@ -156,7 +156,7 @@ const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect, onProjectOpen }: 
               {type === 'video' && projects.length === 0 && (
                 <div className="text-center text-muted-foreground py-8">
                   <Video className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>Henüz kaydedilmiş proje yok</p>
+                  <p>No saved projects yet</p>
                 </div>
               )}
             </div>

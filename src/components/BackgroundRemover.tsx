@@ -128,11 +128,11 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
       clearInterval(progressInterval);
 
       if (error) {
-        throw new Error(error.message || 'AI işlemi başarısız oldu');
+        throw new Error(error.message || 'AI operation failed');
       }
 
       if (!data?.success || !data?.imageUrl) {
-        throw new Error(data?.error || 'Arka plan kaldırılamadı');
+        throw new Error(data?.error || 'Background could not be removed');
       }
 
       setProgress(100);
@@ -188,11 +188,11 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
         setIsProcessing(false);
         setIsProcessed(true);
         setIsBrushMode(false);
-        toast.success('AI arka plan kaldırma tamamlandı! Fırça ile düzeltebilirsiniz.');
+        toast.success('AI background removal completed! You can refine it with the brush.');
       };
 
       resultImg.onerror = () => {
-        throw new Error('Sonuç resmi yüklenemedi');
+        throw new Error('Result image could not be loaded');
       };
 
       resultImg.src = data.imageUrl;
@@ -202,14 +202,14 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
       setIsProcessing(false);
       setProgress(0);
       
-      const errorMessage = error instanceof Error ? error.message : 'Bir hata oluştu';
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
       
       if (errorMessage.includes('Rate limit')) {
-        toast.error('Çok fazla istek gönderildi. Lütfen biraz bekleyin.');
+        toast.error('Too many requests sent. Please wait a bit.');
       } else if (errorMessage.includes('credits') || errorMessage.includes('402')) {
-        toast.error('API kredileri tükendi. Lütfen kredi ekleyin.');
+        toast.error('API credits are exhausted. Please add credits.');
       } else {
-        toast.error(`AI hatası: ${errorMessage}`);
+        toast.error(`AI error: ${errorMessage}`);
       }
     }
   };
@@ -228,7 +228,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
       }
     }
     
-    toast.info('Kaldırmak istediğiniz alanları boyayın, sonra "Uygula" butonuna basın.');
+    toast.info('Paint the areas you want to remove, then click "Apply".');
   };
 
   const applyBrushMask = () => {
@@ -268,7 +268,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     ctx.putImageData(imageData, 0, 0);
     setIsProcessed(true);
     setIsBrushMode(false);
-    toast.success('Arka plan manuel olarak kaldırıldı!');
+    toast.success('Background manually removed!');
   };
 
   const applyMaskToCanvas = () => {
@@ -443,7 +443,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
 
     const resultUrl = exportCanvas.toDataURL('image/png');
     onSave(resultUrl);
-    toast.success('Fotoğraf kaydedildi!');
+    toast.success('Photo saved!');
   };
 
   return (
@@ -459,7 +459,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
           <Button variant="iconGhost" size="iconSm" onClick={onClose}>
             <X className="w-5 h-5" />
           </Button>
-          <h1 className="text-sm font-semibold text-foreground">Arka Plan Kaldır</h1>
+          <h1 className="text-sm font-semibold text-foreground">Remove Background</h1>
         </div>
 
         <div className="flex items-center gap-2">
@@ -471,7 +471,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
               {isProcessed && (
                 <Button variant="gradient" size="sm" onClick={handleSave}>
                   <Download className="w-4 h-4" />
-                  Kaydet
+                  Save
                 </Button>
               )}
             </>
@@ -518,7 +518,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
                   animate={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-white text-sm">Arka plan kaldırılıyor... %{progress}</p>
+              <p className="text-white text-sm">Removing background... %{progress}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -528,7 +528,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="bg-card/95 backdrop-blur-sm rounded-2xl p-6 mx-4 max-w-md w-full shadow-2xl border border-border">
               <h2 className="text-lg font-semibold text-foreground mb-4 text-center">
-                Arka Plan Kaldırma Yöntemi
+                Background Removal Method
               </h2>
               
               <Tabs value={removalMode} onValueChange={(v) => setRemovalMode(v as RemovalMode)} className="w-full">
@@ -539,17 +539,17 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
                   </TabsTrigger>
                   <TabsTrigger value="brush" className="text-xs">
                     <Paintbrush className="w-3 h-3 mr-1" />
-                    Fırça
+                    Brush
                   </TabsTrigger>
                   <TabsTrigger value="prompt" className="text-xs">
                     <MessageSquare className="w-3 h-3 mr-1" />
-                    Açıklama
+                    Description
                   </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="auto" className="space-y-4">
                   <p className="text-sm text-muted-foreground text-center">
-                    AI otomatik olarak ana nesneyi algılayıp arka planı kaldırır.
+                    AI automatically detects the main subject and removes the background.
                   </p>
                   <Button
                     variant="gradient"
@@ -558,13 +558,13 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
                     className="w-full"
                   >
                     <Sparkles className="w-5 h-5 mr-2" />
-                    AI ile Başla
+                    Start with AI
                   </Button>
                 </TabsContent>
 
                 <TabsContent value="brush" className="space-y-4">
                   <p className="text-sm text-muted-foreground text-center">
-                    Kaldırmak istediğiniz alanları fırça ile boyayın.
+                    Paint the areas you want to remove with the brush.
                   </p>
                   <Button
                     variant="gradient"
@@ -573,16 +573,16 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
                     className="w-full"
                   >
                     <Paintbrush className="w-5 h-5 mr-2" />
-                    Fırça ile Boyamaya Başla
+                    Start Painting with Brush
                   </Button>
                 </TabsContent>
 
                 <TabsContent value="prompt" className="space-y-4">
                   <p className="text-sm text-muted-foreground text-center">
-                    AI'ya hangi alanları kaldırmak istediğinizi açıklayın.
+                    Describe which areas you want AI to remove.
                   </p>
                   <Textarea
-                    placeholder="Örnek: Sadece insanı koru, arka plandaki tüm binaları ve ağaçları kaldır..."
+                    placeholder="Example: Keep only the person, remove all buildings and trees in the background..."
                     value={promptText}
                     onChange={(e) => setPromptText(e.target.value)}
                     className="min-h-[80px] resize-none"
@@ -595,7 +595,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
                     className="w-full"
                   >
                     <Sparkles className="w-5 h-5 mr-2" />
-                    Açıklama ile Kaldır
+                    Remove with Description
                   </Button>
                 </TabsContent>
               </Tabs>
@@ -618,7 +618,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
               onClick={() => setActiveTool('eraser')}
             >
               <Eraser className="w-4 h-4 mr-1" />
-              Kaldır
+              Remove
             </Button>
             <Button
               variant={activeTool === 'brush' ? 'secondary' : 'outline'}
@@ -648,7 +648,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Fırça Boyutu</span>
+              <span className="text-xs text-muted-foreground">Brush Size</span>
               <span className="text-xs font-medium text-foreground">{brushSize}px</span>
             </div>
             <Slider
@@ -662,16 +662,16 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
 
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleReset} className="flex-1">
-              İptal
+              Cancel
             </Button>
             <Button variant="gradient" size="sm" onClick={applyBrushMask} className="flex-1">
               <Sparkles className="w-4 h-4 mr-1" />
-              Uygula
+              Apply
             </Button>
           </div>
 
           <p className="text-xs text-muted-foreground text-center">
-            🎨 Kırmızı alanlar kaldırılacak bölgeleri gösterir
+            🎨 Red areas show regions that will be removed
           </p>
         </motion.div>
       )}
@@ -699,7 +699,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
               onClick={() => setActiveTool('eraser')}
             >
               <Eraser className="w-4 h-4 mr-1" />
-              Sil
+              Erase
             </Button>
             <div className="w-px h-6 bg-border mx-2" />
             <Button
@@ -722,7 +722,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
           {/* Brush size */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Fırça Boyutu</span>
+              <span className="text-xs text-muted-foreground">Brush Size</span>
               <span className="text-xs font-medium text-foreground">{brushSize}px</span>
             </div>
             <Slider
@@ -735,7 +735,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
           </div>
 
           <p className="text-xs text-muted-foreground text-center">
-            💡 Fırça ile geri getirmek veya silgi ile kaldırmak için çizin
+            💡 Draw to restore with brush or remove with eraser
           </p>
         </motion.div>
       )}

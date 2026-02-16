@@ -47,7 +47,7 @@ export const AutoCutPanel = ({
   const captureFramesAndAnalyze = useCallback(async () => {
     const video = videoRef.current;
     if (!video) {
-      toast.error('Video bulunamadı');
+      toast.error('Video not found');
       return;
     }
 
@@ -101,7 +101,7 @@ export const AutoCutPanel = ({
       setProgress(90);
 
       if (!result.success) {
-        throw new Error(result.error || 'Analiz başarısız oldu');
+        throw new Error(result.error || 'Analysis failed');
       }
 
       // Process cut point suggestions
@@ -115,7 +115,7 @@ export const AutoCutPanel = ({
               id: `ai-${index}`,
               time,
               confidence: 'high',
-              reason: 'AI tarafından tespit edildi'
+              reason: 'Detected by AI'
             });
           }
         });
@@ -136,7 +136,7 @@ export const AutoCutPanel = ({
             id: `auto-${index}`,
             time,
             confidence: item.confidence,
-            reason: `Video ${Math.round(item.fraction * 100)}% noktası`
+            reason: `Video ${Math.round(item.fraction * 100)}% point`
           });
         });
       }
@@ -152,11 +152,11 @@ export const AutoCutPanel = ({
       setAnalysisComplete(true);
       setProgress(100);
       
-      toast.success(`${suggestedCutPoints.length} kesim noktası bulundu`);
+      toast.success(`${suggestedCutPoints.length} cut points found`);
 
     } catch (err) {
       console.error('AutoCut error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Analiz sırasında bir hata oluştu';
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during analysis';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -183,12 +183,12 @@ export const AutoCutPanel = ({
       .sort((a, b) => a - b);
     
     if (selectedTimes.length === 0) {
-      toast.error('En az bir kesim noktası seçin');
+      toast.error('Select at least one cut point');
       return;
     }
     
     onApplyCuts(selectedTimes);
-    toast.success(`${selectedTimes.length} kesim noktası uygulandı`);
+    toast.success(`${selectedTimes.length} cut points applied`);
     onClose();
   };
 
@@ -235,7 +235,7 @@ export const AutoCutPanel = ({
             <div className="text-center">
               <p className="text-sm font-medium">Video Karelerini Analiz Et</p>
               <p className="text-xs text-muted-foreground mt-1">
-                AI, videonuzu inceleyerek en iyi kesim noktalarını önerecek
+                AI, will analyze your video and suggest the best cut points
               </p>
             </div>
             <Button 
@@ -244,7 +244,7 @@ export const AutoCutPanel = ({
               className="gap-2"
             >
               <Sparkles className="w-4 h-4" />
-              Analizi Başlat
+              Start Analysis
             </Button>
           </div>
         )}
@@ -255,7 +255,7 @@ export const AutoCutPanel = ({
             <div className="text-center">
               <p className="text-sm font-medium">Analiz ediliyor...</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {progress < 50 ? 'Video kareleri yakalanıyor' : 'AI analiz yapıyor'}
+                {progress < 50 ? 'Capturing video frames' : 'AI is analyzing'}
               </p>
             </div>
             <div className="w-full max-w-xs">
@@ -271,7 +271,7 @@ export const AutoCutPanel = ({
           <div className="flex flex-col items-center justify-center py-6 gap-4">
             <AlertCircle className="w-10 h-10 text-destructive" />
             <div className="text-center">
-              <p className="text-sm font-medium text-destructive">Hata Oluştu</p>
+              <p className="text-sm font-medium text-destructive">An Error Occurred</p>
               <p className="text-xs text-muted-foreground mt-1">{error}</p>
             </div>
             <Button variant="outline" onClick={captureFramesAndAnalyze}>
@@ -283,7 +283,7 @@ export const AutoCutPanel = ({
         {analysisComplete && cutPoints.length > 0 && (
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              {cutPoints.length} kesim noktası bulundu. Uygulamak istediklerinizi seçin:
+              {cutPoints.length} cut points found. Select the ones you want to apply:
             </p>
             
             <div className="space-y-2">
@@ -314,7 +314,7 @@ export const AutoCutPanel = ({
                         {MediaService.formatDuration(cp.time)}
                       </span>
                       <span className={`text-xs ${getConfidenceColor(cp.confidence)}`}>
-                        ({cp.confidence === 'high' ? 'Yüksek' : cp.confidence === 'medium' ? 'Orta' : 'Düşük'} güven)
+                        ({cp.confidence === 'high' ? 'High' : cp.confidence === 'medium' ? 'Middle' : 'Low'} confidence)
                       </span>
                     </div>
                     {cp.reason && (
@@ -342,9 +342,9 @@ export const AutoCutPanel = ({
           <div className="flex flex-col items-center justify-center py-6 gap-4">
             <Scissors className="w-10 h-10 text-muted-foreground" />
             <div className="text-center">
-              <p className="text-sm font-medium">Kesim noktası bulunamadı</p>
+              <p className="text-sm font-medium">No cut points found</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Video çok kısa olabilir veya sahneler benzer
+                Video may be too short or scenes may be similar
               </p>
             </div>
             <Button variant="outline" onClick={captureFramesAndAnalyze}>
@@ -367,7 +367,7 @@ export const AutoCutPanel = ({
             disabled={selectedCutPoints.size === 0}
           >
             <Scissors className="w-4 h-4" />
-            {selectedCutPoints.size} Kesim Uygula
+            {selectedCutPoints.size} Kesim Apply
           </Button>
         </div>
       )}

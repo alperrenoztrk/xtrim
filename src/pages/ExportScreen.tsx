@@ -86,22 +86,22 @@ const resolutionOptions: ResolutionOption[] = [
 ];
 
 const fpsOptions: FpsOption[] = [
-  { value: 24, label: '24', description: 'Sinematik' },
+  { value: 24, label: '24', description: 'Cinematic' },
   { value: 30, label: '30', description: 'Standart' },
-  { value: 60, label: '60', description: 'Akıcı' },
+  { value: 60, label: '60', description: 'Smooth' },
 ];
 
 const qualityOptions: QualityOption[] = [
-  { id: 'low', label: 'Ekonomik', description: 'Küçük boyut', bitrateMbps: 4 },
-  { id: 'medium', label: 'Dengeli', description: 'Önerilen', bitrateMbps: 8 },
+  { id: 'low', label: 'Economy', description: 'Small size', bitrateMbps: 4 },
+  { id: 'medium', label: 'Balanced', description: 'Recommended', bitrateMbps: 8 },
   { id: 'high', label: 'Maksimum', description: 'En iyi kalite', bitrateMbps: 16 },
 ];
 
 const formatOptions: FormatOption[] = [
   { id: 'mp4', label: 'MP4', codec: 'H.264/AAC', description: 'En uyumlu format', icon: FileVideo },
-  { id: 'webm', label: 'WebM', codec: 'VP9/Opus', description: 'Web için optimize', icon: Clapperboard },
+  { id: 'webm', label: 'WebM', codec: 'VP9/Opus', description: 'Optimized for web', icon: Clapperboard },
   { id: 'mov', label: 'MOV', codec: 'ProRes', description: 'Apple cihazlar', icon: Film },
-  { id: 'gif', label: 'GIF', codec: 'Animasyon', description: 'Kısa klipler için', icon: Zap },
+  { id: 'gif', label: 'GIF', codec: 'Animation', description: 'For short clips', icon: Zap },
 ];
 
 const socialPresets: SocialPreset[] = [
@@ -216,7 +216,7 @@ const ExportScreen = () => {
 
     setExportStatus('preparing');
     setProgress(0);
-    setProgressMessage('FFmpeg yükleniyor...');
+    setProgressMessage('Loading FFmpeg...');
 
     try {
       const videoBlob = await ffmpegService.mergeAndExport(
@@ -234,18 +234,18 @@ const ExportScreen = () => {
       setExportedVideoBlob(videoBlob);
       setExportStatus('complete');
       setProgress(100);
-      setProgressMessage('Dışa aktarma tamamlandı!');
+      setProgressMessage('Export completed!');
 
       // Save export settings to project
       const updatedProject = { ...project, exportSettings: { ...settings, format: selectedFormat } };
       ProjectService.saveProject(updatedProject);
 
-      toast.success('Video başarıyla oluşturuldu!');
+      toast.success('Video created successfully!');
     } catch (error) {
       console.error('Export error:', error);
       setExportStatus('error');
-      setProgressMessage(error instanceof Error ? error.message : 'Dışa aktarma hatası');
-      toast.error(error instanceof Error ? error.message : 'Dışa aktarma başarısız');
+      setProgressMessage(error instanceof Error ? error.message : 'Export error');
+      toast.error(error instanceof Error ? error.message : 'Export failed');
     }
   };
 
@@ -265,18 +265,18 @@ const ExportScreen = () => {
     if (exportedVideoBlob) {
       const success = await nativeExportService.shareVideoBlob(exportedVideoBlob, fileName);
       if (success) {
-        toast.success('Paylaşım başarılı!');
+        toast.success('Sharing successful!');
       } else if (navigator.share) {
         try {
           await navigator.share({
             title: project.name,
-            text: 'Xtrim ile oluşturuldu',
+            text: 'Created with Xtrim',
           });
         } catch (e) {
           // User cancelled
         }
       } else {
-        toast.error('Paylaşım desteklenmiyor');
+        toast.error('Sharing is not supported');
       }
     }
   };
@@ -292,18 +292,18 @@ const ExportScreen = () => {
     if (result.success) {
       toast.success(
         isNative 
-          ? `Xtrim klasörüne kaydedildi: ${result.filePath?.split('/').pop() || fileName}`
+          ? `Xtrim saved to Xtrim folder: ${result.filePath?.split('/').pop() || fileName}`
           : `Xtrim_${fileName} olarak indirildi!`
       );
     } else {
-      toast.error(result.error || 'Kaydetme hatası');
+      toast.error(result.error || 'Save error');
     }
   };
 
   if (!project) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Proje bulunamadı</p>
+        <p className="text-muted-foreground">Project not found</p>
       </div>
     );
   }
@@ -326,7 +326,7 @@ const ExportScreen = () => {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-sm font-semibold text-foreground">Dışa Aktar</h1>
+            <h1 className="text-sm font-semibold text-foreground">Export</h1>
             <p className="text-xxs text-muted-foreground">{project.name}</p>
           </div>
         </div>
@@ -376,13 +376,13 @@ const ExportScreen = () => {
                   <p className="font-medium text-foreground">{progressMessage}</p>
                   <p className="text-xs text-muted-foreground">
                     {exportStatus === 'complete'
-                      ? `${currentFormat?.label} formatında hazır`
-                      : `${Math.round(progress)}% tamamlandı`}
+                      ? `${currentFormat?.label} ready in format`
+                      : `${Math.round(progress)}% completed`}
                   </p>
                 </div>
                 {isExporting && (
                   <Button variant="ghost" size="sm" onClick={handleCancelExport}>
-                    İptal
+                    Cancel
                   </Button>
                 )}
               </div>
@@ -393,11 +393,11 @@ const ExportScreen = () => {
                 <div className="flex gap-2 pt-2">
                   <Button variant="outline" className="flex-1" onClick={handleShare}>
                     <Share2 className="w-4 h-4" />
-                    Paylaş
+                    Share
                   </Button>
                   <Button variant="gradient" className="flex-1" onClick={handleSaveToDevice}>
                     <FolderDown className="w-4 h-4" />
-                    Kaydet
+                    Save
                   </Button>
                 </div>
               )}
@@ -416,7 +416,7 @@ const ExportScreen = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Share2 className="w-4 h-4 text-muted-foreground" />
-                <h3 className="font-medium text-foreground">Hızlı Presetler</h3>
+                <h3 className="font-medium text-foreground">Fast Presetler</h3>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
                 {socialPresets.map((preset) => (
@@ -476,7 +476,7 @@ const ExportScreen = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Monitor className="w-4 h-4 text-muted-foreground" />
-                <h3 className="font-medium text-foreground">Çözünürlük</h3>
+                <h3 className="font-medium text-foreground">Resolution</h3>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {resolutionOptions.map((option) => (
@@ -510,7 +510,7 @@ const ExportScreen = () => {
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Play className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="font-medium text-foreground text-sm">Kare Hızı</h3>
+                  <h3 className="font-medium text-foreground text-sm">Frame Rate</h3>
                 </div>
                 <div className="flex gap-1">
                   {fpsOptions.map((option) => (
@@ -573,7 +573,7 @@ const ExportScreen = () => {
             >
               <div className="flex items-center gap-2">
                 <Settings2 className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Gelişmiş Ayarlar</span>
+                <span className="text-sm font-medium">Advanced Settings</span>
               </div>
               {showAdvanced ? (
                 <ChevronUp className="w-4 h-4 text-muted-foreground" />
@@ -598,7 +598,7 @@ const ExportScreen = () => {
                         <Zap className="w-4 h-4 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">Fast Start</p>
-                          <p className="text-xs text-muted-foreground">Web için hızlı oynatma başlangıcı</p>
+                          <p className="text-xs text-muted-foreground">Fast-start playback for web</p>
                         </div>
                       </div>
                       <Switch checked={enableFastStart} onCheckedChange={setEnableFastStart} />
@@ -610,7 +610,7 @@ const ExportScreen = () => {
                         <Monitor className="w-4 h-4 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">HDR</p>
-                          <p className="text-xs text-muted-foreground">Yüksek dinamik aralık (varsa)</p>
+                          <p className="text-xs text-muted-foreground">High dynamic range (if available)</p>
                         </div>
                       </div>
                       <Switch checked={enableHDR} onCheckedChange={setEnableHDR} />
@@ -622,7 +622,7 @@ const ExportScreen = () => {
                         <Film className="w-4 h-4 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">Sessiz Video</p>
-                          <p className="text-xs text-muted-foreground">Ses olmadan dışa aktar</p>
+                          <p className="text-xs text-muted-foreground">Export without audio</p>
                         </div>
                       </div>
                       <Switch checked={removeAudio} onCheckedChange={setRemoveAudio} />
@@ -636,7 +636,7 @@ const ExportScreen = () => {
             <div className="bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2 mb-2">
                 <Info className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-primary">Dışa Aktarma Özeti</span>
+                <span className="text-sm font-medium text-primary">Export Summary</span>
               </div>
               <div className="grid grid-cols-2 gap-y-2 text-sm">
                 <div className="flex items-center gap-2">
@@ -644,7 +644,7 @@ const ExportScreen = () => {
                   <span className="font-medium">{currentFormat?.label} ({currentFormat?.codec})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Çözünürlük:</span>
+                  <span className="text-muted-foreground">Resolution:</span>
                   <span className="font-medium">{currentResolution?.description}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -677,7 +677,7 @@ const ExportScreen = () => {
               onClick={handleStartExport}
             >
               <Download className="w-5 h-5" />
-              Dışa Aktar
+              Export
             </Button>
           </motion.div>
         )}

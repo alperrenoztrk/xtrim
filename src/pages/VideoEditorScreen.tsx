@@ -93,9 +93,9 @@ const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string
 ];
 
 const moreMenuItems = [
-  { id: 'merge', icon: Layers, label: 'Birleştir' },
-  { id: 'ai-generate', icon: Wand2, label: 'AI Video Üret', isAI: true, isPro: true },
-  { id: 'translate', icon: Languages, label: 'Video Çevirmeni', isAI: true, isPro: true },
+  { id: 'merge', icon: Layers, label: 'Merge' },
+  { id: 'ai-generate', icon: Wand2, label: 'AI Video Generate', isAI: true, isPro: true },
+  { id: 'translate', icon: Languages, label: 'Video Translator', isAI: true, isPro: true },
   { id: 'autocut', icon: Zap, label: 'AutoCut', isAI: true },
   { id: 'enhance', icon: Wand2, label: 'AI Enhance', isAI: true },
   { id: 'stabilize', icon: Sparkles, label: 'Stabilize', isAI: true },
@@ -364,9 +364,9 @@ const VideoEditorScreen = () => {
     // Show feedback toast
     const parts = [];
     if (videoCount > 0) parts.push(`${videoCount} video`);
-    if (photoCount > 0) parts.push(`${photoCount} fotoğraf`);
+    if (photoCount > 0) parts.push(`${photoCount} photo`);
     if (parts.length > 0) {
-      toast.success('Medya eklendi', {
+      toast.success('Media eklendi', {
         description: `${parts.join(' ve ')} timeline'a eklendi`,
       });
     }
@@ -429,7 +429,7 @@ const VideoEditorScreen = () => {
       order: index,
     }));
     saveProject({ ...project, timeline: reorderedTimeline });
-    toast.success('Sıralama güncellendi');
+    toast.success('Order updated');
   };
 
   // Handle Trim
@@ -568,7 +568,7 @@ const VideoEditorScreen = () => {
   // Handle AutoCut Panel
   const handleOpenAutoCut = () => {
     if (!selectedMedia || selectedMedia.type !== 'video') {
-      toast.error('Lütfen bir video seçin');
+      toast.error('Please select a video');
       return;
     }
     setShowAutoCutPanel(true);
@@ -582,7 +582,7 @@ const VideoEditorScreen = () => {
   // Handle Enhance Panel
   const handleOpenEnhance = () => {
     if (!selectedMedia || selectedMedia.type !== 'video') {
-      toast.error('Lütfen bir video seçin');
+      toast.error('Please select a video');
       return;
     }
     setShowEnhancePanel(true);
@@ -597,7 +597,7 @@ const VideoEditorScreen = () => {
   // Handle Stabilize Panel
   const handleOpenStabilize = () => {
     if (!selectedMedia || selectedMedia.type !== 'video') {
-      toast.error('Lütfen bir video seçin');
+      toast.error('Please select a video');
       return;
     }
     setShowStabilizePanel(true);
@@ -613,7 +613,7 @@ const VideoEditorScreen = () => {
   // Handle Speed Panel
   const handleOpenSpeed = () => {
     if (!selectedMedia || selectedMedia.type !== 'video') {
-      toast.error('Lütfen bir video seçin');
+      toast.error('Please select a video');
       return;
     }
     setShowSpeedPanel(true);
@@ -663,7 +663,7 @@ const VideoEditorScreen = () => {
   // Handle Color Panel
   const handleOpenColor = () => {
     if (!selectedMedia || selectedMedia.type !== 'video') {
-      toast.error('Lütfen bir video seçin');
+      toast.error('Please select a video');
       return;
     }
     setShowColorPanel(true);
@@ -681,7 +681,7 @@ const VideoEditorScreen = () => {
   // Handle Merge Panel
   const handleOpenMerge = () => {
     if (!project || project.timeline.length < 2) {
-      toast.error('Birleştirmek için en az 2 klip gerekli');
+      toast.error('At least 2 clips are required to merge');
       return;
     }
     setShowMergePanel(true);
@@ -700,7 +700,7 @@ const VideoEditorScreen = () => {
   const handleApplyTransition = (transitionId: string, duration: number) => {
     if (!project) return;
     // Store transition info in the project (could be extended to store per-clip transitions)
-    toast.success(`Geçiş efekti uygulandı: ${transitionId}`);
+    toast.success(`Transition effect applied: ${transitionId}`);
   };
 
   // Handle merge all clips with transition
@@ -721,7 +721,7 @@ const VideoEditorScreen = () => {
     const mergedMediaSource = firstVideoMedia ?? primaryMedia;
 
     if (!mergedMediaSource) {
-      toast.error('Birleştirme için uygun medya bulunamadı');
+      toast.error('No suitable media found for merge');
       return;
     }
 
@@ -730,7 +730,7 @@ const VideoEditorScreen = () => {
       id: mergedMediaId,
       type: mergedMediaSource.type,
       uri: mergedMediaSource.uri,
-      name: `Birleştirilmiş ${mergedMediaSource.type === 'video' ? 'Video' : 'Medya'} (${orderedClips.length} klip)`,
+      name: `Merged ${mergedMediaSource.type === 'video' ? 'Video' : 'Media'} (${orderedClips.length} clip)`,
       duration: totalDuration,
       thumbnail: mergedMediaSource.thumbnail,
       width: mergedMediaSource.width,
@@ -796,7 +796,7 @@ const VideoEditorScreen = () => {
   // Handle Rotate/Crop Panel
   const handleOpenRotateCrop = () => {
     if (!selectedClipId || !project) {
-      toast.error('Lütfen bir klip seçin');
+      toast.error('Please select a clip');
       return;
     }
     setShowRotateCropPanel(true);
@@ -826,7 +826,7 @@ const VideoEditorScreen = () => {
     });
 
     saveProject({ ...project, timeline: updatedTimeline });
-    toast.success('Döndürme uygulandı');
+    toast.success('Rotation applied');
   };
 
   // Handle apply crop to clip
@@ -841,7 +841,7 @@ const VideoEditorScreen = () => {
     });
 
     saveProject({ ...project, timeline: updatedTimeline });
-    toast.success('Kırpma uygulandı');
+    toast.success('Crop applied');
   };
 
   const handleAIVideoGenerated = (videoUrl: string, duration: number) => {
@@ -921,7 +921,7 @@ const VideoEditorScreen = () => {
       duration: updatedTimeline.reduce((acc, clip) => acc + (clip.endTime - clip.startTime), 0),
     });
 
-    toast.success(`Video ${newClips.length} parçaya bölündü`);
+    toast.success(`Video ${newClips.length} parts split`);
   };
 
   // Handle More menu actions
@@ -1237,21 +1237,21 @@ const VideoEditorScreen = () => {
               {isEditingTextOverlays && (
                 <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
                   <Type className="w-3 h-3" />
-                  Metin Düzenleme Modu
+                  Text Editing Mode
                 </div>
               )}
               {videoError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/80">
                   <div className="text-center p-4 max-w-sm">
-                    <p className="text-destructive font-medium">Video oynatılamıyor</p>
+                    <p className="text-destructive font-medium">Video cannot be played</p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Bu format tarayıcınız tarafından desteklenmiyor olabilir.
+                      This format may not be supported by your browser.
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
                       Desteklenen formatlar: MP4, WebM, OGG
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Dosya adı: {selectedMedia?.name}
+                      File name: {selectedMedia?.name}
                     </p>
                   </div>
                 </div>
@@ -1282,27 +1282,27 @@ const VideoEditorScreen = () => {
               {isEditingTextOverlays && (
                 <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
                   <Type className="w-3 h-3" />
-                  Metin Düzenleme Modu
+                  Text Editing Mode
                 </div>
               )}
             </div>
           )
         ) : project.timeline.length > 0 ? (
-          <div className="text-muted-foreground text-sm">Önizleme için bir klip seçin</div>
+          <div className="text-muted-foreground text-sm">Select a clip for preview</div>
         ) : (
           <div className="flex flex-col items-center gap-4 text-center p-8">
             <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center">
               <Plus className="w-8 h-8 text-muted-foreground" />
             </div>
             <div>
-              <p className="text-foreground font-medium">Düzenlemeye başlamak için medya ekleyin</p>
+              <p className="text-foreground font-medium">Add media to start editing</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Cihazınızdan video veya fotoğraf içe aktarın
+                Import video or photo from your device
               </p>
             </div>
             <Button variant="gradient" onClick={() => fileInputRef.current?.click()}>
               <Plus className="w-4 h-4" />
-              Medya Ekle
+              Media Ekle
             </Button>
           </div>
         )}
@@ -1778,15 +1778,15 @@ const VideoEditorScreen = () => {
             });
             
             setTextOverlays(prev => [...prev, ...subtitleOverlays]);
-            toast.success('Altyazılar eklendi!', {
-              description: `${subtitleOverlays.length} altyazı videoya eklendi`,
+            toast.success('Subtitles added!', {
+              description: `${subtitleOverlays.length} subtitles added to video`,
             });
           }
           
           // If there's translated audio, store it for playback
           if (result.translatedAudioUrl) {
-            toast.success('Ses dublajı hazır!', {
-              description: 'Çevrilmiş ses videoya eklendi',
+            toast.success('Voice dubbing ready!', {
+              description: 'Translated audio added to video',
             });
           }
           

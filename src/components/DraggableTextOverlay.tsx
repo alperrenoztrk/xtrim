@@ -140,7 +140,7 @@ export const DraggableTextOverlay = ({
       {isEditing && (
         <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-2 py-0.5 rounded text-xs flex items-center gap-1 whitespace-nowrap">
           <Move className="w-3 h-3" />
-          Sürükle
+          Drag
         </div>
       )}
       {overlay.text}

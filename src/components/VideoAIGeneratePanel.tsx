@@ -16,12 +16,12 @@ interface VideoAIGeneratePanelProps {
 }
 
 const videoStyles = [
-  { id: 'cinematic', name: 'Sinematik', description: 'Film kalitesinde görsel' },
-  { id: 'anime', name: 'Anime', description: 'Japon animasyon tarzı' },
-  { id: 'realistic', name: 'Gerçekçi', description: 'Fotogerçekçi görünüm' },
-  { id: 'artistic', name: 'Sanatsal', description: 'Artistik ve yaratıcı' },
-  { id: '3d', name: '3D Render', description: '3D modelleme tarzı' },
-  { id: 'vintage', name: 'Vintage', description: 'Retro film görünümü' },
+  { id: 'cinematic', name: 'Cinematic', description: 'Film-quality visuals' },
+  { id: 'anime', name: 'Anime', description: 'Japanese animation style' },
+  { id: 'realistic', name: 'Realistic', description: 'Photorealistic look' },
+  { id: 'artistic', name: 'Artistic', description: 'Artistic and creative' },
+  { id: '3d', name: '3D Render', description: '3D modeling style' },
+  { id: 'vintage', name: 'Vintage', description: 'Retro film look' },
 ];
 
 const durationOptions = [
@@ -46,7 +46,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      toast.error('Lütfen bir açıklama girin');
+      toast.error('Please enter a description');
       return;
     }
 
@@ -84,13 +84,13 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
       if (data?.success && data?.frameUrl) {
         setProgress(100);
         setGeneratedPreview(data.frameUrl);
-        toast.success('Video oluşturuldu!');
+        toast.success('Video created!');
       } else {
-        throw new Error(data?.error || 'Video oluşturulamadı');
+        throw new Error(data?.error || 'Video could not be created');
       }
     } catch (error) {
       console.error('Video generation error:', error);
-      toast.error(error instanceof Error ? error.message : 'Video oluşturma hatası');
+      toast.error(error instanceof Error ? error.message : 'Video creation error');
     } finally {
       setIsGenerating(false);
     }
@@ -99,7 +99,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
   const handleAddToTimeline = () => {
     if (generatedPreview) {
       onVideoGenerated(generatedPreview, duration);
-      toast.success('Video zaman çizelgesine eklendi');
+      toast.success('Video added to timeline');
       onClose();
     }
   };
@@ -121,13 +121,13 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
           </div>
           <div>
             <h3 className="font-semibold text-foreground flex items-center gap-2">
-              AI Video Üretimi
+              AI Video Generateimi
               <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs rounded-full flex items-center gap-1">
                 <Crown className="w-3 h-3" />
                 PRO
               </span>
             </h3>
-            <p className="text-xs text-muted-foreground">Metinden video oluştur</p>
+            <p className="text-xs text-muted-foreground">Create video from text</p>
           </div>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}>
@@ -138,16 +138,16 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
       <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(85vh-80px)]">
         {/* Prompt Input */}
         <div className="space-y-2">
-          <Label className="text-sm font-medium">Video Açıklaması</Label>
+          <Label className="text-sm font-medium">Video Description</Label>
           <Textarea
-            placeholder="Örn: Gün batımında sahilde yürüyen bir çift, sinematik kamera hareketi ile..."
+            placeholder="e.g.: A couple walking on the beach at sunset, with cinematic camera movement..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             className="min-h-[100px] resize-none"
             disabled={isGenerating}
           />
           <p className="text-xs text-muted-foreground">
-            Ne kadar detaylı açıklarsanız, o kadar iyi sonuç alırsınız
+            The more detailed your description, the better the result.
           </p>
         </div>
 
@@ -177,7 +177,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
         <div className="space-y-2">
           <Label className="text-sm font-medium flex items-center gap-2">
             <Clock className="w-4 h-4" />
-            Video Süresi
+            Video Durationsi
           </Label>
           <Select
             value={duration.toString()}
@@ -213,8 +213,8 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
             className="py-2"
           />
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Hızlı</span>
-            <span>Yüksek Kalite</span>
+            <span>Fast</span>
+            <span>High Kalite</span>
           </div>
         </div>
 
@@ -222,7 +222,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
         {isGenerating && (
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Video oluşturuluyor...</span>
+              <span className="text-muted-foreground">Creating video...</span>
               <span className="font-medium">{Math.round(progress)}%</span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -234,7 +234,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
               />
             </div>
             <p className="text-xs text-center text-muted-foreground">
-              AI videonuzu oluşturuyor, bu birkaç dakika sürebilir...
+              AI is creating your video, this may take a few minutes...
             </p>
           </div>
         )}
@@ -242,7 +242,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
         {/* Generated Preview */}
         {generatedPreview && !isGenerating && (
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Oluşturulan Video Önizleme</Label>
+            <Label className="text-sm font-medium">Generated Video Preview</Label>
             <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-black">
               <img
                 src={generatedPreview}
@@ -273,7 +273,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
                   setProgress(0);
                 }}
               >
-                Yeniden Oluştur
+                Generate Again
               </Button>
               <Button
                 className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
@@ -292,12 +292,12 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
               {isGenerating ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Oluşturuluyor...
+                  Generating...
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Video Oluştur
+                  Generate Video
                 </>
               )}
             </Button>
@@ -306,7 +306,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
 
         {/* Info */}
         <p className="text-xs text-center text-muted-foreground pt-2">
-          AI Video üretimi Pro abonelik gerektirir. Her video için kredi kullanılır.
+          AI video generation requires Pro subscription. Credits are used per video.
         </p>
       </div>
     </motion.div>

@@ -27,20 +27,20 @@ interface EnhanceModeOption {
 const enhanceModes: EnhanceModeOption[] = [
   { 
     id: 'enhance', 
-    label: 'Genel İyileştirme', 
+    label: 'General Enhancement', 
     description: 'Renk, keskinlik ve kontrast optimize et',
     icon: Wand2 
   },
   { 
     id: 'denoise', 
-    label: 'Gürültü Azaltma', 
-    description: 'Video gürültüsünü ve greni temizle',
+    label: 'Noise Reduction', 
+    description: 'Clean video noise and grain',
     icon: Sparkles 
   },
   { 
     id: 'upscale', 
-    label: 'Çözünürlük Artırma', 
-    description: 'Düşük kaliteli görselleri yükselt',
+    label: 'Resolution Upscaling', 
+    description: 'Upscale low-quality visuals',
     icon: ImageIcon 
   },
 ];
@@ -67,7 +67,7 @@ export const VideoEnhancePanel = ({
   const captureAndEnhance = useCallback(async () => {
     const video = videoRef.current;
     if (!video) {
-      toast.error('Video bulunamadı');
+      toast.error('Video not found');
       return;
     }
 
@@ -91,20 +91,20 @@ export const VideoEnhancePanel = ({
       setProgress(90);
 
       if (!result.success) {
-        throw new Error(result.error || 'İyileştirme başarısız oldu');
+        throw new Error(result.error || 'Enhancement failed');
       }
 
       if (!result.outputUrl) {
-        throw new Error('İyileştirilmiş görsel alınamadı');
+        throw new Error('Enhanced image could not be retrieved');
       }
 
       setResultImageUrl(result.outputUrl);
       setProgress(100);
-      toast.success('Görsel başarıyla iyileştirildi!');
+      toast.success('Image enhanced successfully!');
 
     } catch (err) {
       console.error('Enhance error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Bir hata oluştu';
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -121,7 +121,7 @@ export const VideoEnhancePanel = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Görsel indirildi');
+    toast.success('Image downloaded');
   };
 
   const handleApply = () => {
@@ -146,7 +146,7 @@ export const VideoEnhancePanel = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Wand2 className="w-5 h-5 text-primary" />
-          <h3 className="font-medium">AI Video İyileştirme</h3>
+          <h3 className="font-medium">AI Video Enhancement</h3>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="w-4 h-4" />
@@ -159,7 +159,7 @@ export const VideoEnhancePanel = ({
         {!isProcessing && !resultImageUrl && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Mevcut video karesini AI ile iyileştirin. Bir mod seçin:
+              Enhance the current video frame with AI. Choose a mode:
             </p>
             
             <div className="space-y-2">
@@ -195,7 +195,7 @@ export const VideoEnhancePanel = ({
               onClick={captureAndEnhance}
             >
               <Sparkles className="w-4 h-4" />
-              Kareyi Yakala ve İyileştir
+              Capture Frame and Enhance
             </Button>
           </div>
         )}
@@ -205,11 +205,11 @@ export const VideoEnhancePanel = ({
           <div className="flex flex-col items-center justify-center py-8 gap-4">
             <Loader2 className="w-12 h-12 text-primary animate-spin" />
             <div className="text-center">
-              <p className="text-sm font-medium">İyileştiriliyor...</p>
+              <p className="text-sm font-medium">Enhancing...</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {progress < 30 ? 'Kare yakalanıyor' : 
+                {progress < 30 ? 'Capturing frame' : 
                  progress < 90 ? `AI ${getModeLabel(selectedMode)} uyguluyor` : 
-                 'Tamamlanıyor'}
+                 'Finalizing'}
               </p>
             </div>
             <div className="w-full max-w-xs">
@@ -226,7 +226,7 @@ export const VideoEnhancePanel = ({
           <div className="flex flex-col items-center justify-center py-8 gap-4">
             <AlertCircle className="w-12 h-12 text-destructive" />
             <div className="text-center">
-              <p className="text-sm font-medium text-destructive">Hata Oluştu</p>
+              <p className="text-sm font-medium text-destructive">An Error Occurred</p>
               <p className="text-xs text-muted-foreground mt-1">{error}</p>
             </div>
             <Button variant="outline" onClick={captureAndEnhance}>
@@ -250,13 +250,13 @@ export const VideoEnhancePanel = ({
                         className="w-[200%] h-full object-cover"
                       />
                       <span className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                        Önce
+                        Before
                       </span>
                     </div>
                     <div className="w-1/2 overflow-hidden">
                       <img 
                         src={resultImageUrl} 
-                        alt="İyileştirilmiş" 
+                        alt="Enhanced" 
                         className="w-[200%] h-full object-cover ml-[-100%]"
                       />
                       <span className="absolute bottom-2 right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
@@ -268,7 +268,7 @@ export const VideoEnhancePanel = ({
               ) : (
                 <img 
                   src={resultImageUrl} 
-                  alt="İyileştirilmiş kare" 
+                  alt="Enhanced frame" 
                   className="w-full h-full object-contain"
                 />
               )}
@@ -280,12 +280,12 @@ export const VideoEnhancePanel = ({
                 size="sm"
                 onClick={() => setShowComparison(!showComparison)}
               >
-                {showComparison ? 'Karşılaştırmayı Gizle' : 'Önce/Sonra Karşılaştır'}
+                {showComparison ? 'Hide Comparison' : 'Before/After Compare'}
               </Button>
             </div>
 
             <p className="text-xs text-center text-muted-foreground">
-              ✨ {getModeLabel(selectedMode)} başarıyla uygulandı
+              ✨ {getModeLabel(selectedMode)} applied successfully
             </p>
           </div>
         )}
@@ -300,7 +300,7 @@ export const VideoEnhancePanel = ({
             onClick={handleDownload}
           >
             <Download className="w-4 h-4" />
-            İndir
+            Download
           </Button>
           <Button 
             variant="outline" 
@@ -311,7 +311,7 @@ export const VideoEnhancePanel = ({
               setError(null);
             }}
           >
-            Yeni İyileştirme
+            New Enhancement
           </Button>
         </div>
       )}

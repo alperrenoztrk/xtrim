@@ -21,13 +21,13 @@ interface SpeedPreset {
 }
 
 const speedPresets: SpeedPreset[] = [
-  { label: '0.25x', value: 0.25, icon: Turtle, description: 'Çok yavaş' },
-  { label: '0.5x', value: 0.5, icon: Turtle, description: 'Yavaş' },
-  { label: '0.75x', value: 0.75, icon: Timer, description: 'Biraz yavaş' },
+  { label: '0.25x', value: 0.25, icon: Turtle, description: 'Very slow' },
+  { label: '0.5x', value: 0.5, icon: Turtle, description: 'Slow' },
+  { label: '0.75x', value: 0.75, icon: Timer, description: 'Slightly slow' },
   { label: '1x', value: 1, icon: Play, description: 'Normal' },
-  { label: '1.25x', value: 1.25, icon: Timer, description: 'Biraz hızlı' },
-  { label: '1.5x', value: 1.5, icon: Rabbit, description: 'Hızlı' },
-  { label: '2x', value: 2, icon: Rabbit, description: 'Çok hızlı' },
+  { label: '1.25x', value: 1.25, icon: Timer, description: 'Slightly fast' },
+  { label: '1.5x', value: 1.5, icon: Rabbit, description: 'Fast' },
+  { label: '2x', value: 2, icon: Rabbit, description: 'Very fast' },
 ];
 
 interface VideoSpeedPanelProps {
@@ -76,7 +76,7 @@ export const VideoSpeedPanel = ({
 
   const handleApply = () => {
     onApplySpeed(speed);
-    toast.success(`Video hızı ${speed}x olarak ayarlandı`);
+    toast.success(`Video speed set to ${speed}x `);
     onClose();
   };
 
@@ -108,7 +108,7 @@ export const VideoSpeedPanel = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Gauge className="w-5 h-5 text-primary" />
-          <h3 className="font-medium">Hız Kontrolü</h3>
+          <h3 className="font-medium">Speed Control</h3>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="w-4 h-4" />
@@ -125,16 +125,16 @@ export const VideoSpeedPanel = ({
           <p className={`text-sm font-medium ${category.color}`}>{category.label}</p>
           <p className="text-xs text-muted-foreground mt-1">
             {speed < 1 
-              ? `Video ${(1/speed).toFixed(1)}x daha yavaş oynatılacak` 
+              ? `Video ${(1/speed).toFixed(1)}x slower playback` 
               : speed > 1 
-                ? `Video ${speed.toFixed(1)}x daha hızlı oynatılacak`
-                : 'Normal hızda oynatılacak'}
+                ? `Video ${speed.toFixed(1)}x faster playback`
+                : 'Will play at normal speed'}
           </p>
         </div>
 
         {/* Speed Presets */}
         <div>
-          <p className="text-xs text-muted-foreground mb-3 font-medium">Hızlı Seçim</p>
+          <p className="text-xs text-muted-foreground mb-3 font-medium">Fast Selectim</p>
           <div className="grid grid-cols-4 gap-2">
             {speedPresets.map((preset) => (
               <Button
@@ -159,7 +159,7 @@ export const VideoSpeedPanel = ({
         {/* Custom Speed Slider */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground font-medium">Özel Hız</p>
+            <p className="text-xs text-muted-foreground font-medium">Custom Speed</p>
             <span className="text-xs text-muted-foreground">
               {speed.toFixed(2)}x
             </span>
@@ -206,10 +206,10 @@ export const VideoSpeedPanel = ({
         <div className="bg-secondary rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <Timer className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Süre Bilgisi</span>
+            <span className="text-sm font-medium">Duration Bilgisi</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Klip süresi değişmez, sadece oynatma hızı güncellenir.
+            Clip duration does not change, only playback speed is updated.
           </p>
         </div>
       </div>
@@ -222,14 +222,14 @@ export const VideoSpeedPanel = ({
           onClick={handleReset}
           disabled={speed === 1}
         >
-          Sıfırla
+          Reset
         </Button>
         <Button 
           variant="outline" 
           className="flex-1"
           onClick={onClose}
         >
-          İptal
+          Cancel
         </Button>
         <Button 
           variant="gradient" 
@@ -237,7 +237,7 @@ export const VideoSpeedPanel = ({
           onClick={handleApply}
         >
           <Check className="w-4 h-4" />
-          Uygula
+          Apply
         </Button>
       </div>
     </motion.div>
