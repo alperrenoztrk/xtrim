@@ -6,7 +6,6 @@ import {
   Globe,
   Palette,
   Volume2,
-  Sparkles,
   Shield,
   Info,
   ChevronRight,
@@ -82,7 +81,6 @@ const defaultSettings: ExtendedSettings = {
   language: 'auto',
   theme: 'dark',
   soundEffects: true,
-  aiBetaEnabled: false,
   autoSave: true,
   exportQuality: 'balanced',
   defaultExport: {
@@ -149,35 +147,6 @@ const SettingsScreen = () => {
       </header>
 
       <div className="p-4 space-y-6 pb-20">
-        {/* AI Beta */}
-        <motion.div 
-          className="p-4 rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/30" 
-          initial={{ opacity: 0, y: 10 }} 
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium">AI Features (Beta)</p>
-                <p className="text-xs text-muted-foreground">AI-powered features</p>
-              </div>
-            </div>
-            <Switch checked={settings.aiBetaEnabled} onCheckedChange={(v) => updateSetting('aiBetaEnabled', v)} />
-          </div>
-          {settings.aiBetaEnabled && (
-            <motion.p 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="mt-3 text-xs text-muted-foreground bg-background/50 p-2 rounded-lg"
-            >
-              ⚠️ AI features are experimental. Results may vary.
-            </motion.p>
-          )}
-        </motion.div>
-
         {/* Appearance */}
         <div className="space-y-1">
           <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">Appearance</h2>
