@@ -110,7 +110,6 @@ export interface AppSettings {
   language: 'auto' | 'tr' | 'en' | 'es' | 'fr' | 'de' | 'ja' | 'ko' | 'zh';
   theme: 'auto' | 'dark' | 'light';
   soundEffects: boolean;
-  aiBetaEnabled: boolean;
   autoSave: boolean;
   exportQuality: 'balanced' | 'quality' | 'speed';
 }
