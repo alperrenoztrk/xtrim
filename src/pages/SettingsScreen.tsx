@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
-  Globe,
   Palette,
   Volume2,
   Sparkles,
@@ -22,27 +21,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { applyTheme } from '@/lib/theme';
 import type { AppSettings, ExportSettings } from '@/types';
-
-const languages = [
-  { value: 'auto', label: 'Automatic (System)', flag: '🌐' },
-  { value: 'tr', label: 'Turkish', flag: '🇹🇷' },
-  { value: 'en', label: 'English', flag: '🇺🇸' },
-  { value: 'es', label: 'Spanish', flag: '🇪🇸' },
-  { value: 'fr', label: 'French', flag: '🇫🇷' },
-  { value: 'de', label: 'German', flag: '🇩🇪' },
-  { value: 'ja', label: '日本語', flag: '🇯🇵' },
-  { value: 'ko', label: '한국어', flag: '🇰🇷' },
-  { value: 'zh', label: '中文', flag: '🇨🇳' },
-];
 
 const themes = [
   { value: 'auto', label: 'System', icon: Monitor, description: 'Follow device settings' },
@@ -108,7 +88,6 @@ const SettingsScreen = () => {
   });
 
   const [showThemeSheet, setShowThemeSheet] = useState(false);
-  const [showLanguageSheet, setShowLanguageSheet] = useState(false);
 
   useEffect(() => {
     applyTheme(settings.theme);
@@ -129,10 +108,6 @@ const SettingsScreen = () => {
       localStorage.setItem('xtrim_settings', JSON.stringify(newSettings));
       return newSettings;
     });
-  };
-
-  const getCurrentLanguage = () => {
-    return languages.find(l => l.value === settings.language) || languages[0];
   };
 
   const getCurrentTheme = () => {
@@ -198,26 +173,6 @@ const SettingsScreen = () => {
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
-
-            {/* Language */}
-            <button 
-              className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-              onClick={() => setShowLanguageSheet(true)}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                  <Globe className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <div className="text-left">
-                  <span className="block">Language</span>
-                  <span className="text-xs text-muted-foreground">
-                    {getCurrentLanguage().flag} {getCurrentLanguage().label}
-                  </span>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
-
             {/* Sound Effects */}
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
@@ -443,56 +398,6 @@ const SettingsScreen = () => {
                           <span className="block font-medium">{theme.label}</span>
                           <span className="text-xs text-muted-foreground">{theme.description}</span>
                         </div>
-                      </div>
-                      {isSelected && <Check className="w-5 h-5 text-primary" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Language Selection Sheet */}
-      <AnimatePresence>
-        {showLanguageSheet && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-50"
-            onClick={() => setShowLanguageSheet(false)}
-          >
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl p-6 safe-area-bottom max-h-[70vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-6" />
-              <h3 className="text-lg font-semibold mb-4">Language Select</h3>
-              <div className="space-y-2">
-                {languages.map((lang) => {
-                  const isSelected = settings.language === lang.value;
-                  return (
-                    <button
-                      key={lang.value}
-                      onClick={() => {
-                        updateSetting('language', lang.value as AppSettings['language']);
-                        setShowLanguageSheet(false);
-                      }}
-                      className={`w-full flex items-center justify-between p-4 rounded-xl transition-all ${
-                        isSelected
-                          ? 'bg-primary/10 border border-primary'
-                          : 'bg-muted/50 border border-transparent hover:bg-muted'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{lang.flag}</span>
-                        <span className="font-medium">{lang.label}</span>
                       </div>
                       {isSelected && <Check className="w-5 h-5 text-primary" />}
                     </button>
