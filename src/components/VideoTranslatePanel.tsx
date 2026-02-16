@@ -246,7 +246,7 @@ const VideoTranslatePanel = ({
                   <h2 className="text-lg font-bold text-foreground">Video Translator</h2>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Sparkles className="h-3 w-3" />
-                    ElevenLabs TTS ile voice dubbing
+                    Voice dubbing with ElevenLabs TTS
                   </p>
                 </div>
               </div>
@@ -260,7 +260,7 @@ const VideoTranslatePanel = ({
               {/* Language Selection */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Kaynak Language</Label>
+                  <Label className="text-sm font-medium">Source Language</Label>
                   <Select value={sourceLanguage} onValueChange={setSourceLanguage}>
                     <SelectTrigger className="bg-muted/50">
                       <SelectValue placeholder="Auto detect" />
@@ -285,7 +285,7 @@ const VideoTranslatePanel = ({
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Hedef Language</Label>
+                  <Label className="text-sm font-medium">Target Language</Label>
                   <Select value={targetLanguage} onValueChange={setTargetLanguage}>
                     <SelectTrigger className="bg-muted/50">
                       <SelectValue />
@@ -340,8 +340,8 @@ const VideoTranslatePanel = ({
                     <div className="flex items-center gap-3">
                       <Volume2 className="h-5 w-5 text-primary" />
                       <div>
-                        <p className="text-sm font-medium">Orijinal Sesi Koru</p>
-                        <p className="text-xs text-muted-foreground">Arka planda orijinal ses</p>
+                        <p className="text-sm font-medium">Keep Original Audio</p>
+                        <p className="text-xs text-muted-foreground">Original audio in the background</p>
                       </div>
                     </div>
                     <Switch checked={preserveOriginalVoice} onCheckedChange={setPreserveOriginalVoice} />

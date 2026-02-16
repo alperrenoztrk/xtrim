@@ -244,7 +244,7 @@ export const VideoStabilizePanel = ({
           <div className="flex flex-col items-center justify-center py-6 gap-4">
             <Loader2 className="w-12 h-12 text-primary animate-spin" />
             <div className="text-center">
-              <p className="text-sm font-medium">Analiz ediliyor...</p>
+              <p className="text-sm font-medium">Analyzing...</p>
               <p className="text-xs text-muted-foreground mt-1">
                 {progress < 50 ? 'Capturing video frames' : 
                  progress < 90 ? 'AI is analyzing shake' : 
@@ -269,7 +269,7 @@ export const VideoStabilizePanel = ({
               <p className="text-xs text-muted-foreground mt-1">{error}</p>
             </div>
             <Button variant="outline" onClick={analyzeVideoStability}>
-              Tekrar Dene
+              Try Again
             </Button>
           </div>
         )}
@@ -368,7 +368,7 @@ export const VideoStabilizePanel = ({
             className="flex-1"
             onClick={analyzeVideoStability}
           >
-            Yeniden Analiz
+            Re-analyze
           </Button>
           <Button 
             variant="gradient" 

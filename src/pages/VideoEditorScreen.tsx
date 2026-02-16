@@ -366,8 +366,8 @@ const VideoEditorScreen = () => {
     if (videoCount > 0) parts.push(`${videoCount} video`);
     if (photoCount > 0) parts.push(`${photoCount} photo`);
     if (parts.length > 0) {
-      toast.success('Media eklendi', {
-        description: `${parts.join(' ve ')} timeline'a eklendi`,
+      toast.success('Media added', {
+        description: `${parts.join(' and ')} added to timeline`,
       });
     }
   };
@@ -1302,7 +1302,7 @@ const VideoEditorScreen = () => {
             </div>
             <Button variant="gradient" onClick={() => fileInputRef.current?.click()}>
               <Plus className="w-4 h-4" />
-              Media Ekle
+              Add Media
             </Button>
           </div>
         )}

@@ -287,7 +287,7 @@ const SettingsScreen = () => {
                   <Download className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <span className="block font-medium">Kalite Modu</span>
+                  <span className="block font-medium">Quality Mode</span>
                   <span className="text-xs text-muted-foreground">Speed vs quality balance</span>
                 </div>
               </div>
@@ -317,7 +317,7 @@ const SettingsScreen = () => {
                 </div>
                 <div>
                   <span className="block">Auto Save</span>
-                  <span className="text-xs text-muted-foreground">Projeleri otomatik kaydet</span>
+                  <span className="text-xs text-muted-foreground">Automatically save projects</span>
                 </div>
               </div>
               <Switch checked={settings.autoSave} onCheckedChange={(v) => updateSetting('autoSave', v)} />
@@ -343,7 +343,7 @@ const SettingsScreen = () => {
                 <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
                   <Info className="w-5 h-5 text-muted-foreground" />
                 </div>
-                <span>Versiyon</span>
+                <span>Version</span>
               </div>
               <span className="text-sm text-muted-foreground">1.0.0</span>
             </div>

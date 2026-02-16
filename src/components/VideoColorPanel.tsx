@@ -197,7 +197,7 @@ export const VideoColorPanel = ({
   const adjustmentControls = [
     { key: 'brightness' as const, label: 'Brightness', icon: Sun, min: 0, max: 200, default: 100 },
     { key: 'contrast' as const, label: 'Kontrast', icon: Contrast, min: 0, max: 200, default: 100 },
-    { key: 'saturation' as const, label: 'Doygunluk', icon: Droplets, min: 0, max: 200, default: 100 },
+    { key: 'saturation' as const, label: 'Saturation', icon: Droplets, min: 0, max: 200, default: 100 },
     { key: 'temperature' as const, label: 'Temperature', icon: Thermometer, min: -50, max: 50, default: 0 },
   ];
 
@@ -212,7 +212,7 @@ export const VideoColorPanel = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Palette className="w-5 h-5 text-primary" />
-          <h3 className="font-medium">Filtreler & Renkler</h3>
+          <h3 className="font-medium">Filters & Colors</h3>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="w-4 h-4" />
@@ -228,7 +228,7 @@ export const VideoColorPanel = ({
           onClick={() => setActiveTab('filters')}
         >
           <Sparkles className="w-4 h-4 mr-2" />
-          Filtreler
+          Filters
         </Button>
         <Button
           variant={activeTab === 'adjust' ? 'secondary' : 'ghost'}

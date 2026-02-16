@@ -28,7 +28,7 @@ const enhanceModes: EnhanceModeOption[] = [
   { 
     id: 'enhance', 
     label: 'General Enhancement', 
-    description: 'Renk, keskinlik ve kontrast optimize et',
+    description: 'Optimize color, sharpness, and contrast',
     icon: Wand2 
   },
   { 
@@ -230,7 +230,7 @@ export const VideoEnhancePanel = ({
               <p className="text-xs text-muted-foreground mt-1">{error}</p>
             </div>
             <Button variant="outline" onClick={captureAndEnhance}>
-              Tekrar Dene
+              Try Again
             </Button>
           </div>
         )}
@@ -246,7 +246,7 @@ export const VideoEnhancePanel = ({
                     <div className="w-1/2 overflow-hidden border-r-2 border-white/50">
                       <img 
                         src={originalImageUrl} 
-                        alt="Orijinal" 
+                        alt="Original" 
                         className="w-[200%] h-full object-cover"
                       />
                       <span className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">

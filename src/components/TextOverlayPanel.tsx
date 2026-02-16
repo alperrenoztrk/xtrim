@@ -310,9 +310,9 @@ export const TextOverlayPanel = ({
             <Type className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-semibold">Metin Ekle</h3>
+            <h3 className="font-semibold">Add Text</h3>
             <p className="text-xs text-muted-foreground">
-              {textOverlays.length} metin eklendi
+              {textOverlays.length} text overlays added
             </p>
           </div>
         </div>
@@ -359,7 +359,7 @@ export const TextOverlayPanel = ({
               : 'text-muted-foreground'
           )}
         >
-          Metinler ({textOverlays.length})
+          Texts ({textOverlays.length})
         </button>
       </div>
 
@@ -369,9 +369,9 @@ export const TextOverlayPanel = ({
           <div className="space-y-4">
             {/* Text Input */}
             <div>
-              <label className="text-xs text-muted-foreground mb-2 block">Metin</label>
+              <label className="text-xs text-muted-foreground mb-2 block">Text</label>
               <Input
-                placeholder="Metninizi girin..."
+                placeholder="Enter your text..."
                 value={newText}
                 onChange={(e) => setNewText(e.target.value)}
                 className="text-lg"
@@ -568,7 +568,7 @@ export const TextOverlayPanel = ({
 
                   {/* Text Color */}
                   <div>
-                    <label className="text-xs text-muted-foreground mb-2 block">Metin Rengi</label>
+                    <label className="text-xs text-muted-foreground mb-2 block">Text Color</label>
                     <div className="flex flex-wrap gap-2">
                       {colors.map((color) => (
                         <button
@@ -586,7 +586,7 @@ export const TextOverlayPanel = ({
 
                   {/* Background Color */}
                   <div>
-                    <label className="text-xs text-muted-foreground mb-2 block">Arka Plan</label>
+                    <label className="text-xs text-muted-foreground mb-2 block">Background</label>
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => setStyle(s => ({ ...s, backgroundColor: 'transparent' }))}
@@ -703,7 +703,7 @@ export const TextOverlayPanel = ({
               ) : (
                 <>
                   <Plus className="w-4 h-4" />
-                  Metin Ekle
+                  Add Text
                 </>
               )}
             </Button>
@@ -735,7 +735,7 @@ export const TextOverlayPanel = ({
                   onClick={() => setActiveTab('add')}
                 >
                   <Plus className="w-4 h-4" />
-                  Metin Ekle
+                  Add Text
                 </Button>
               </div>
             ) : (

@@ -610,10 +610,10 @@ const PhotoEditorScreen = () => {
           {/* Tab selector */}
           <div className="flex border-b border-border bg-card overflow-x-auto scrollbar-hide">
             {[
-              { id: 'adjust', label: 'Ayarla', icon: Sun },
+              { id: 'adjust', label: 'Adjust', icon: Sun },
               { id: 'crop', label: 'Crop', icon: Crop },
-              { id: 'filters', label: 'Filtreler', icon: Palette },
-              { id: 'background', label: 'Arka Plan', icon: Eraser },
+              { id: 'filters', label: 'Filters', icon: Palette },
+              { id: 'background', label: 'Background', icon: Eraser },
               { id: 'ai', label: 'AI Tools', icon: Sparkles },
             ].map((tab) => (
               <button
