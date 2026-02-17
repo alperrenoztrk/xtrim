@@ -149,14 +149,9 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
         // Draw result to main canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Draw checkerboard pattern for transparency
-        const patternSize = 10;
-        for (let y = 0; y < canvas.height; y += patternSize) {
-          for (let x = 0; x < canvas.width; x += patternSize) {
-            ctx.fillStyle = (x / patternSize + y / patternSize) % 2 === 0 ? '#e0e0e0' : '#ffffff';
-            ctx.fillRect(x, y, patternSize, patternSize);
-          }
-        }
+        // Draw solid white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.drawImage(resultImg, 0, 0, canvas.width, canvas.height);
         setProcessedImage(resultImg);
@@ -247,14 +242,9 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     // Apply mask to create result
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw checkerboard pattern for transparency
-    const patternSize = 10;
-    for (let y = 0; y < canvas.height; y += patternSize) {
-      for (let x = 0; x < canvas.width; x += patternSize) {
-        ctx.fillStyle = (x / patternSize + y / patternSize) % 2 === 0 ? '#e0e0e0' : '#ffffff';
-        ctx.fillRect(x, y, patternSize, patternSize);
-      }
-    }
+    // Draw solid white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Draw image with mask applied
     ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
@@ -265,7 +255,10 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     for (let i = 0; i < imageData.data.length; i += 4) {
       const maskValue = maskData.data[i];
       if (maskValue < 128) {
-        imageData.data[i + 3] = 0;
+        imageData.data[i] = 255;
+        imageData.data[i + 1] = 255;
+        imageData.data[i + 2] = 255;
+        imageData.data[i + 3] = 255;
       }
     }
 
@@ -307,15 +300,10 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
       }
       ctx.putImageData(imageData, 0, 0);
     } else if (isProcessed) {
-      // Draw checkerboard pattern for transparency
-      const patternSize = 10;
+      // Draw solid white background
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (let y = 0; y < canvas.height; y += patternSize) {
-        for (let x = 0; x < canvas.width; x += patternSize) {
-          ctx.fillStyle = (x / patternSize + y / patternSize) % 2 === 0 ? '#e0e0e0' : '#ffffff';
-          ctx.fillRect(x, y, patternSize, patternSize);
-        }
-      }
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Draw image with mask
       ctx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
@@ -326,7 +314,10 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
       for (let i = 0; i < imageData.data.length; i += 4) {
         const maskValue = maskData.data[i];
         if (maskValue < 128) {
-          imageData.data[i + 3] = 0;
+          imageData.data[i] = 255;
+          imageData.data[i + 1] = 255;
+          imageData.data[i + 2] = 255;
+          imageData.data[i + 3] = 255;
         }
       }
 
@@ -440,7 +431,10 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
         
         for (let i = 0; i < imageData.data.length; i += 4) {
           if (maskData.data[i] < 128) {
-            imageData.data[i + 3] = 0;
+            imageData.data[i] = 255;
+            imageData.data[i + 1] = 255;
+            imageData.data[i + 2] = 255;
+            imageData.data[i + 3] = 255;
           }
         }
         
