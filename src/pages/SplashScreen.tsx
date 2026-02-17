@@ -63,8 +63,14 @@ const SplashScreen = () => {
                 transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
               >
                 <motion.div
-                  animate={{ rotate: [0, 18, 0, 18, 0] }}
-                  transition={{ duration: 2.2, ease: 'easeInOut', delay: 0.6 }}
+                  animate={{ rotate: [0, 18, 0] }}
+                  transition={{
+                    duration: 1,
+                    ease: 'easeInOut',
+                    delay: 0.6,
+                    repeat: 1,
+                    repeatType: 'loop',
+                  }}
                 >
                   <Scissors className="h-12 w-12 text-primary-foreground" strokeWidth={2.5} />
                 </motion.div>
