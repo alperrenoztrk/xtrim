@@ -194,6 +194,24 @@ class FFmpegService {
   }
 
 
+  async mergeTimelineClips(
+    project: Project,
+    onProgress?: (p: FFmpegProgress) => void
+  ): Promise<Blob> {
+    return this.mergeAndExport(
+      project,
+      {
+        resolution: project.exportSettings?.resolution ?? '1080p',
+        fps: project.exportSettings?.fps ?? 30,
+        bitrate: project.exportSettings?.bitrate ?? 'medium',
+        format: 'mp4',
+        fastStart: true,
+      },
+      'mp4',
+      onProgress
+    );
+  }
+
   private getResolutionDimensions(resolution: ExportSettings['resolution']) {
     switch (resolution) {
       case '720p':

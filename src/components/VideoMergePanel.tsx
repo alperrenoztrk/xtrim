@@ -52,7 +52,7 @@ interface VideoMergePanelProps {
   isPro?: boolean;
   onClose: () => void;
   onApplyTransition: (transitionId: string, duration: number) => void;
-  onMergeAll: (transitionId: string) => void;
+  onMergeAll: (transitionId: string) => Promise<void>;
 }
 
 export const VideoMergePanel = ({
@@ -96,16 +96,21 @@ export const VideoMergePanel = ({
     const effect = transitionEffects.find(e => e.id === selectedTransition);
     if (!effect) return;
 
-    if (effect.isAI) {
-      setIsProcessing(true);
-      // Simulate AI processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+    setIsProcessing(true);
+    try {
+      if (effect.isAI) {
+        // Simulate extra AI processing time
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      await onMergeAll(selectedTransition);
+      toast.success(`${clipCount} clip "${effect.name}" merged with transition`);
+      onClose();
+    } catch {
+      toast.error('Merge failed. Please try again.');
+    } finally {
       setIsProcessing(false);
     }
-
-    onMergeAll(selectedTransition);
-    toast.success(`${clipCount} clip "${effect.name}" merged with transition`);
-    onClose();
   };
 
   const freeTransitions = transitionEffects.filter(e => !e.isPro);
