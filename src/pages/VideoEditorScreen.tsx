@@ -52,6 +52,7 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { ProjectService } from '@/services/ProjectService';
 import { MediaService } from '@/services/MediaService';
+import { ffmpegService } from '@/services/FFmpegService';
 import { cn } from '@/lib/utils';
 import type { Project, TimelineClip, MediaItem, AudioTrack } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -704,7 +705,7 @@ const VideoEditorScreen = () => {
   };
 
   // Handle merge all clips with transition
-  const handleMergeAllClips = (transitionId: string) => {
+  const handleMergeAllClips = async (transitionId: string) => {
     if (!project || project.timeline.length < 2) return;
 
     const orderedClips = [...project.timeline].sort((a, b) => a.order - b.order);
@@ -725,17 +726,29 @@ const VideoEditorScreen = () => {
       return;
     }
 
+    let mergedUri = mergedMediaSource.uri;
+    let mergedSize = mergedMediaSource.size;
+
+    try {
+      const mergedBlob = await ffmpegService.mergeTimelineClips(project);
+      mergedUri = URL.createObjectURL(mergedBlob);
+      mergedSize = mergedBlob.size;
+    } catch (error) {
+      console.error('Real merge failed, using source media:', error);
+      toast.warning('Could not process full merge. Using first clip as fallback.');
+    }
+
     const mergedMediaId = uuidv4();
     const mergedMedia: MediaItem = {
       id: mergedMediaId,
       type: mergedMediaSource.type,
-      uri: mergedMediaSource.uri,
+      uri: mergedUri,
       name: `Merged ${mergedMediaSource.type === 'video' ? 'Video' : 'Media'} (${orderedClips.length} clip)`,
       duration: totalDuration,
       thumbnail: mergedMediaSource.thumbnail,
       width: mergedMediaSource.width,
       height: mergedMediaSource.height,
-      size: mergedMediaSource.size,
+      size: mergedSize,
       createdAt: new Date(),
     };
 
