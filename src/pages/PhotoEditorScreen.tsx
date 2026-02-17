@@ -860,7 +860,7 @@ const PhotoEditorScreen = () => {
                           }}
                         >
                           <ArrowLeft className="w-4 h-4 mr-1" />
-                          Geri
+                          Back
                         </Button>
                         <span className="text-sm font-medium text-foreground">
                           {aiTools.find(t => t.id === activeAITool)?.name}
@@ -888,7 +888,7 @@ const PhotoEditorScreen = () => {
 
                       {activeAITool === 'avatar' && (
                         <div className="space-y-2">
-                          <label className="text-xs text-muted-foreground">Avatar stili (opsiyonel)</label>
+                          <label className="text-xs text-muted-foreground">Avatar style (optional)</label>
                           <Input
                             placeholder="e.g.: Professional, anime style, 3D..."
                             value={aiPrompt}

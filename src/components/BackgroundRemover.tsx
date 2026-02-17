@@ -519,7 +519,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
                 <TabsList className="grid w-full grid-cols-3 mb-4">
                   <TabsTrigger value="auto" className="text-xs">
                     <Wand2 className="w-3 h-3 mr-1" />
-                    Otomatik
+                    Automatic
                   </TabsTrigger>
                   <TabsTrigger value="brush" className="text-xs">
                     <Paintbrush className="w-3 h-3 mr-1" />
@@ -610,7 +610,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
               onClick={() => setActiveTool('brush')}
             >
               <Brush className="w-4 h-4 mr-1" />
-              Geri Al
+              Undo
             </Button>
             <div className="w-px h-6 bg-border mx-2" />
             <Button
@@ -675,7 +675,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
               onClick={() => setActiveTool('brush')}
             >
               <Brush className="w-4 h-4 mr-1" />
-              Geri Getir
+              Restore
             </Button>
             <Button
               variant={activeTool === 'eraser' ? 'secondary' : 'outline'}
