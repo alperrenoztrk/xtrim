@@ -621,7 +621,7 @@ const ExportScreen = () => {
                       <div className="flex items-center gap-3">
                         <Film className="w-4 h-4 text-muted-foreground" />
                         <div>
-                          <p className="text-sm font-medium">Sessiz Video</p>
+                          <p className="text-sm font-medium">Silent Video</p>
                           <p className="text-xs text-muted-foreground">Export without audio</p>
                         </div>
                       </div>

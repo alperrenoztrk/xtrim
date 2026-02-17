@@ -23,7 +23,7 @@ const formatDate = (date: Date) => {
   if (days === 1) return 'Yesterday';
   if (days < 7) return `${days} days ago`;
   
-  return date.toLocaleDateString('tr-TR', {
+  return date.toLocaleDateString('en-US', {
     day: 'numeric',
     month: 'short',
   });
@@ -99,14 +99,14 @@ const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect, onProjectOpen }: 
                 className="w-full h-14 bg-gradient-to-r from-primary to-accent mb-6"
                 onClick={handleNewProject}
               >
-                Yeni proje
+                New project
               </Button>
 
               {/* Saved Projects */}
               {type === 'video' && projects.length > 0 && (
                 <div>
                   <h2 className="text-base font-semibold text-foreground mb-4">
-                    Kaydedilen Projeler
+                    Saved Projects
                   </h2>
                   <div className="space-y-3">
                     {projects.map((project) => (
