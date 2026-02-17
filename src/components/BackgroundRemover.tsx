@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface BackgroundRemoverProps {
   imageUrl: string;
   onClose: () => void;
-  onSave: (resultUrl: string) => void;
+  onSave: (resultUrl: string) => Promise<void> | void;
 }
 
 type Tool = 'brush' | 'eraser';
@@ -412,7 +412,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -442,8 +442,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     }
 
     const resultUrl = exportCanvas.toDataURL('image/png');
-    onSave(resultUrl);
-    toast.success('Photo saved!');
+    await onSave(resultUrl);
   };
 
   return (
