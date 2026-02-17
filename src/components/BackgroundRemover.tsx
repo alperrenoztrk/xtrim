@@ -103,22 +103,6 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
         setProgress(prev => Math.min(prev + 5, 90));
       }, 500);
 
-      // Build the prompt based on mode
-      let promptMessage = "Remove the background from this image completely. Keep only the main subject/object with a fully transparent background. Output the result as a PNG with transparency.";
-      
-      if (customPrompt && customPrompt.trim()) {
-        promptMessage = `Remove the background from this image. Specific instruction: ${customPrompt.trim()}. Keep only the specified elements with a fully transparent background. Output the result as a PNG with transparency.`;
-      }
-      
-      // If brush mode, include the mask information
-      if (isBrushMode) {
-        const maskCtx = maskCanvas.getContext('2d');
-        if (maskCtx) {
-          const maskBase64 = maskCanvas.toDataURL('image/png');
-          promptMessage = `Remove the background from this image. The user has marked areas in black that should be removed. Use the marked areas as guidance for what to remove. Output the result as a PNG with transparency.`;
-        }
-      }
-
       // Call edge function
       const { data, error } = await supabase.functions.invoke('remove-background', {
         body: { 
