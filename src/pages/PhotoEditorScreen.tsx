@@ -934,9 +934,25 @@ const PhotoEditorScreen = () => {
           <BackgroundRemover
             imageUrl={imageUrl}
             onClose={() => setShowBackgroundRemover(false)}
-            onSave={(resultUrl) => {
+            onSave={async (resultUrl) => {
               setImageUrl(resultUrl);
               setShowBackgroundRemover(false);
+
+              try {
+                const response = await fetch(resultUrl);
+                const imageBlob = await response.blob();
+                const fileName = `Xtrim_bg_removed_${Date.now()}.png`;
+                const saveResult = await nativeExportService.saveVideoToDevice(imageBlob, fileName);
+
+                if (saveResult.success) {
+                  toast.success('Fotoğraf galeriye kaydedildi!');
+                } else {
+                  toast.error(saveResult.error || 'Fotoğraf kaydedilemedi');
+                }
+              } catch (error) {
+                console.error('Background remover save error:', error);
+                toast.error('Fotoğraf kaydedilemedi');
+              }
             }}
           />
         )}

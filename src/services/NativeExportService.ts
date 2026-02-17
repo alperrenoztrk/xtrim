@@ -49,9 +49,12 @@ class NativeExportService {
         // Directory might already exist, that's fine
       }
 
-      // Generate unique filename with timestamp
+      // Generate unique filename with timestamp while preserving extension
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const uniqueFileName = `${fileName.replace('.mp4', '')}_${timestamp}.mp4`;
+      const fileExtensionMatch = fileName.match(/(\.[^./]+)$/);
+      const fileExtension = fileExtensionMatch ? fileExtensionMatch[1] : '';
+      const fileBaseName = fileExtension ? fileName.slice(0, -fileExtension.length) : fileName;
+      const uniqueFileName = `${fileBaseName}_${timestamp}${fileExtension}`;
 
       // Write file
       const result = await Filesystem.writeFile({
@@ -63,7 +66,7 @@ class NativeExportService {
 
       // For Android, also save to gallery
       if (this.getPlatform() === 'android') {
-        await this.copyToGallery(result.uri, uniqueFileName);
+        await this.copyToGallery(result.uri, uniqueFileName, fileExtension);
       }
 
       return {
@@ -154,7 +157,7 @@ class NativeExportService {
   }
 
   // Android: Copy to gallery (MediaStore)
-  private async copyToGallery(sourcePath: string, fileName: string): Promise<void> {
+  private async copyToGallery(sourcePath: string, fileName: string, fileExtension = ''): Promise<void> {
     try {
       // Read the file
       const contents = await Filesystem.readFile({
@@ -162,8 +165,10 @@ class NativeExportService {
       });
 
       // Write to external storage which Android's MediaStore will pick up
+      const isImage = ['.png', '.jpg', '.jpeg', '.webp'].includes(fileExtension.toLowerCase());
+      const mediaFolder = isImage ? 'Pictures' : 'Movies';
       await Filesystem.writeFile({
-        path: `Movies/Xtrim/${fileName}`,
+        path: `${mediaFolder}/Xtrim/${fileName}`,
         data: contents.data as string,
         directory: Directory.ExternalStorage,
         recursive: true,
