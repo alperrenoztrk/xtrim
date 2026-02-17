@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Video, Image, Settings } from 'lucide-react';
+import { Video, Image, Settings, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectService } from '@/services/ProjectService';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,14 @@ const tools: Tool[] = [
     gradient: 'from-accent to-primary',
   },
   {
+    id: 'edits',
+    name: 'Edits',
+    description: 'Create AI edits with ready templates',
+    icon: Sparkles,
+    route: '/home',
+    gradient: 'from-primary to-accent',
+  },
+  {
     id: 'settings',
     name: 'Settings',
     description: 'App preferences',
@@ -54,6 +62,8 @@ const HomeScreen = () => {
     if (tool.id === 'video' || tool.id === 'photo') {
       setMenuType(tool.id);
       setMenuOpen(true);
+    } else if (tool.id === 'edits') {
+      setTextToImageOpen(true);
     } else {
       navigate(tool.route);
     }
@@ -173,7 +183,7 @@ const HomeScreen = () => {
         <div className="space-y-4 max-w-sm mx-auto w-full">
           {tools.map((tool, index) => {
             const Icon = tool.icon;
-            const isMainTool = tool.id === 'video' || tool.id === 'photo';
+            const isMainTool = tool.id === 'video' || tool.id === 'photo' || tool.id === 'edits';
 
             return (
               <motion.div
