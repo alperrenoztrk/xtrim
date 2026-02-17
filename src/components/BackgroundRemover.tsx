@@ -35,6 +35,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
   const [isBrushMode, setIsBrushMode] = useState(false);
 
   const [originalImage, setOriginalImage] = useState<HTMLImageElement | null>(null);
+  const [processedImage, setProcessedImage] = useState<HTMLImageElement | null>(null);
   const [maskData, setMaskData] = useState<ImageData | null>(null);
 
   // Load and process image
@@ -43,6 +44,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       setOriginalImage(img);
+      setProcessedImage(null);
       initializeCanvas(img);
     };
     img.src = imageUrl;
@@ -157,6 +159,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
         }
 
         ctx.drawImage(resultImg, 0, 0, canvas.width, canvas.height);
+        setProcessedImage(resultImg);
 
         // Update mask based on result transparency
         const maskCtx = maskCanvas.getContext('2d');
@@ -217,6 +220,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
   const startBrushMode = () => {
     setIsBrushMode(true);
     setActiveTool('eraser');
+    setProcessedImage(null);
     
     // Clear mask to white (keep everything)
     const maskCanvas = maskCanvasRef.current;
@@ -407,6 +411,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
       initializeCanvas(originalImage);
       setIsProcessed(false);
       setIsBrushMode(false);
+      setProcessedImage(null);
       setMaskData(null);
       setPromptText('');
     }
@@ -422,8 +427,10 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     exportCanvas.height = canvas.height;
     const exportCtx = exportCanvas.getContext('2d');
     
-    if (exportCtx && originalImage && maskCanvasRef.current) {
-      exportCtx.drawImage(originalImage, 0, 0, canvas.width, canvas.height);
+    const baseImage = processedImage || originalImage;
+
+    if (exportCtx && baseImage && maskCanvasRef.current) {
+      exportCtx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
       
       const imageData = exportCtx.getImageData(0, 0, exportCanvas.width, exportCanvas.height);
       const maskCtx = maskCanvasRef.current.getContext('2d');
