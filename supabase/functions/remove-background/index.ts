@@ -28,9 +28,10 @@ serve(async (req) => {
 
     console.log("Processing background removal request...");
 
-    const promptInstruction = customPrompt?.trim()
-      ? `Remove the background from this image according to this instruction: ${customPrompt.trim()}. Keep the main subject sharp and natural. Fill all removed areas with a solid pure white background (#FFFFFF). Do not use transparency, checkerboard patterns, gradients, or shadows in the background. Return the final image as a PNG.`
-      : "Remove the background from this image. Keep only the main subject/object and place it on a solid pure white background (#FFFFFF). Do not use transparency, checkerboard patterns, gradients, or shadows in the background. Return the final image as a PNG.";
+    const trimmedPrompt = customPrompt?.trim();
+    const userInstruction = trimmedPrompt
+      ? `User request: "${trimmedPrompt}"`
+      : "No extra user request was provided.";
 
     // Use Gemini image generation model for background removal
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -43,11 +44,21 @@ serve(async (req) => {
         model: "google/gemini-2.5-flash-image-preview",
         messages: [
           {
+            role: "system",
+            content:
+              "You are a precise image background-removal assistant. Always produce an edited version of the input image, preserving original proportions and perspective. Parse the user request literally and prioritize explicit keep/remove instructions. If the request is ambiguous, preserve the most likely main subject (usually the largest foreground person/object). Keep edges natural (hair/fur/detail), avoid cutting subject parts, and remove requested regions only. Output a single PNG image with a solid pure white background (#FFFFFF). Never output transparent, checkerboard, gradient, textured, or shadowed backgrounds.",
+          },
+          {
             role: "user",
             content: [
               {
                 type: "text",
-                text: promptInstruction
+                text: [
+                  "Task: Remove background from this image.",
+                  userInstruction,
+                  "Required output: keep requested subject(s) sharp and natural; removed regions must become solid pure white (#FFFFFF).",
+                  "Never return transparency. Return PNG image output only.",
+                ].join("\n")
               },
               {
                 type: "image_url",
