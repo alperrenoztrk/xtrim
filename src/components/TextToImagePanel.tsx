@@ -29,6 +29,65 @@ const aspectRatios = [
   { id: '4:3', name: '4:3', icon: '▭' },
 ];
 
+const readyTemplates = [
+  {
+    id: 'comic-trend',
+    name: 'Karikatür Trendi',
+    style: 'artistic',
+    prompt: 'Turn this portrait into a colorful trendy cartoon character, playful details, vibrant style',
+    image:
+      'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'petal',
+    name: 'Taç Yaprakları',
+    style: 'artistic',
+    prompt: 'Create a dreamy portrait made of soft flower petals, pastel palette, delicate skin texture',
+    image:
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'gold',
+    name: 'Altın',
+    style: 'cinematic',
+    prompt: 'Luxury gold statue portrait with rich reflections, elegant clothing, dramatic shadows',
+    image:
+      'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'pastel',
+    name: 'Pastel Boyama',
+    style: 'anime',
+    prompt: 'Cute pastel hand-drawn illustration, warm cozy atmosphere, soft textured paper style',
+    image:
+      'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=500&q=80',
+  },
+];
+
+const discoverPrompts = [
+  {
+    id: 'future-partner',
+    title: 'Müstakbel partnerim nasıl görünüyor?',
+    prompt: 'Create a realistic portrait of a future partner with warm smile, natural look, lifestyle photo',
+    image:
+      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80',
+  },
+  {
+    id: 'emperor-version',
+    title: 'İmparator versiyonum',
+    prompt: 'Turn this person into an emperor portrait with royal outfit, cinematic lighting, epic atmosphere',
+    image:
+      'https://images.unsplash.com/photo-1615818499660-30bb5816e1c7?auto=format&fit=crop&w=200&q=80',
+  },
+  {
+    id: 'pet-human',
+    title: 'Evcil hayvanımı insan olarak yorumla',
+    prompt: 'Transform my pet into a human portrait while keeping personality traits, detailed and realistic',
+    image:
+      'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=200&q=80',
+  },
+];
+
 const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEditor }: TextToImagePanelProps) => {
   const { toast } = useToast();
   const [prompt, setPrompt] = useState('');
@@ -37,6 +96,11 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const handleTemplateSelect = (template: (typeof readyTemplates)[number]) => {
+    setPrompt(template.prompt);
+    setSelectedStyle(template.style);
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -202,6 +266,53 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
                 ))}
               </div>
             </div>
+
+            {/* Ready Templates */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground">Görsel üzerinde bir stil dene</label>
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {readyTemplates.map((template) => (
+                  <motion.button
+                    key={template.id}
+                    className="min-w-[120px] space-y-2 text-left"
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleTemplateSelect(template)}
+                    disabled={isGenerating}
+                  >
+                    <img
+                      src={template.image}
+                      alt={template.name}
+                      className="w-[120px] h-[160px] object-cover rounded-2xl border border-border"
+                    />
+                    <p className="text-sm text-center text-muted-foreground leading-tight">{template.name}</p>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* Discover Prompts */}
+            {!generatedImage && !isGenerating && (
+              <div className="space-y-3">
+                <label className="text-sm font-semibold text-foreground">Yeni bir şey keşfet</label>
+                <div className="space-y-2">
+                  {discoverPrompts.map((item) => (
+                    <motion.button
+                      key={item.id}
+                      className="w-full p-2 rounded-xl bg-muted/30 hover:bg-muted/50 text-left transition-colors flex items-center gap-3"
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setPrompt(item.prompt)}
+                    >
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="w-14 h-14 rounded-xl object-cover border border-border"
+                      />
+                      <p className="text-base text-foreground">{item.title}</p>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Aspect Ratio */}
             <div className="space-y-3">
