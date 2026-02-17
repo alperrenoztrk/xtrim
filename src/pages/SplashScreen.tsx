@@ -11,7 +11,7 @@ const SplashScreen = () => {
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(() => navigate('/home'), 500);
-    }, 2500);
+    }, 4500);
 
     return () => clearTimeout(timer);
   }, [navigate]);
@@ -62,7 +62,12 @@ const SplashScreen = () => {
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
               >
-                <Scissors className="h-12 w-12 text-primary-foreground" strokeWidth={2.5} />
+                <motion.div
+                  animate={{ rotate: [0, 18, 0, 18, 0] }}
+                  transition={{ duration: 2.2, ease: 'easeInOut', delay: 0.6 }}
+                >
+                  <Scissors className="h-12 w-12 text-primary-foreground" strokeWidth={2.5} />
+                </motion.div>
               </motion.div>
 
               {/* Glow effect */}
