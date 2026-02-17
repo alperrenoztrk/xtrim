@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import BackgroundRemover from '@/components/BackgroundRemover';
 import { AIToolsService } from '@/services/AIToolsService';
 import { nativeExportService } from '@/services/NativeExportService';
+import samplePhoto from '@/assets/sample-photo.jpg';
 
 
 type EditorTab = 'adjust' | 'crop' | 'filters' | 'background' | 'ai';
@@ -61,14 +62,14 @@ interface FilterPreset {
 
 const filterPresets: FilterPreset[] = [
   { id: 'none', name: 'Original', adjustments: {}, preview: 'none' },
-  { id: 'vivid', name: 'Vivid', adjustments: { saturation: 30, contrast: 15 }, preview: 'saturate(1.3) contrast(1.15)' },
-  { id: 'warm', name: 'Warm', adjustments: { temperature: 25, saturation: 10 }, preview: 'sepia(0.2) saturate(1.1)' },
-  { id: 'cool', name: 'Cool', adjustments: { temperature: -25, brightness: 5 }, preview: 'hue-rotate(15deg) brightness(1.05)' },
-  { id: 'dramatic', name: 'Dramatic', adjustments: { contrast: 40, saturation: -20 }, preview: 'contrast(1.4) saturate(0.8)' },
-  { id: 'fade', name: 'Fade', adjustments: { contrast: -20, brightness: 10 }, preview: 'contrast(0.8) brightness(1.1)' },
-  { id: 'noir', name: 'Noir', adjustments: { saturation: -100, contrast: 30 }, preview: 'grayscale(1) contrast(1.3)' },
-  { id: 'vintage', name: 'Vintage', adjustments: { saturation: -30, temperature: 20, contrast: -10 }, preview: 'sepia(0.4) contrast(0.9)' },
-  { id: 'chrome', name: 'Chrome', adjustments: { saturation: 20, contrast: 25, brightness: 5 }, preview: 'saturate(1.2) contrast(1.25) brightness(1.05)' },
+  { id: 'vivid', name: 'Vivid', adjustments: { saturation: 30, contrast: 15 }, preview: 'saturate(1.45) contrast(1.2)' },
+  { id: 'warm', name: 'Warm', adjustments: { temperature: 25, saturation: 10 }, preview: 'sepia(0.3) saturate(1.2) hue-rotate(-8deg)' },
+  { id: 'cool', name: 'Cool', adjustments: { temperature: -25, brightness: 5 }, preview: 'hue-rotate(18deg) saturate(1.1) brightness(1.04)' },
+  { id: 'dramatic', name: 'Dramatic', adjustments: { contrast: 40, saturation: -20 }, preview: 'contrast(1.55) saturate(0.75) brightness(0.92)' },
+  { id: 'fade', name: 'Fade', adjustments: { contrast: -20, brightness: 10 }, preview: 'contrast(0.78) brightness(1.12) saturate(0.88)' },
+  { id: 'noir', name: 'Noir', adjustments: { saturation: -100, contrast: 30 }, preview: 'grayscale(1) contrast(1.35) brightness(0.95)' },
+  { id: 'vintage', name: 'Vintage', adjustments: { saturation: -30, temperature: 20, contrast: -10 }, preview: 'sepia(0.48) contrast(0.88) saturate(0.85)' },
+  { id: 'chrome', name: 'Chrome', adjustments: { saturation: 20, contrast: 25, brightness: 5 }, preview: 'saturate(1.3) contrast(1.3) brightness(1.08)' },
   { id: 'mono', name: 'Mono', adjustments: { saturation: -100 }, preview: 'grayscale(1)' },
 ];
 
@@ -233,6 +234,8 @@ const PhotoEditorScreen = () => {
       transition: 'filter 0.2s, transform 0.3s',
     };
   };
+
+  const filterPreviewImage = imageUrl ?? samplePhoto;
 
   const handleApplyCrop = useCallback(async () => {
     if (!imageUrl) {
@@ -766,16 +769,12 @@ const PhotoEditorScreen = () => {
                               : 'border-border'
                           )}
                         >
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={filter.name}
-                              className="w-full h-full object-cover"
-                              style={{ filter: filter.preview }}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-secondary" />
-                          )}
+                          <img
+                            src={filterPreviewImage}
+                            alt={filter.name}
+                            className="w-full h-full object-cover"
+                            style={{ filter: filter.preview }}
+                          />
                         </div>
                         <span
                           className={cn(
