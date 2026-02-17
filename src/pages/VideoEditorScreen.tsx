@@ -566,10 +566,37 @@ const VideoEditorScreen = () => {
     }
   };
 
+  const ensureVideoClipSelection = useCallback(() => {
+    if (!project) return false;
+
+    const selectedClip = selectedClipId
+      ? project.timeline.find((clip) => clip.id === selectedClipId)
+      : null;
+    const selectedMedia = selectedClip
+      ? project.mediaItems.find((media) => media.id === selectedClip.mediaId)
+      : null;
+
+    if (selectedClip && selectedMedia?.type === 'video') {
+      return true;
+    }
+
+    const firstVideoClip = project.timeline.find((clip) => {
+      const media = project.mediaItems.find((item) => item.id === clip.mediaId);
+      return media?.type === 'video';
+    });
+
+    if (!firstVideoClip) {
+      toast.error('Project contains no video clip');
+      return false;
+    }
+
+    setSelectedClipId(firstVideoClip.id);
+    return true;
+  }, [project, selectedClipId]);
+
   // Handle AutoCut Panel
   const handleOpenAutoCut = () => {
-    if (!selectedMedia || selectedMedia.type !== 'video') {
-      toast.error('Please select a video');
+    if (!ensureVideoClipSelection()) {
       return;
     }
     setShowAutoCutPanel(true);
@@ -582,8 +609,7 @@ const VideoEditorScreen = () => {
 
   // Handle Enhance Panel
   const handleOpenEnhance = () => {
-    if (!selectedMedia || selectedMedia.type !== 'video') {
-      toast.error('Please select a video');
+    if (!ensureVideoClipSelection()) {
       return;
     }
     setShowEnhancePanel(true);
@@ -597,8 +623,7 @@ const VideoEditorScreen = () => {
 
   // Handle Stabilize Panel
   const handleOpenStabilize = () => {
-    if (!selectedMedia || selectedMedia.type !== 'video') {
-      toast.error('Please select a video');
+    if (!ensureVideoClipSelection()) {
       return;
     }
     setShowStabilizePanel(true);
@@ -613,8 +638,7 @@ const VideoEditorScreen = () => {
 
   // Handle Speed Panel
   const handleOpenSpeed = () => {
-    if (!selectedMedia || selectedMedia.type !== 'video') {
-      toast.error('Please select a video');
+    if (!ensureVideoClipSelection()) {
       return;
     }
     setShowSpeedPanel(true);
@@ -663,8 +687,7 @@ const VideoEditorScreen = () => {
 
   // Handle Color Panel
   const handleOpenColor = () => {
-    if (!selectedMedia || selectedMedia.type !== 'video') {
-      toast.error('Please select a video');
+    if (!ensureVideoClipSelection()) {
       return;
     }
     setShowColorPanel(true);
@@ -1152,6 +1175,7 @@ const VideoEditorScreen = () => {
   const selectedMedia = selectedClip
     ? project.mediaItems.find((m) => m.id === selectedClip.mediaId)
     : null;
+  const hasAnyClip = project.timeline.length > 0;
 
   return (
     <div className="h-screen flex flex-col bg-background safe-area-top">
@@ -1656,7 +1680,10 @@ const VideoEditorScreen = () => {
                     item.isAI && "text-primary"
                   )}
                   onClick={() => handleMoreMenuAction(item.id)}
-                  disabled={!selectedClipId && item.id !== 'enhance' && item.id !== 'autocut'}
+                  disabled={
+                    (item.id === 'merge' && project.timeline.length < 2) ||
+                    (item.id !== 'ai-generate' && item.id !== 'translate' && item.id !== 'merge' && !hasAnyClip)
+                  }
                 >
                   {item.isAI && (
                     <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[8px] px-1 py-0.5 rounded font-medium">
