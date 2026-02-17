@@ -48,6 +48,9 @@ export interface ExportSettings {
   fps: 24 | 30 | 60;
   bitrate: 'low' | 'medium' | 'high';
   format: 'mp4' | 'webm' | 'mov' | 'gif';
+  fastStart?: boolean;
+  hdr?: boolean;
+  removeAudio?: boolean;
 }
 
 export interface Project {

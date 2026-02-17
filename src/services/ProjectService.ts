@@ -8,6 +8,9 @@ const defaultExportSettings: ExportSettings = {
   fps: 30,
   bitrate: 'medium',
   format: 'mp4',
+  fastStart: true,
+  hdr: false,
+  removeAudio: false,
 };
 
 export class ProjectService {

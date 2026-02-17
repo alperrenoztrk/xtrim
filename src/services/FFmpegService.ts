@@ -107,7 +107,7 @@ class FFmpegService {
             '-c:v', 'libx264',
             '-t', String(duration),
             '-pix_fmt', 'yuv420p',
-            '-vf', `scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2`,
+            '-vf', this.getScaleFilter(settings),
             '-r', String(settings.fps),
             photoVideoName,
           ]);
@@ -125,7 +125,7 @@ class FFmpegService {
             '-c:v', 'libx264',
             '-c:a', 'aac',
             '-pix_fmt', 'yuv420p',
-            '-vf', `scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2`,
+            '-vf', this.getScaleFilter(settings),
             '-r', String(settings.fps),
             trimmedName,
           ];
@@ -134,7 +134,7 @@ class FFmpegService {
           if (clip.speed && clip.speed !== 1) {
             const speedFilter = `setpts=${1 / clip.speed}*PTS`;
             trimArgs[trimArgs.indexOf('-vf') + 1] = 
-              `scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,${speedFilter}`;
+              `${this.getScaleFilter(settings)},${speedFilter}`;
           }
 
           await ffmpeg.exec(trimArgs);
@@ -193,6 +193,23 @@ class FFmpegService {
     return blob;
   }
 
+
+  private getResolutionDimensions(resolution: ExportSettings['resolution']) {
+    switch (resolution) {
+      case '720p':
+        return { width: 1280, height: 720 };
+      case '4k':
+        return { width: 3840, height: 2160 };
+      default:
+        return { width: 1920, height: 1080 };
+    }
+  }
+
+  private getScaleFilter(settings: ExportSettings): string {
+    const { width, height } = this.getResolutionDimensions(settings.resolution);
+    return `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
+  }
+
   private getExtension(uri: string, type: string): string {
     if (type === 'photo') {
       if (uri.includes('image/png') || uri.endsWith('.png')) return 'png';
@@ -208,21 +225,38 @@ class FFmpegService {
     const bitrate = bitrateMap[settings.bitrate] || '5M';
 
     switch (format) {
-      case 'webm':
-        return {
-          outputExt: 'webm',
-          codecArgs: ['-c:v', 'libvpx', '-b:v', bitrate, '-c:a', 'libvorbis'],
-        };
+      case 'webm': {
+        const codecArgs = ['-c:v', 'libvpx', '-b:v', bitrate];
+        if (settings.removeAudio) {
+          codecArgs.push('-an');
+        } else {
+          codecArgs.push('-c:a', 'libvorbis');
+        }
+        return { outputExt: 'webm', codecArgs };
+      }
       case 'gif':
         return {
           outputExt: 'gif',
           codecArgs: ['-vf', `fps=${Math.min(settings.fps, 15)},scale=480:-1:flags=lanczos`],
         };
-      default: // mp4, mov
+      default: {
+        const codecArgs = ['-c:v', 'libx264', '-b:v', bitrate];
+        if (settings.hdr) {
+          codecArgs.push('-color_primaries', 'bt2020', '-color_trc', 'smpte2084', '-colorspace', 'bt2020nc');
+        }
+        if (settings.removeAudio) {
+          codecArgs.push('-an');
+        } else {
+          codecArgs.push('-c:a', 'aac');
+        }
+        if (settings.fastStart !== false) {
+          codecArgs.push('-movflags', '+faststart');
+        }
         return {
           outputExt: format === 'mov' ? 'mov' : 'mp4',
-          codecArgs: ['-c:v', 'libx264', '-b:v', bitrate, '-c:a', 'aac', '-movflags', '+faststart'],
+          codecArgs,
         };
+      }
     }
   }
 
