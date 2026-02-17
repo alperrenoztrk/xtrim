@@ -62,6 +62,134 @@ const readyTemplates = [
     image:
       'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=500&q=80',
   },
+  {
+    id: 'kawaii-neon',
+    name: 'Kawaii Neon',
+    style: 'anime',
+    prompt: 'Turn the portrait into a kawaii neon pop-art character, candy colors, glossy stickers, playful sparkles',
+    image:
+      'https://images.unsplash.com/photo-1511988617509-a57c8a288659?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'cloud-princess',
+    name: 'Bulut Prenses',
+    style: 'artistic',
+    prompt: 'Create a dreamy cloud princess portrait with fluffy textures, iridescent makeup, floating stars and moonlight',
+    image:
+      'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'miniature-planet',
+    name: 'Mini Gezegen',
+    style: '3d',
+    prompt: 'Place the person on a tiny fantasy planet, miniature world effect, surreal details, cinematic depth',
+    image:
+      'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'jelly-sculpture',
+    name: 'Jöle Heykel',
+    style: '3d',
+    prompt: 'Transform into a translucent jelly sculpture, colorful refractions, soft studio lighting, surreal glossy texture',
+    image:
+      'https://images.unsplash.com/photo-1533230408708-8f9f91d1235a?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'origami-hero',
+    name: 'Origami Kahraman',
+    style: 'minimalist',
+    prompt: 'Recreate portrait as an origami hero, folded paper geometry, clean background, imaginative handcrafted look',
+    image:
+      'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'toy-box-adventure',
+    name: 'Oyuncak Kutusu Macerası',
+    style: 'cinematic',
+    prompt: 'Convert into a tiny toy-box adventurer with oversized objects, cinematic storytelling, whimsical composition',
+    image:
+      'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'butterfly-guardian',
+    name: 'Kelebek Muhafız',
+    style: 'artistic',
+    prompt: 'Create an enchanted butterfly guardian portrait, iridescent wings, magical forest glow, elegant fantasy armor',
+    image:
+      'https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'pixel-dream',
+    name: 'Pixel Rüya',
+    style: 'anime',
+    prompt: 'Turn the person into a retro pixel-art game hero, bright 8-bit palette, expressive sprite style, cute vibe',
+    image:
+      'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'stardust-chef',
+    name: 'Yıldız Tozu Şefi',
+    style: 'cinematic',
+    prompt: 'Create a cosmic pastry chef portrait, galaxy kitchen, glowing desserts, whimsical cinematic lighting',
+    image:
+      'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'crystal-queen',
+    name: 'Kristal Kraliçe',
+    style: 'realistic',
+    prompt: 'Design a crystal queen portrait with transparent gemstones, icy elegance, high-detail beauty photography',
+    image:
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'mushroom-village',
+    name: 'Mantar Köyü Masalı',
+    style: 'artistic',
+    prompt: 'Imagine a whimsical portrait in a mushroom village, fairy lanterns, soft storybook style, cozy fantasy details',
+    image:
+      'https://images.unsplash.com/photo-1470163395405-d2b80e7450ed?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'underwater-popstar',
+    name: 'Sualtı Popstar',
+    style: 'cinematic',
+    prompt: 'Create an underwater popstar portrait, bioluminescent coral stage, flowing hair, vibrant music video mood',
+    image:
+      'https://images.unsplash.com/photo-1518544866330-95a2c9db48dd?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'cat-cafe-witch',
+    name: 'Kedi Kafe Cadısı',
+    style: 'anime',
+    prompt: 'Turn into a cute cat-cafe witch character, cozy magical interior, warm tones, charming whimsical details',
+    image:
+      'https://images.unsplash.com/photo-1511044568932-338cba0ad803?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'paper-cut-museum',
+    name: 'Kağıt Kesim Müze',
+    style: 'minimalist',
+    prompt: 'Stylize portrait as layered paper-cut museum artwork, depth shadows, refined color harmony, gallery aesthetic',
+    image:
+      'https://images.unsplash.com/photo-1453738773917-9c3eff1db985?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'dreamy-balloon-rider',
+    name: 'Rüya Balon Sürücüsü',
+    style: 'artistic',
+    prompt: 'Create a surreal hot-air-balloon rider portrait above candy clouds, pastel fantasy palette, joyful cinematic scene',
+    image:
+      'https://images.unsplash.com/photo-1507608616759-54f48f0af0ee?auto=format&fit=crop&w=500&q=80',
+  },
+  {
+    id: 'retro-magazine',
+    name: 'Retro Kapak Yıldızı',
+    style: 'realistic',
+    prompt: 'Generate a retro 80s magazine cover portrait, bold styling, analog grain, iconic fashion editorial look',
+    image:
+      'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=500&q=80',
+  },
 ];
 
 const discoverPrompts = [
