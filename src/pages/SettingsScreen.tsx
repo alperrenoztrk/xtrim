@@ -149,7 +149,7 @@ const SettingsScreen = () => {
                   <Volume2 className="w-5 h-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <span className="block">Ses Efektleri</span>
+                  <span className="block">Sound Effects</span>
                   <span className="text-xs text-muted-foreground">In-app sounds</span>
                 </div>
               </div>
@@ -170,7 +170,7 @@ const SettingsScreen = () => {
                 </div>
                 <div>
                   <span className="block font-medium">Resolution</span>
-                  <span className="text-xs text-muted-foreground">Video kalitesi</span>
+                  <span className="text-xs text-muted-foreground">Video quality</span>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2">
