@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64 } = await req.json();
+    const { imageBase64, customPrompt } = await req.json();
     
     if (!imageBase64) {
       return new Response(
@@ -27,6 +27,10 @@ serve(async (req) => {
     }
 
     console.log("Processing background removal request...");
+
+    const promptInstruction = customPrompt?.trim()
+      ? `Remove the background from this image according to this instruction: ${customPrompt.trim()}. Keep the main subject sharp and natural. Fill all removed areas with a solid pure white background (#FFFFFF). Do not use transparency, checkerboard patterns, gradients, or shadows in the background. Return the final image as a PNG.`
+      : "Remove the background from this image. Keep only the main subject/object and place it on a solid pure white background (#FFFFFF). Do not use transparency, checkerboard patterns, gradients, or shadows in the background. Return the final image as a PNG.";
 
     // Use Gemini image generation model for background removal
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -43,7 +47,7 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: "Remove the background from this image completely. Keep only the main subject/object with a fully transparent background. Output the result as a PNG with transparency."
+                text: promptInstruction
               },
               {
                 type: "image_url",
