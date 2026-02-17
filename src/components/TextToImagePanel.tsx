@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Image, Loader2, Download, Copy, Check, Edit } from 'lucide-react';
+import { X, Sparkles, Image, Loader2, Download, Copy, Check, Edit, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { AIToolsService } from '@/services/AIToolsService';
@@ -95,11 +95,37 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
   const [selectedRatio, setSelectedRatio] = useState('1:1');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [uploadedImageBase64, setUploadedImageBase64] = useState<string | null>(null);
+  const [uploadedImagePreview, setUploadedImagePreview] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleTemplateSelect = (template: (typeof readyTemplates)[number]) => {
+    setSelectedTemplateId(template.id);
     setPrompt(template.prompt);
     setSelectedStyle(template.style);
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result;
+      if (typeof result === 'string') {
+        setUploadedImageBase64(result);
+        setUploadedImagePreview(result);
+        toast({
+          title: 'Fotoğraf yüklendi',
+          description: 'Şimdi bir şablon seçip görseli harmanlayabilirsin.',
+        });
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleGenerate = async () => {
@@ -119,10 +145,12 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
       const style = stylePresets.find(s => s.id === selectedStyle);
       const fullPrompt = `${prompt}. ${style?.prompt || ''}`;
 
+      const generationType = uploadedImageBase64 ? 'avatar' : 'text-to-image';
+
       const result = await AIToolsService.generateImage(
-        'text-to-image',
+        generationType,
         fullPrompt,
-        undefined,
+        uploadedImageBase64 ?? undefined,
         { style: selectedStyle, aspectRatio: selectedRatio }
       );
 
@@ -269,12 +297,50 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
 
             {/* Ready Templates */}
             <div className="space-y-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+
+              <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Fotoğraf ekle</p>
+                    <p className="text-xs text-muted-foreground">
+                      Kendi fotoğrafını yükleyip seçtiğin şablonla harmanla.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isGenerating}
+                  >
+                    <Upload className="h-4 w-4 mr-1" />
+                    Yükle
+                  </Button>
+                </div>
+                {uploadedImagePreview && (
+                  <img
+                    src={uploadedImagePreview}
+                    alt="Uploaded"
+                    className="mt-3 h-24 w-24 rounded-xl object-cover border border-border"
+                  />
+                )}
+              </div>
+
               <label className="text-sm font-medium text-foreground">Görsel üzerinde bir stil dene</label>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {readyTemplates.map((template) => (
                   <motion.button
                     key={template.id}
-                    className="min-w-[120px] space-y-2 text-left"
+                    className={`min-w-[120px] space-y-2 text-left rounded-2xl p-1 transition-colors ${
+                      selectedTemplateId === template.id ? 'bg-primary/10' : ''
+                    }`}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleTemplateSelect(template)}
                     disabled={isGenerating}
