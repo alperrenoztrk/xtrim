@@ -945,13 +945,13 @@ const PhotoEditorScreen = () => {
                 const saveResult = await nativeExportService.saveVideoToDevice(imageBlob, fileName);
 
                 if (saveResult.success) {
-                  toast.success('Fotoğraf galeriye kaydedildi!');
+                  toast.success('Photo saved to gallery!');
                 } else {
-                  toast.error(saveResult.error || 'Fotoğraf kaydedilemedi');
+                  toast.error(saveResult.error || 'Photo could not be saved');
                 }
               } catch (error) {
                 console.error('Background remover save error:', error);
-                toast.error('Fotoğraf kaydedilemedi');
+                toast.error('Photo could not be saved');
               }
             }}
           />

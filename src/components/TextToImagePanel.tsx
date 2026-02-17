@@ -32,7 +32,7 @@ const aspectRatios = [
 const readyTemplates = [
   {
     id: 'comic-trend',
-    name: 'Karikatür Trendi',
+    name: 'Cartoon Trend',
     style: 'artistic',
     prompt: 'Turn this portrait into a colorful trendy cartoon character, playful details, vibrant style',
     image:
@@ -40,7 +40,7 @@ const readyTemplates = [
   },
   {
     id: 'petal',
-    name: 'Taç Yaprakları',
+    name: 'Petals',
     style: 'artistic',
     prompt: 'Create a dreamy portrait made of soft flower petals, pastel palette, delicate skin texture',
     image:
@@ -48,7 +48,7 @@ const readyTemplates = [
   },
   {
     id: 'gold',
-    name: 'Altın',
+    name: 'Gold',
     style: 'cinematic',
     prompt: 'Luxury gold statue portrait with rich reflections, elegant clothing, dramatic shadows',
     image:
@@ -56,7 +56,7 @@ const readyTemplates = [
   },
   {
     id: 'pastel',
-    name: 'Pastel Boyama',
+    name: 'Pastel Painting',
     style: 'anime',
     prompt: 'Cute pastel hand-drawn illustration, warm cozy atmosphere, soft textured paper style',
     image:
@@ -72,7 +72,7 @@ const readyTemplates = [
   },
   {
     id: 'cloud-princess',
-    name: 'Bulut Prenses',
+    name: 'Cloud Princess',
     style: 'artistic',
     prompt: 'Create a dreamy cloud princess portrait with fluffy textures, iridescent makeup, floating stars and moonlight',
     image:
@@ -80,7 +80,7 @@ const readyTemplates = [
   },
   {
     id: 'miniature-planet',
-    name: 'Mini Gezegen',
+    name: 'Mini Planet',
     style: '3d',
     prompt: 'Place the person on a tiny fantasy planet, miniature world effect, surreal details, cinematic depth',
     image:
@@ -88,7 +88,7 @@ const readyTemplates = [
   },
   {
     id: 'jelly-sculpture',
-    name: 'Jöle Heykel',
+    name: 'Jelly Sculpture',
     style: '3d',
     prompt: 'Transform into a translucent jelly sculpture, colorful refractions, soft studio lighting, surreal glossy texture',
     image:
@@ -96,7 +96,7 @@ const readyTemplates = [
   },
   {
     id: 'origami-hero',
-    name: 'Origami Kahraman',
+    name: 'Origami Hero',
     style: 'minimalist',
     prompt: 'Recreate portrait as an origami hero, folded paper geometry, clean background, imaginative handcrafted look',
     image:
@@ -104,7 +104,7 @@ const readyTemplates = [
   },
   {
     id: 'toy-box-adventure',
-    name: 'Oyuncak Kutusu Macerası',
+    name: 'Toy Box Adventure',
     style: 'cinematic',
     prompt: 'Convert into a tiny toy-box adventurer with oversized objects, cinematic storytelling, whimsical composition',
     image:
@@ -112,7 +112,7 @@ const readyTemplates = [
   },
   {
     id: 'butterfly-guardian',
-    name: 'Kelebek Muhafız',
+    name: 'Butterfly Guardian',
     style: 'artistic',
     prompt: 'Create an enchanted butterfly guardian portrait, iridescent wings, magical forest glow, elegant fantasy armor',
     image:
@@ -120,7 +120,7 @@ const readyTemplates = [
   },
   {
     id: 'pixel-dream',
-    name: 'Pixel Rüya',
+    name: 'Pixel Dream',
     style: 'anime',
     prompt: 'Turn the person into a retro pixel-art game hero, bright 8-bit palette, expressive sprite style, cute vibe',
     image:
@@ -128,7 +128,7 @@ const readyTemplates = [
   },
   {
     id: 'stardust-chef',
-    name: 'Yıldız Tozu Şefi',
+    name: 'Stardust Chef',
     style: 'cinematic',
     prompt: 'Create a cosmic pastry chef portrait, galaxy kitchen, glowing desserts, whimsical cinematic lighting',
     image:
@@ -136,7 +136,7 @@ const readyTemplates = [
   },
   {
     id: 'crystal-queen',
-    name: 'Kristal Kraliçe',
+    name: 'Crystal Queen',
     style: 'realistic',
     prompt: 'Design a crystal queen portrait with transparent gemstones, icy elegance, high-detail beauty photography',
     image:
@@ -144,7 +144,7 @@ const readyTemplates = [
   },
   {
     id: 'mushroom-village',
-    name: 'Mantar Köyü Masalı',
+    name: 'Mushroom Village Tale',
     style: 'artistic',
     prompt: 'Imagine a whimsical portrait in a mushroom village, fairy lanterns, soft storybook style, cozy fantasy details',
     image:
@@ -152,7 +152,7 @@ const readyTemplates = [
   },
   {
     id: 'underwater-popstar',
-    name: 'Sualtı Popstar',
+    name: 'Underwater Popstar',
     style: 'cinematic',
     prompt: 'Create an underwater popstar portrait, bioluminescent coral stage, flowing hair, vibrant music video mood',
     image:
@@ -160,7 +160,7 @@ const readyTemplates = [
   },
   {
     id: 'cat-cafe-witch',
-    name: 'Kedi Kafe Cadısı',
+    name: 'Cat Cafe Witch',
     style: 'anime',
     prompt: 'Turn into a cute cat-cafe witch character, cozy magical interior, warm tones, charming whimsical details',
     image:
@@ -168,7 +168,7 @@ const readyTemplates = [
   },
   {
     id: 'paper-cut-museum',
-    name: 'Kağıt Kesim Müze',
+    name: 'Paper Cut Museum',
     style: 'minimalist',
     prompt: 'Stylize portrait as layered paper-cut museum artwork, depth shadows, refined color harmony, gallery aesthetic',
     image:
@@ -176,7 +176,7 @@ const readyTemplates = [
   },
   {
     id: 'dreamy-balloon-rider',
-    name: 'Rüya Balon Sürücüsü',
+    name: 'Dream Balloon Rider',
     style: 'artistic',
     prompt: 'Create a surreal hot-air-balloon rider portrait above candy clouds, pastel fantasy palette, joyful cinematic scene',
     image:
@@ -184,7 +184,7 @@ const readyTemplates = [
   },
   {
     id: 'retro-magazine',
-    name: 'Retro Kapak Yıldızı',
+    name: 'Retro Cover Star',
     style: 'realistic',
     prompt: 'Generate a retro 80s magazine cover portrait, bold styling, analog grain, iconic fashion editorial look',
     image:
@@ -195,21 +195,21 @@ const readyTemplates = [
 const discoverPrompts = [
   {
     id: 'future-partner',
-    title: 'Müstakbel partnerim nasıl görünüyor?',
+    title: 'What does my future partner look like?',
     prompt: 'Create a realistic portrait of a future partner with warm smile, natural look, lifestyle photo',
     image:
       'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80',
   },
   {
     id: 'emperor-version',
-    title: 'İmparator versiyonum',
+    title: 'My emperor version',
     prompt: 'Turn this person into an emperor portrait with royal outfit, cinematic lighting, epic atmosphere',
     image:
       'https://images.unsplash.com/photo-1615818499660-30bb5816e1c7?auto=format&fit=crop&w=200&q=80',
   },
   {
     id: 'pet-human',
-    title: 'Evcil hayvanımı insan olarak yorumla',
+    title: 'Interpret my pet as a human',
     prompt: 'Transform my pet into a human portrait while keeping personality traits, detailed and realistic',
     image:
       'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=200&q=80',
@@ -248,8 +248,8 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
         setUploadedImageBase64(result);
         setUploadedImagePreview(result);
         toast({
-          title: 'Fotoğraf yüklendi',
-          description: 'Şimdi bir şablon seçip görseli harmanlayabilirsin.',
+          title: 'Photo uploaded',
+          description: 'Now you can choose a template and blend the image.',
         });
       }
     };
@@ -259,7 +259,7 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       toast({
-        title: 'Hata',
+        title: 'Error',
         description: 'Please enter a description',
         variant: 'destructive',
       });
@@ -295,7 +295,7 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
     } catch (error) {
       console.error('Generation error:', error);
       toast({
-        title: 'Hata',
+        title: 'Error',
         description: error instanceof Error ? error.message : 'An error occurred while creating the image',
         variant: 'destructive',
       });
@@ -316,12 +316,12 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
       document.body.removeChild(link);
       
       toast({
-        title: 'Downloadildi',
+        title: 'Downloaded',
         description: 'Image downloaded',
       });
     } catch (error) {
       toast({
-        title: 'Hata',
+        title: 'Error',
         description: 'Download failed',
         variant: 'destructive',
       });
@@ -350,7 +350,7 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
       });
     } catch (error) {
       toast({
-        title: 'Hata',
+        title: 'Error',
         description: 'Copy failed',
         variant: 'destructive',
       });
@@ -399,7 +399,7 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
 
             {/* Style Selection */}
             <div className="space-y-3">
-              <label className="text-sm font-medium text-foreground">Stil</label>
+              <label className="text-sm font-medium text-foreground">Style</label>
               <div className="grid grid-cols-3 gap-2">
                 {stylePresets.map((style) => (
                   <motion.button
@@ -436,9 +436,9 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
               <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium text-foreground">Fotoğraf ekle</p>
+                    <p className="text-sm font-medium text-foreground">Add photo</p>
                     <p className="text-xs text-muted-foreground">
-                      Kendi fotoğrafını yükleyip seçtiğin şablonla harmanla.
+                      Upload your own photo and blend it with the template you choose.
                     </p>
                   </div>
                   <Button
@@ -449,7 +449,7 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
                     disabled={isGenerating}
                   >
                     <Upload className="h-4 w-4 mr-1" />
-                    Yükle
+                    Upload
                   </Button>
                 </div>
                 {uploadedImagePreview && (
@@ -461,7 +461,7 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
                 )}
               </div>
 
-              <label className="text-sm font-medium text-foreground">Görsel üzerinde bir stil dene</label>
+              <label className="text-sm font-medium text-foreground">Try a style on the image</label>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {readyTemplates.map((template) => (
                   <motion.button
@@ -487,7 +487,7 @@ const TextToImagePanel = ({ isOpen, onClose, onImageGenerated, onEditInPhotoEdit
             {/* Discover Prompts */}
             {!generatedImage && !isGenerating && (
               <div className="space-y-3">
-                <label className="text-sm font-semibold text-foreground">Yeni bir şey keşfet</label>
+                <label className="text-sm font-semibold text-foreground">Discover something new</label>
                 <div className="space-y-2">
                   {discoverPrompts.map((item) => (
                     <motion.button
