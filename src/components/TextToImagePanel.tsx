@@ -35,48 +35,42 @@ const readyTemplates = [
     name: 'Cartoon Trend',
     style: 'artistic',
     prompt: 'Turn this portrait into a colorful trendy cartoon character, playful details, vibrant style',
-    image:
-      'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=500&q=80',
+    image: 'https://loremflickr.com/500/700/cartoon,portrait?lock=101',
   },
   {
     id: 'petal',
     name: 'Petals',
     style: 'artistic',
     prompt: 'Create a dreamy portrait made of soft flower petals, pastel palette, delicate skin texture',
-    image:
-      'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=500&q=80',
+    image: 'https://loremflickr.com/500/700/flower,petals,portrait?lock=102',
   },
   {
     id: 'gold',
     name: 'Gold',
     style: 'cinematic',
     prompt: 'Luxury gold statue portrait with rich reflections, elegant clothing, dramatic shadows',
-    image:
-      'https://images.unsplash.com/photo-1513151233558-d860c5398176?auto=format&fit=crop&w=500&q=80',
+    image: 'https://loremflickr.com/500/700/gold,luxury,fashion?lock=103',
   },
   {
     id: 'pastel',
     name: 'Pastel Painting',
     style: 'anime',
     prompt: 'Cute pastel hand-drawn illustration, warm cozy atmosphere, soft textured paper style',
-    image:
-      'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=500&q=80',
+    image: 'https://loremflickr.com/500/700/pastel,painting,art?lock=104',
   },
   {
     id: 'kawaii-neon',
     name: 'Kawaii Neon',
     style: 'anime',
     prompt: 'Turn the portrait into a kawaii neon pop-art character, candy colors, glossy stickers, playful sparkles',
-    image:
-      'https://images.unsplash.com/photo-1511988617509-a57c8a288659?auto=format&fit=crop&w=500&q=80',
+    image: 'https://loremflickr.com/500/700/neon,anime,portrait?lock=105',
   },
   {
     id: 'cloud-princess',
     name: 'Cloud Princess',
     style: 'artistic',
     prompt: 'Create a dreamy cloud princess portrait with fluffy textures, iridescent makeup, floating stars and moonlight',
-    image:
-      'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=500&q=80',
+    image: 'https://loremflickr.com/500/700/cloud,fantasy,princess?lock=106',
   },
   {
     id: 'miniature-planet',
