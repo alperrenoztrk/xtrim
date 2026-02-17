@@ -1,5 +1,5 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile } from '@ffmpeg/util';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import type { Project, TimelineClip, MediaItem, ExportSettings } from '@/types';
 
 export interface FFmpegProgress {
@@ -12,6 +12,16 @@ class FFmpegService {
   private ffmpeg: FFmpeg | null = null;
   private loaded = false;
   private loading = false;
+  private readonly ffmpegVersion = '0.12.10';
+
+  private async loadFromCDN(baseURL: string) {
+    if (!this.ffmpeg) throw new Error('FFmpeg could not be initialized');
+
+    const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
+    const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
+
+    await this.ffmpeg.load({ coreURL, wasmURL });
+  }
 
   async load(onProgress?: (p: FFmpegProgress) => void): Promise<void> {
     if (this.loaded) return;
@@ -41,10 +51,26 @@ class FFmpegService {
         console.log('[FFmpeg]', message);
       });
 
-      await this.ffmpeg.load({
-        coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.js',
-        wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd/ffmpeg-core.wasm',
-      });
+      const cdnSources = [
+        `https://unpkg.com/@ffmpeg/core@${this.ffmpegVersion}/dist/umd`,
+        `https://cdn.jsdelivr.net/npm/@ffmpeg/core@${this.ffmpegVersion}/dist/umd`,
+      ];
+
+      let lastError: unknown;
+      for (const cdn of cdnSources) {
+        try {
+          await this.loadFromCDN(cdn);
+          lastError = undefined;
+          break;
+        } catch (err) {
+          lastError = err;
+          console.warn(`FFmpeg core load failed from ${cdn}`, err);
+        }
+      }
+
+      if (lastError) {
+        throw lastError;
+      }
 
       this.loaded = true;
       onProgress?.({ stage: 'loading', progress: 10, message: 'FFmpeg ready' });
