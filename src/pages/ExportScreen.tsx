@@ -120,19 +120,19 @@ const ExportScreen = () => {
     return projectId ? ProjectService.getProject(projectId) : null;
   });
 
-  const [settings, setSettings] = useState<ExportSettings>({
-    resolution: '1080p',
-    fps: 30,
-    bitrate: 'medium',
-    format: 'mp4',
-  });
+  const [settings, setSettings] = useState<ExportSettings>(() => ({
+    resolution: project?.exportSettings?.resolution ?? '1080p',
+    fps: project?.exportSettings?.fps ?? 30,
+    bitrate: project?.exportSettings?.bitrate ?? 'medium',
+    format: project?.exportSettings?.format ?? 'mp4',
+  }));
 
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('mp4');
+  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>(() => project?.exportSettings?.format ?? 'mp4');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
-  const [enableHDR, setEnableHDR] = useState(false);
-  const [enableFastStart, setEnableFastStart] = useState(true);
-  const [removeAudio, setRemoveAudio] = useState(false);
+  const [enableHDR, setEnableHDR] = useState(project?.exportSettings?.hdr ?? false);
+  const [enableFastStart, setEnableFastStart] = useState(project?.exportSettings?.fastStart ?? true);
+  const [removeAudio, setRemoveAudio] = useState(project?.exportSettings?.removeAudio ?? false);
 
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle');
   const [progress, setProgress] = useState(0);
@@ -141,6 +141,21 @@ const ExportScreen = () => {
   const [estimatedTime, setEstimatedTime] = useState('0 dk');
   const [exportedVideoBlob, setExportedVideoBlob] = useState<Blob | null>(null);
   const [isNative] = useState(nativeExportService.isNativePlatform());
+
+  useEffect(() => {
+    if (!project) return;
+
+    setSettings({
+      resolution: project.exportSettings?.resolution ?? '1080p',
+      fps: project.exportSettings?.fps ?? 30,
+      bitrate: project.exportSettings?.bitrate ?? 'medium',
+      format: project.exportSettings?.format ?? 'mp4',
+    });
+    setSelectedFormat(project.exportSettings?.format ?? 'mp4');
+    setEnableHDR(project.exportSettings?.hdr ?? false);
+    setEnableFastStart(project.exportSettings?.fastStart ?? true);
+    setRemoveAudio(project.exportSettings?.removeAudio ?? false);
+  }, [project?.id]);
 
   // Calculate estimated file size and time
   useEffect(() => {
@@ -221,7 +236,13 @@ const ExportScreen = () => {
     try {
       const videoBlob = await ffmpegService.mergeAndExport(
         project,
-        { ...settings, format: selectedFormat },
+        {
+          ...settings,
+          format: selectedFormat,
+          hdr: enableHDR,
+          fastStart: enableFastStart,
+          removeAudio,
+        },
         selectedFormat,
         (p) => {
           setProgress(p.progress);
@@ -237,7 +258,16 @@ const ExportScreen = () => {
       setProgressMessage('Export completed!');
 
       // Save export settings to project
-      const updatedProject = { ...project, exportSettings: { ...settings, format: selectedFormat } };
+      const updatedProject = {
+        ...project,
+        exportSettings: {
+          ...settings,
+          format: selectedFormat,
+          hdr: enableHDR,
+          fastStart: enableFastStart,
+          removeAudio,
+        },
+      };
       ProjectService.saveProject(updatedProject);
 
       toast.success('Video created successfully!');
