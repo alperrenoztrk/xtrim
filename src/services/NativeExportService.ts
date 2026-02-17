@@ -25,9 +25,11 @@ class NativeExportService {
     fileName: string
   ): Promise<ExportResult> {
     try {
+      const safeFileName = this.sanitizeFileName(fileName);
+
       if (!this.isNativePlatform()) {
         // Web fallback: trigger download
-        return this.downloadForWeb(videoBlob, fileName);
+        return this.downloadForWeb(videoBlob, safeFileName);
       }
 
       // Convert blob to base64
@@ -51,9 +53,9 @@ class NativeExportService {
 
       // Generate unique filename with timestamp while preserving extension
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileExtensionMatch = fileName.match(/(\.[^./]+)$/);
+      const fileExtensionMatch = safeFileName.match(/(\.[^./]+)$/);
       const fileExtension = fileExtensionMatch ? fileExtensionMatch[1] : '';
-      const fileBaseName = fileExtension ? fileName.slice(0, -fileExtension.length) : fileName;
+      const fileBaseName = fileExtension ? safeFileName.slice(0, -fileExtension.length) : safeFileName;
       const uniqueFileName = `${fileBaseName}_${timestamp}${fileExtension}`;
 
       // Write file
@@ -114,14 +116,16 @@ class NativeExportService {
   // Share video from blob
   async shareVideoBlob(videoBlob: Blob, fileName: string): Promise<boolean> {
     try {
+      const safeFileName = this.sanitizeFileName(fileName);
+
       // First save to temp location
-      const saveResult = await this.saveToTemp(videoBlob, fileName);
+      const saveResult = await this.saveToTemp(videoBlob, safeFileName);
       
       if (!saveResult.success || !saveResult.filePath) {
         return false;
       }
 
-      return await this.shareVideo(saveResult.filePath, fileName);
+      return await this.shareVideo(saveResult.filePath, safeFileName);
     } catch (error) {
       console.error('Share blob error:', error);
       return false;
@@ -201,7 +205,8 @@ class NativeExportService {
       const link = document.createElement('a');
       link.href = url;
       // Add Xtrim prefix for web downloads to indicate the app source
-      const xtrimFileName = fileName.startsWith('Xtrim_') ? fileName : `Xtrim_${fileName}`;
+      const safeFileName = this.sanitizeFileName(fileName);
+      const xtrimFileName = safeFileName.startsWith('Xtrim_') ? safeFileName : `Xtrim_${safeFileName}`;
       link.download = xtrimFileName;
       document.body.appendChild(link);
       link.click();
@@ -215,6 +220,26 @@ class NativeExportService {
         error: error instanceof Error ? error.message : 'Download error',
       };
     }
+  }
+
+  private sanitizeFileName(fileName: string): string {
+    const trimmedFileName = fileName.trim();
+    const fileExtensionMatch = trimmedFileName.match(/(\.[A-Za-z0-9]+)$/);
+    const fileExtension = fileExtensionMatch ? fileExtensionMatch[1] : '';
+    const fileBaseName = fileExtension
+      ? trimmedFileName.slice(0, -fileExtension.length)
+      : trimmedFileName;
+
+    // Remove characters that are invalid in common file systems and paths.
+    const sanitizedBaseName = fileBaseName
+      .replace(/[\\/:*?"<>|\u0000-\u001F]/g, '_')
+      .replace(/\s+/g, ' ')
+      .replace(/_+/g, '_')
+      .trim()
+      .replace(/[. ]+$/g, '');
+
+    const fallbackBaseName = sanitizedBaseName || 'xtrim_export';
+    return `${fallbackBaseName}${fileExtension}`;
   }
 
   // Check and request storage permissions
