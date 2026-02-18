@@ -1812,9 +1812,9 @@ const VideoEditorScreen = () => {
             </Button>
 
             <div className="rounded-lg border border-border p-3 mb-4 space-y-2">
-              <p className="text-xs text-muted-foreground">Şarkı adını yazın, uygulama internetten bulup eklesin</p>
+              <p className="text-xs text-muted-foreground">Type the song name and let the app find it online and add it</p>
               <Input
-                placeholder="Şarkı adı (örn: Believer Imagine Dragons)"
+                placeholder="Song name (e.g., Believer Imagine Dragons)"
                 value={customAudioName}
                 onChange={(e) => setCustomAudioName(e.target.value)}
                 onKeyDown={(e) => {
@@ -1830,7 +1830,7 @@ const VideoEditorScreen = () => {
                 disabled={isSearchingAudio}
                 className="w-full"
               >
-                {isSearchingAudio ? 'Aranıyor...' : 'Şarkıyı Bul ve Ekle'}
+                {isSearchingAudio ? 'Searching...' : 'Find and Add Song'}
               </Button>
             </div>
             
