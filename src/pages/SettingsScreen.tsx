@@ -90,6 +90,7 @@ const SettingsScreen = () => {
   });
 
   const [showThemeSheet, setShowThemeSheet] = useState(false);
+  const [showPrivacySheet, setShowPrivacySheet] = useState(false);
 
   useEffect(() => {
     applyTheme(settings.theme);
@@ -302,7 +303,10 @@ const SettingsScreen = () => {
         <div className="space-y-1">
           <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">About</h2>
           <div className="rounded-xl bg-card border border-border divide-y divide-border overflow-hidden">
-            <button className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+            <button
+              className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+              onClick={() => setShowPrivacySheet(true)}
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
                   <Shield className="w-5 h-5 text-muted-foreground" />
@@ -376,6 +380,78 @@ const SettingsScreen = () => {
                     </button>
                   );
                 })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Privacy Policy Sheet */}
+      <AnimatePresence>
+        {showPrivacySheet && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-50"
+            onClick={() => setShowPrivacySheet(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl p-6 safe-area-bottom max-h-[80vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-6" />
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Privacy Policy</h3>
+                <Button variant="ghost" size="sm" onClick={() => setShowPrivacySheet(false)}>
+                  Close
+                </Button>
+              </div>
+
+              <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
+                <p>
+                  XTrim stores only the necessary settings data locally on your device to improve the app
+                  experience. This data is not shared with third parties.
+                </p>
+
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">Information We Collect</h4>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>App settings such as theme, auto-save, and export preferences</li>
+                    <li>On-device media metadata related to projects you create</li>
+                    <li>Anonymous technical logs in case of crashes or errors (if available)</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">How We Use Data</h4>
+                  <p>
+                    Data is used to ensure proper app functionality, improve performance, and preserve the
+                    features you choose.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">Data Security</h4>
+                  <p>
+                    Your data is stored on your device. For features that use external services, only the
+                    content required to complete the requested operation is sent.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">Contact</h4>
+                  <p>
+                    If you have questions about privacy, you can contact our support team. This policy may
+                    change along with app updates.
+                  </p>
+                </div>
+
+                <p className="text-xs">Last updated: February 18, 2026</p>
               </div>
             </motion.div>
           </motion.div>
