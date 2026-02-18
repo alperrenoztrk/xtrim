@@ -822,9 +822,24 @@ const VideoEditorScreen = () => {
 
   // Handle apply transition between clips
   const handleApplyTransition = (transitionId: string, duration: number) => {
-    if (!project) return;
-    // Store transition info in the project (could be extended to store per-clip transitions)
-    toast.success(`Transition effect applied: ${transitionId}`);
+    if (!project || project.timeline.length < 2) {
+      toast.error('At least 2 clips are required to apply transitions');
+      return;
+    }
+
+    const orderedTimeline = [...project.timeline].sort((a, b) => a.order - b.order);
+    const updatedTimeline = orderedTimeline.map((clip, index) => ({
+      ...clip,
+      transition: index < orderedTimeline.length - 1 && transitionId !== 'none' ? transitionId : undefined,
+    }));
+
+    saveProject({
+      ...project,
+      timeline: updatedTimeline,
+    });
+
+    const transitionLabel = transitionId === 'none' ? 'No transition' : transitionId;
+    toast.success(`Transition applied to ${Math.max(updatedTimeline.length - 1, 0)} clip gap(s): ${transitionLabel} (${duration}s)`);
   };
 
   // Handle merge all clips with transition
@@ -1998,7 +2013,6 @@ const VideoEditorScreen = () => {
         {showMergePanel && project && (
           <VideoMergePanel
             clipCount={project.timeline.length}
-            isPro={false} // TODO: Connect to user subscription status
             onClose={() => setShowMergePanel(false)}
             onApplyTransition={handleApplyTransition}
             onMergeAll={handleMergeAllClips}
