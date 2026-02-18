@@ -277,15 +277,6 @@ const ExportScreen = () => {
 
     const effectiveFormat = effectiveSettings.format as ExportFormat;
 
-    // Check permissions first on native
-    if (isNative) {
-      const hasPermission = await nativeExportService.checkPermissions();
-      if (!hasPermission) {
-        toast.error('File save permission required');
-        return;
-      }
-    }
-
     setExportStatus('preparing');
     setProgress(0);
     setProgressMessage('Loading FFmpeg...');

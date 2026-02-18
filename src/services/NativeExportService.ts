@@ -39,6 +39,14 @@ class NativeExportService {
         return this.downloadForWeb(videoBlob, safeFileName);
       }
 
+      const hasPermission = await this.checkPermissions();
+      if (!hasPermission) {
+        return {
+          success: false,
+          error: 'File save permission required',
+        };
+      }
+
       // Convert blob to base64
       const base64Data = await this.blobToBase64(videoBlob);
 
@@ -297,11 +305,22 @@ class NativeExportService {
         return true; // Web doesn't need permissions
       }
 
+      // iOS exports to app Documents and does not require public storage permission.
+      if (this.getPlatform() === 'ios') {
+        return true;
+      }
+
       const status = await Filesystem.checkPermissions();
+      const publicStorage = (status as { publicStorage?: string }).publicStorage;
       
-      if (status.publicStorage !== 'granted') {
+      // Some platforms/plugins may not expose publicStorage; treat as granted.
+      if (!publicStorage || publicStorage === 'granted') {
+        return true;
+      }
+
+      if (publicStorage !== 'granted') {
         const result = await Filesystem.requestPermissions();
-        return result.publicStorage === 'granted';
+        return (result as { publicStorage?: string }).publicStorage === 'granted';
       }
 
       return true;
