@@ -46,7 +46,7 @@ serve(async (req) => {
           {
             role: "system",
             content:
-              "You are a precise image background-removal assistant. Always produce an edited version of the input image, preserving original proportions and perspective. Parse the user request literally and prioritize explicit keep/remove instructions. If the request is ambiguous, preserve the most likely main subject (usually the largest foreground person/object). Keep edges natural (hair/fur/detail), avoid cutting subject parts, and remove requested regions only. Output a single PNG image with a solid pure white background (#FFFFFF). Never output transparent, checkerboard, gradient, textured, or shadowed backgrounds.",
+              "You are a precise image background-removal assistant. Always produce an edited version of the input image, preserving original proportions and perspective. Parse the user request literally and prioritize explicit keep/remove instructions. If the request is ambiguous, preserve the most likely main subject (usually the largest foreground person/object). Keep edges natural (hair/fur/detail), avoid cutting subject parts, and remove requested regions only. Output a single PNG image with a fully transparent background (alpha 0) around the kept subject. Never output white, checkerboard, gradient, textured, or shadowed backgrounds.",
           },
           {
             role: "user",
@@ -56,8 +56,8 @@ serve(async (req) => {
                 text: [
                   "Task: Remove background from this image.",
                   userInstruction,
-                  "Required output: keep requested subject(s) sharp and natural; removed regions must become solid pure white (#FFFFFF).",
-                  "Never return transparency. Return PNG image output only.",
+                  "Required output: keep requested subject(s) sharp and natural; removed regions must be fully transparent (alpha 0).",
+                  "Return PNG image output with transparency only.",
                 ].join("\n")
               },
               {
