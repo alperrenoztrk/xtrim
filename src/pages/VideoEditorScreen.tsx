@@ -966,11 +966,16 @@ const VideoEditorScreen = () => {
   };
 
   // Handle apply crop to clip
-  const handleApplyCrop = (cropRatio: string) => {
+  const handleApplyCrop = (cropRatio: string | null) => {
     if (!selectedClipId || !project) return;
 
     const updatedTimeline = project.timeline.map((clip) => {
       if (clip.id === selectedClipId) {
+        if (!cropRatio) {
+          const { cropRatio: _cropRatio, ...clipWithoutCrop } = clip;
+          return clipWithoutCrop;
+        }
+
         return { ...clip, cropRatio };
       }
       return clip;

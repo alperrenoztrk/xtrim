@@ -8,7 +8,7 @@ interface VideoRotateCropPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onApplyRotation: (rotation: number, flipH: boolean, flipV: boolean) => void;
-  onApplyCrop: (aspectRatio: string) => void;
+  onApplyCrop: (aspectRatio: string | null) => void;
   currentRotation?: number;
   currentFlipH?: boolean;
   currentFlipV?: boolean;
@@ -57,7 +57,7 @@ export const VideoRotateCropPanel = ({
   };
 
   const handleApplyCrop = () => {
-    onApplyCrop(selectedCropRatio);
+    onApplyCrop(selectedCropRatio === 'free' ? null : selectedCropRatio);
     onClose();
   };
 
