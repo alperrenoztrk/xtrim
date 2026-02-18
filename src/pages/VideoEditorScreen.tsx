@@ -235,6 +235,8 @@ const VideoEditorScreen = () => {
   // Panel states
   const [showTrimPanel, setShowTrimPanel] = useState(false);
   const [showAudioPanel, setShowAudioPanel] = useState(false);
+  const [customAudioUrl, setCustomAudioUrl] = useState('');
+  const [customAudioName, setCustomAudioName] = useState('');
   const [showTextPanel, setShowTextPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAutoCutPanel, setShowAutoCutPanel] = useState(false);
@@ -526,6 +528,47 @@ const VideoEditorScreen = () => {
       ...project,
       audioTracks: [...project.audioTracks, ...newAudioTracks],
     });
+  };
+
+  const handleAddAudioFromUrl = () => {
+    if (!project) return;
+
+    const trimmedUrl = customAudioUrl.trim();
+    if (!trimmedUrl) {
+      toast.error('Please enter an audio URL');
+      return;
+    }
+
+    try {
+      const parsedUrl = new URL(trimmedUrl);
+      const urlPathName = parsedUrl.pathname.split('/').pop() || '';
+      const fallbackName = decodeURIComponent(urlPathName) || 'Custom Audio';
+
+      const audioTrack: AudioTrack = {
+        id: uuidv4(),
+        uri: parsedUrl.toString(),
+        name: customAudioName.trim() || fallbackName,
+        startTime: 0,
+        endTime: project.duration || 10,
+        trimStart: 0,
+        trimEnd: project.duration || 10,
+        volume: 1,
+        fadeIn: 0,
+        fadeOut: 0,
+        isMuted: false,
+      };
+
+      saveProject({
+        ...project,
+        audioTracks: [...project.audioTracks, audioTrack],
+      });
+
+      setCustomAudioUrl('');
+      setCustomAudioName('');
+      toast.success('Audio track added');
+    } catch {
+      toast.error('Please enter a valid URL');
+    }
   };
 
   const handleRemoveAudioTrack = (trackId: string) => {
@@ -1218,7 +1261,10 @@ const VideoEditorScreen = () => {
         accept="audio/*"
         multiple
         className="hidden"
-        onChange={(e) => handleAddAudioTrack(e.target.files)}
+        onChange={(e) => {
+          handleAddAudioTrack(e.target.files);
+          e.target.value = '';
+        }}
       />
 
       {/* Header */}
@@ -1629,12 +1675,37 @@ const VideoEditorScreen = () => {
             <Button
               variant="outline"
               size="sm"
-              className="w-full mb-4"
+              className="w-full mb-3"
               onClick={() => audioInputRef.current?.click()}
             >
               <Music className="w-4 h-4" />
               Add Audio Track
             </Button>
+
+            <div className="rounded-lg border border-border p-3 mb-4 space-y-2">
+              <p className="text-xs text-muted-foreground">Add music with an audio link</p>
+              <Input
+                placeholder="Song name (optional)"
+                value={customAudioName}
+                onChange={(e) => setCustomAudioName(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Input
+                  placeholder="https://example.com/song.mp3"
+                  value={customAudioUrl}
+                  onChange={(e) => setCustomAudioUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddAudioFromUrl();
+                    }
+                  }}
+                />
+                <Button size="sm" onClick={handleAddAudioFromUrl}>
+                  Add
+                </Button>
+              </div>
+            </div>
             
             {/* Audio tracks list */}
             {project.audioTracks.length > 0 ? (
