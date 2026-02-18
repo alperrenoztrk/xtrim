@@ -286,9 +286,15 @@ class NativeExportService {
       ? trimmedFileName.slice(0, -fileExtension.length)
       : trimmedFileName;
 
+    // Keep file names portable across Android/iOS/web by reducing locale-specific characters.
+    const normalizedBaseName = fileBaseName
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '');
+
     // Remove characters that are invalid in common file systems and paths.
-    const sanitizedBaseName = fileBaseName
+    const sanitizedBaseName = normalizedBaseName
       .replace(/[\\/:*?"<>|\u0000-\u001F]/g, '_')
+      .replace(/[^A-Za-z0-9._ -]/g, '_')
       .replace(/\s+/g, ' ')
       .replace(/_+/g, '_')
       .trim()
