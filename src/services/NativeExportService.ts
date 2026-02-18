@@ -204,6 +204,7 @@ class NativeExportService {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
+      link.style.display = 'none';
       // Add Xtrim prefix for web downloads to indicate the app source
       const safeFileName = this.sanitizeFileName(fileName);
       const xtrimFileName = safeFileName.startsWith('Xtrim_') ? safeFileName : `Xtrim_${safeFileName}`;
@@ -211,7 +212,11 @@ class NativeExportService {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+
+      // Safari/WebKit may cancel downloads if we revoke immediately.
+      window.setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
       
       return { success: true, filePath: xtrimFileName };
     } catch (error) {
