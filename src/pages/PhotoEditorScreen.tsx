@@ -23,6 +23,11 @@ import {
   Eraser,
   Expand,
   Type,
+  Scissors,
+  Trash2,
+  Volume2,
+  MoreHorizontal,
+  Plus,
   Bot,
   Loader2,
   Share2,
@@ -98,6 +103,16 @@ const defaultAdjustments: ImageAdjustments = {
   flipV: false,
 };
 
+type QuickTool = 'trim' | 'delete' | 'audio' | 'text' | 'more';
+
+const quickTools: { id: QuickTool; icon: React.ComponentType<any>; label: string }[] = [
+  { id: 'trim', icon: Scissors, label: 'Trim' },
+  { id: 'delete', icon: Trash2, label: 'Delete' },
+  { id: 'audio', icon: Volume2, label: 'Audio' },
+  { id: 'text', icon: Type, label: 'Text' },
+  { id: 'more', icon: MoreHorizontal, label: 'More' },
+];
+
 const PhotoEditorScreen = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -111,6 +126,7 @@ const PhotoEditorScreen = () => {
   const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([]);
   const [redoStack, setRedoStack] = useState<EditorSnapshot[]>([]);
   const [showBackgroundRemover, setShowBackgroundRemover] = useState(false);
+  const [activeQuickTool, setActiveQuickTool] = useState<QuickTool | null>(null);
   
   // AI Tool states
   const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
@@ -515,6 +531,34 @@ const PhotoEditorScreen = () => {
     }
   };
 
+  const handleQuickToolClick = (toolId: QuickTool) => {
+    setActiveQuickTool(toolId);
+
+    switch (toolId) {
+      case 'trim':
+        setActiveTab('crop');
+        break;
+      case 'delete':
+        saveState();
+        setImageUrl(null);
+        setActiveAITool(null);
+        setAiPrompt('');
+        setActiveQuickTool(null);
+        toast.success('Photo removed from editor');
+        break;
+      case 'audio':
+        toast.info('Audio tools are available in the video editor.');
+        break;
+      case 'text':
+        setActiveTab('ai');
+        setActiveAITool('poster');
+        break;
+      case 'more':
+        setActiveTab('filters');
+        break;
+    }
+  };
+
   const adjustmentControls = [
     { key: 'brightness', label: 'Brightness', icon: Sun, min: -100, max: 100 },
     { key: 'contrast', label: 'Contrast', icon: Contrast, min: -100, max: 100 },
@@ -639,6 +683,35 @@ const PhotoEditorScreen = () => {
 
       {imageUrl && (
         <>
+          <div className="bg-card border-t border-border border-b">
+            <Button
+              variant="ghost"
+              className="w-full h-16 rounded-none text-lg font-medium"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Plus className="w-7 h-7" />
+              Add Media
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-around py-2 px-2 border-b border-border bg-card overflow-x-auto scrollbar-hide">
+            {quickTools.map((tool) => (
+              <Button
+                key={tool.id}
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'flex-col gap-1 h-auto min-w-[70px] py-2',
+                  activeQuickTool === tool.id && 'text-primary'
+                )}
+                onClick={() => handleQuickToolClick(tool.id)}
+              >
+                <tool.icon className="w-5 h-5" />
+                <span className="text-xxs">{tool.label}</span>
+              </Button>
+            ))}
+          </div>
+
           {/* Tab selector */}
           <div className="flex border-b border-border bg-card overflow-x-auto scrollbar-hide">
             {[
