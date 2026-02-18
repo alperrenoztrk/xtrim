@@ -73,6 +73,10 @@ const defaultSettings: ExtendedSettings = {
 
 const SettingsScreen = () => {
   const navigate = useNavigate();
+  const codexPrCount = Number.parseInt(import.meta.env.VITE_CODEX_PR_COUNT ?? '70', 10);
+  const normalizedPrCount = Number.isFinite(codexPrCount) && codexPrCount >= 0 ? codexPrCount : 70;
+  const appVersion = `1.${Math.floor(normalizedPrCount / 10)}.${normalizedPrCount % 10}`;
+
   const [settings, setSettings] = useState<ExtendedSettings>(() => {
     const saved = localStorage.getItem('xtrim_settings');
     if (saved) {
@@ -314,7 +318,7 @@ const SettingsScreen = () => {
                 </div>
                 <span>Version</span>
               </div>
-              <span className="text-sm text-muted-foreground">1.0.0</span>
+              <span className="text-sm text-muted-foreground">{appVersion}</span>
             </div>
           </div>
         </div>
