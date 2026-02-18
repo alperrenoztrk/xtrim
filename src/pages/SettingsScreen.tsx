@@ -71,10 +71,27 @@ const defaultSettings: ExtendedSettings = {
   },
 };
 
+const resolveCodexPrNumber = () => {
+  const possiblePrValues = [
+    import.meta.env.VITE_CODEX_PR_COUNT,
+    import.meta.env.VITE_CODEX_PR_NUMBER,
+    import.meta.env.VITE_PR_NUMBER,
+  ];
+
+  for (const value of possiblePrValues) {
+    const parsed = Number.parseInt(value ?? '', 10);
+
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed;
+    }
+  }
+
+  return 70;
+};
+
 const SettingsScreen = () => {
   const navigate = useNavigate();
-  const codexPrCount = Number.parseInt(import.meta.env.VITE_CODEX_PR_COUNT ?? '70', 10);
-  const normalizedPrCount = Number.isFinite(codexPrCount) && codexPrCount >= 0 ? codexPrCount : 70;
+  const normalizedPrCount = resolveCodexPrNumber();
   const appVersion = `1.${Math.floor(normalizedPrCount / 10)}.${normalizedPrCount % 10}`;
 
   const [settings, setSettings] = useState<ExtendedSettings>(() => {
