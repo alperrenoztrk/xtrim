@@ -446,7 +446,7 @@ const ExportScreen = () => {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Share2 className="w-4 h-4 text-muted-foreground" />
-                <h3 className="font-medium text-foreground">Fast Presetler</h3>
+                <h3 className="font-medium text-foreground">Fast Presets</h3>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
                 {socialPresets.map((preset) => (
