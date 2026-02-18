@@ -17,6 +17,7 @@ import ProjectsScreen from "./pages/ProjectsScreen";
 import ExportScreen from "./pages/ExportScreen";
 import NotFound from "./pages/NotFound";
 import { applyTheme, getStoredTheme, subscribeToThemeChanges } from "./lib/theme";
+import AndroidBackButtonHandler from "./components/AndroidBackButtonHandler";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AndroidBackButtonHandler />
           <Routes>
             <Route path="/" element={<SplashScreen />} />
             <Route path="/home" element={<HomeScreen />} />
