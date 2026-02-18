@@ -36,12 +36,8 @@ export default function AndroidBackButtonHandler() {
       const isHome = location.pathname === HOME_PATH;
       const isSplash = location.pathname === "/";
 
-      if (isSplash) {
+      if (isSplash || isHome) {
         navigate(HOME_PATH, { replace: true });
-        return;
-      }
-
-      if (isHome) {
         return;
       }
 

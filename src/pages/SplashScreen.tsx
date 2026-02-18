@@ -10,7 +10,7 @@ const SplashScreen = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(() => navigate('/home'), 500);
+      setTimeout(() => navigate('/home', { replace: true }), 500);
     }, 4500);
 
     return () => clearTimeout(timer);
