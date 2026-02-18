@@ -237,6 +237,7 @@ const VideoEditorScreen = () => {
   
   // Panel states
   const [showTrimPanel, setShowTrimPanel] = useState(false);
+  const [showSplitPanel, setShowSplitPanel] = useState(false);
   const [showAudioPanel, setShowAudioPanel] = useState(false);
   const [customAudioName, setCustomAudioName] = useState('');
   const [isSearchingAudio, setIsSearchingAudio] = useState(false);
@@ -255,6 +256,7 @@ const VideoEditorScreen = () => {
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
   const [trimEnd, setTrimEnd] = useState(0);
+  const [splitTime, setSplitTime] = useState('0');
   
   // Audio state
   const [clipVolume, setClipVolume] = useState(100);
@@ -418,14 +420,21 @@ const VideoEditorScreen = () => {
     setSelectedClipId(null);
   };
 
-  const handleSplitClip = () => {
+  const handleSplitClip = (customSplitPoint?: number) => {
     if (!selectedClipId || !project) return;
 
     const clipIndex = project.timeline.findIndex((c) => c.id === selectedClipId);
     if (clipIndex === -1) return;
 
     const clip = project.timeline[clipIndex];
-    const splitPoint = (clip.startTime + clip.endTime) / 2;
+    const splitPoint = customSplitPoint ?? (clip.startTime + clip.endTime) / 2;
+
+    if (splitPoint <= clip.startTime || splitPoint >= clip.endTime) {
+      toast.error('Invalid split time', {
+        description: `Please enter a value between ${clip.startTime.toFixed(1)} and ${clip.endTime.toFixed(1)} seconds.`,
+      });
+      return;
+    }
 
     const firstHalf: TimelineClip = {
       ...clip,
@@ -448,6 +457,33 @@ const VideoEditorScreen = () => {
     ];
 
     saveProject({ ...project, timeline: updatedTimeline });
+    setShowSplitPanel(false);
+  };
+
+  const handleOpenSplit = () => {
+    if (!selectedClipId || !project) return;
+    const clip = project.timeline.find((c) => c.id === selectedClipId);
+    if (!clip) return;
+
+    setSplitTime(((clip.startTime + clip.endTime) / 2).toFixed(1));
+    setShowSplitPanel(true);
+    setShowTrimPanel(false);
+    setShowAudioPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+    setShowAutoCutPanel(false);
+  };
+
+  const handleApplySplit = () => {
+    const parsedSplitTime = Number(splitTime);
+    if (Number.isNaN(parsedSplitTime)) {
+      toast.error('Invalid split time', {
+        description: 'Please enter a valid second value.',
+      });
+      return;
+    }
+
+    handleSplitClip(parsedSplitTime);
   };
 
   const handleReorderClips = (newOrder: TimelineClip[]) => {
@@ -471,6 +507,7 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowSplitPanel(false);
     setShowAutoCutPanel(false);
   };
 
@@ -499,6 +536,7 @@ const VideoEditorScreen = () => {
     setShowTrimPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowSplitPanel(false);
     setShowAutoCutPanel(false);
   };
 
@@ -632,6 +670,7 @@ const VideoEditorScreen = () => {
     setShowTrimPanel(false);
     setShowAudioPanel(false);
     setShowMoreMenu(false);
+    setShowSplitPanel(false);
     setShowAutoCutPanel(false);
     setShowEnhancePanel(false);
     setShowStabilizePanel(false);
@@ -776,6 +815,7 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowSplitPanel(false);
     setShowAutoCutPanel(false);
     setShowStabilizePanel(false);
   };
@@ -790,6 +830,7 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowSplitPanel(false);
     setShowAutoCutPanel(false);
     setShowEnhancePanel(false);
     setShowSpeedPanel(false);
@@ -805,6 +846,7 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowSplitPanel(false);
     setShowAutoCutPanel(false);
     setShowEnhancePanel(false);
     setShowStabilizePanel(false);
@@ -854,6 +896,7 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowSplitPanel(false);
     setShowAutoCutPanel(false);
     setShowEnhancePanel(false);
     setShowStabilizePanel(false);
@@ -872,6 +915,7 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowSplitPanel(false);
     setShowAutoCutPanel(false);
     setShowEnhancePanel(false);
     setShowStabilizePanel(false);
@@ -978,6 +1022,7 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowSplitPanel(false);
     setShowAutoCutPanel(false);
     setShowEnhancePanel(false);
     setShowStabilizePanel(false);
@@ -994,6 +1039,7 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowSplitPanel(false);
     setShowAutoCutPanel(false);
     setShowEnhancePanel(false);
     setShowStabilizePanel(false);
@@ -1014,6 +1060,7 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowTextPanel(false);
     setShowMoreMenu(false);
+    setShowSplitPanel(false);
     setShowAutoCutPanel(false);
     setShowEnhancePanel(false);
     setShowStabilizePanel(false);
@@ -1202,7 +1249,7 @@ const VideoEditorScreen = () => {
         handleOpenTrim();
         break;
       case 'split':
-        if (selectedClipId) handleSplitClip();
+        if (selectedClipId) handleOpenSplit();
         break;
       case 'delete':
         if (selectedClipId) handleDeleteClip();
@@ -1854,6 +1901,47 @@ const VideoEditorScreen = () => {
               <p className="text-xs text-muted-foreground text-center">
                 Duration: {MediaService.formatDuration(trimEnd - trimStart)}
               </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Split Panel */}
+      <AnimatePresence>
+        {showSplitPanel && selectedClip && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium">Split Clip</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowSplitPanel(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-muted-foreground block mb-2">
+                  Hangi saniyeden kesilsin?
+                </label>
+                <Input
+                  type="number"
+                  min={selectedClip.startTime + 0.1}
+                  max={selectedClip.endTime - 0.1}
+                  step={0.1}
+                  value={splitTime}
+                  onChange={(e) => setSplitTime(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Aralık: {selectedClip.startTime.toFixed(1)}s - {selectedClip.endTime.toFixed(1)}s
+                </p>
+              </div>
+              <Button variant="gradient" size="sm" onClick={handleApplySplit} className="w-full">
+                <Scissors className="w-4 h-4" />
+                Uygula
+              </Button>
             </div>
           </motion.div>
         )}
