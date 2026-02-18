@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -24,6 +24,11 @@ const HOME_PATH = "/home";
 export default function AndroidBackButtonHandler() {
   const navigate = useNavigate();
   const location = useLocation();
+  const pathnameRef = useRef(location.pathname);
+
+  useEffect(() => {
+    pathnameRef.current = location.pathname;
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
@@ -32,16 +37,20 @@ export default function AndroidBackButtonHandler() {
 
     let listenerHandle: PluginListenerHandle | null = null;
 
-    void App.addListener("backButton", () => {
-      const isHome = location.pathname === HOME_PATH;
-      const isSplash = location.pathname === "/";
+    void App.addListener("backButton", ({ canGoBack }) => {
+      const currentPath = pathnameRef.current;
+      const isHome = currentPath === HOME_PATH;
 
-      if (isSplash || isHome) {
-        navigate(HOME_PATH, { replace: true });
+      if (isHome) {
         return;
       }
 
-      navigate(-1);
+      if (canGoBack) {
+        navigate(-1);
+        return;
+      }
+
+      navigate(HOME_PATH, { replace: true });
     }).then((handle) => {
       listenerHandle = handle;
     });
@@ -49,7 +58,7 @@ export default function AndroidBackButtonHandler() {
     return () => {
       void listenerHandle?.remove();
     };
-  }, [location.pathname, navigate]);
+  }, [navigate]);
 
   return null;
 }
