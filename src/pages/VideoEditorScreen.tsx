@@ -210,6 +210,7 @@ const VideoEditorScreen = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioTrackElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   const [project, setProject] = useState<Project | null>(() => {
     if (projectId === 'new') {
@@ -600,6 +601,13 @@ const VideoEditorScreen = () => {
 
   const handleRemoveAudioTrack = (trackId: string) => {
     if (!project) return;
+
+    const audioEl = audioTrackElementsRef.current.get(trackId);
+    if (audioEl) {
+      audioEl.pause();
+      audioTrackElementsRef.current.delete(trackId);
+    }
+
     saveProject({
       ...project,
       audioTracks: project.audioTracks.filter((t) => t.id !== trackId),
@@ -1177,6 +1185,95 @@ const VideoEditorScreen = () => {
       video.pause();
     }
   }, [isPlaying, selectedClipId, project]);
+
+  // Keep audio tracks in sync with the active video clip playback.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !project) return;
+
+    const clip = project.timeline.find((c) => c.id === selectedClipId);
+    if (!clip) return;
+
+    const syncAudioTracks = () => {
+      const now = video.currentTime;
+
+      for (const track of project.audioTracks) {
+        const trackStart = Math.max(track.startTime, clip.startTime);
+        const trackEnd = Math.min(track.endTime, clip.endTime);
+        const shouldPlayTrack =
+          isPlaying &&
+          !track.isMuted &&
+          track.volume > 0 &&
+          now >= trackStart &&
+          now <= trackEnd;
+
+        let audioEl = audioTrackElementsRef.current.get(track.id);
+
+        if (!audioEl) {
+          audioEl = new Audio(track.uri);
+          audioEl.preload = 'auto';
+          audioEl.crossOrigin = 'anonymous';
+          audioTrackElementsRef.current.set(track.id, audioEl);
+        }
+
+        audioEl.volume = Math.max(0, Math.min(track.volume, 1));
+
+        if (!shouldPlayTrack) {
+          if (!audioEl.paused) {
+            audioEl.pause();
+          }
+          continue;
+        }
+
+        const desiredTime = Math.max(0, now - track.startTime + track.trimStart);
+        if (Math.abs(audioEl.currentTime - desiredTime) > 0.35) {
+          audioEl.currentTime = desiredTime;
+        }
+
+        if (audioEl.paused) {
+          void audioEl.play().catch(() => {
+            // Browser autoplay rules may block in some environments.
+          });
+        }
+      }
+    };
+
+    syncAudioTracks();
+    video.addEventListener('timeupdate', syncAudioTracks);
+
+    return () => {
+      video.removeEventListener('timeupdate', syncAudioTracks);
+
+      if (!isPlaying) {
+        for (const audioEl of audioTrackElementsRef.current.values()) {
+          audioEl.pause();
+        }
+      }
+    };
+  }, [isPlaying, project, selectedClipId]);
+
+  // Cleanup orphaned audio elements when track list changes.
+  useEffect(() => {
+    if (!project) return;
+
+    const activeTrackIds = new Set(project.audioTracks.map((track) => track.id));
+    for (const [trackId, audioEl] of audioTrackElementsRef.current.entries()) {
+      if (!activeTrackIds.has(trackId)) {
+        audioEl.pause();
+        audioTrackElementsRef.current.delete(trackId);
+      }
+    }
+  }, [project]);
+
+  // Full cleanup on unmount.
+  useEffect(() => {
+    return () => {
+      for (const audioEl of audioTrackElementsRef.current.values()) {
+        audioEl.pause();
+      }
+      audioTrackElementsRef.current.clear();
+    };
+  }, []);
 
   // Sync video time with timeline and enforce clip boundaries
   const handleTimeUpdate = () => {
