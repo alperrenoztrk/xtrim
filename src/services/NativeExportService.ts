@@ -9,6 +9,13 @@ export interface ExportResult {
 }
 
 class NativeExportService {
+  private readonly mimeTypeByExtension: Record<string, string> = {
+    mp4: 'video/mp4',
+    mov: 'video/quicktime',
+    webm: 'video/webm',
+    gif: 'image/gif',
+  };
+
   // Check if running on native platform
   isNativePlatform(): boolean {
     return Capacitor.isNativePlatform();
@@ -118,6 +125,10 @@ class NativeExportService {
     try {
       const safeFileName = this.sanitizeFileName(fileName);
 
+      if (!this.isNativePlatform()) {
+        return await this.shareBlobOnWeb(videoBlob, safeFileName);
+      }
+
       // First save to temp location
       const saveResult = await this.saveToTemp(videoBlob, safeFileName);
       
@@ -130,6 +141,38 @@ class NativeExportService {
       console.error('Share blob error:', error);
       return false;
     }
+  }
+
+  private async shareBlobOnWeb(videoBlob: Blob, fileName: string): Promise<boolean> {
+    try {
+      if (!navigator.share) {
+        return false;
+      }
+
+      const fileToShare = this.createShareFile(videoBlob, fileName);
+      const sharePayload: ShareData = {
+        title: fileName,
+        text: 'Created with Xtrim',
+      };
+
+      if (navigator.canShare?.({ files: [fileToShare] })) {
+        sharePayload.files = [fileToShare];
+      }
+
+      await navigator.share(sharePayload);
+      return true;
+    } catch (error) {
+      console.error('Web share error:', error);
+      return false;
+    }
+  }
+
+  private createShareFile(videoBlob: Blob, fileName: string): File {
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    const fallbackMimeType = extension ? this.mimeTypeByExtension[extension] : undefined;
+    const mimeType = videoBlob.type || fallbackMimeType || 'application/octet-stream';
+
+    return new File([videoBlob], fileName, { type: mimeType });
   }
 
   // Save to temp directory for sharing
