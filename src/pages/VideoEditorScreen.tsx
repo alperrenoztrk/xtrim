@@ -229,6 +229,8 @@ const VideoEditorScreen = () => {
   const [undoStack, setUndoStack] = useState<Project[]>([]);
   const [redoStack, setRedoStack] = useState<Project[]>([]);
   const [videoError, setVideoError] = useState(false);
+  const [resolvedSelectedMediaUri, setResolvedSelectedMediaUri] = useState<string>('');
+  const [resolvedAudioTrackUris, setResolvedAudioTrackUris] = useState<Record<string, string>>({});
   const [isMediaImporting, setIsMediaImporting] = useState(false);
   const [mediaImportProgress, setMediaImportProgress] = useState(0);
   const [currentImportFileName, setCurrentImportFileName] = useState<string | null>(null);
@@ -665,6 +667,63 @@ const VideoEditorScreen = () => {
       setSelectedTextOverlayId(null);
     }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolveSelectedMedia = async () => {
+      if (!project || !selectedClipId) {
+        setResolvedSelectedMediaUri('');
+        return;
+      }
+
+      const selectedClip = project.timeline.find((clip) => clip.id === selectedClipId);
+      const selectedMedia = selectedClip
+        ? project.mediaItems.find((media) => media.id === selectedClip.mediaId)
+        : null;
+
+      if (!selectedMedia) {
+        setResolvedSelectedMediaUri('');
+        return;
+      }
+
+      const resolvedUri = await MediaService.resolveMediaUri(selectedMedia.uri);
+      if (!cancelled) {
+        setResolvedSelectedMediaUri(resolvedUri);
+      }
+    };
+
+    resolveSelectedMedia();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [project, selectedClipId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const resolveAudioTracks = async () => {
+      if (!project?.audioTracks?.length) {
+        setResolvedAudioTrackUris({});
+        return;
+      }
+
+      const entries = await Promise.all(
+        project.audioTracks.map(async (track) => [track.id, await MediaService.resolveMediaUri(track.uri)] as const)
+      );
+
+      if (!cancelled) {
+        setResolvedAudioTrackUris(Object.fromEntries(entries));
+      }
+    };
+
+    resolveAudioTracks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [project?.audioTracks]);
 
   const ensureVideoClipSelection = useCallback(() => {
     if (!project) return false;
@@ -1230,7 +1289,8 @@ const VideoEditorScreen = () => {
         let audioEl = audioTrackElementsRef.current.get(track.id);
 
         if (!audioEl) {
-          audioEl = new Audio(track.uri);
+          const audioUri = resolvedAudioTrackUris[track.id] || track.uri;
+          audioEl = new Audio(audioUri);
           audioEl.preload = 'auto';
           audioEl.crossOrigin = 'anonymous';
           audioTrackElementsRef.current.set(track.id, audioEl);
@@ -1270,7 +1330,7 @@ const VideoEditorScreen = () => {
         }
       }
     };
-  }, [isPlaying, project, selectedClipId]);
+  }, [isPlaying, project, selectedClipId, resolvedAudioTrackUris]);
 
   // Cleanup orphaned audio elements when track list changes.
   useEffect(() => {
@@ -1456,7 +1516,7 @@ const VideoEditorScreen = () => {
             <div ref={previewContainerRef} className="relative max-h-full max-w-full w-full h-full flex items-center justify-center">
               <video
                 ref={videoRef}
-                src={selectedMedia.uri}
+                src={resolvedSelectedMediaUri || selectedMedia.uri}
                 className="max-h-full max-w-full object-contain transition-transform duration-200"
                 style={{
                   transform: `rotate(${selectedClip?.rotation || 0}deg) scaleX(${selectedClip?.flipH ? -1 : 1}) scaleY(${selectedClip?.flipV ? -1 : 1})`,
@@ -1512,7 +1572,7 @@ const VideoEditorScreen = () => {
           ) : (
             <div ref={previewContainerRef} className="relative max-h-full max-w-full w-full h-full flex items-center justify-center">
               <img
-                src={selectedMedia.uri}
+                src={resolvedSelectedMediaUri || selectedMedia.uri}
                 alt=""
                 className="max-h-full max-w-full object-contain transition-transform duration-200"
                 style={{
@@ -2035,7 +2095,7 @@ const VideoEditorScreen = () => {
       <VideoTranslatePanel
         isOpen={showTranslatePanel}
         onClose={() => setShowTranslatePanel(false)}
-        videoUrl={selectedMedia?.uri}
+        videoUrl={resolvedSelectedMediaUri || selectedMedia?.uri}
         onTranslationComplete={(result) => {
           // Parse subtitles and add them as text overlays
           if (result.subtitles && Array.isArray(result.subtitles)) {

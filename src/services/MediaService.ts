@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { MediaItem } from '@/types';
+import { MediaStorageService } from '@/services/MediaStorageService';
 
 // Supported video formats with MIME types
 const VIDEO_EXTENSIONS = [
@@ -16,6 +17,9 @@ const VIDEO_MIME_TYPES = [
 ];
 
 export class MediaService {
+  private static readonly persistedUriPrefix = 'media://';
+  private static uriCache = new Map<string, string>();
+
   // Check if file is a video based on extension or MIME type
   static isVideoFile(file: File): boolean {
     const extension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -72,12 +76,16 @@ export class MediaService {
     const isPhoto = this.isImageFile(file);
 
     const type = isVideo ? 'video' : isAudio ? 'audio' : 'photo';
-    const uri = URL.createObjectURL(file);
+    const mediaId = uuidv4();
+    await MediaStorageService.saveMediaBlob(mediaId, file);
+
+    const persistedUri = `${this.persistedUriPrefix}${mediaId}`;
+    const objectUri = URL.createObjectURL(file);
 
     const mediaItem: MediaItem = {
-      id: uuidv4(),
+      id: mediaId,
       type,
-      uri,
+      uri: persistedUri,
       name: file.name,
       size: file.size,
       createdAt: new Date(),
@@ -85,23 +93,64 @@ export class MediaService {
 
     // Get additional metadata
     if (isVideo || isAudio) {
-      const duration = await this.getMediaDuration(uri, isVideo ? 'video' : 'audio');
+      const duration = await this.getMediaDuration(objectUri, isVideo ? 'video' : 'audio');
       mediaItem.duration = duration;
     }
 
     if (isVideo || isPhoto) {
-      const dimensions = await this.getMediaDimensions(uri, type as 'video' | 'photo');
+      const dimensions = await this.getMediaDimensions(objectUri, type as 'video' | 'photo');
       mediaItem.width = dimensions.width;
       mediaItem.height = dimensions.height;
 
       if (isVideo) {
-        mediaItem.thumbnail = await this.generateVideoThumbnail(uri);
+        mediaItem.thumbnail = await this.generateVideoThumbnail(objectUri);
       } else {
-        mediaItem.thumbnail = uri;
+        mediaItem.thumbnail = await this.createImageDataUrl(file);
       }
     }
 
+    URL.revokeObjectURL(objectUri);
+
     return mediaItem;
+  }
+
+  static async resolveMediaUri(uri: string): Promise<string> {
+    if (!uri.startsWith(this.persistedUriPrefix)) {
+      return uri;
+    }
+
+    const mediaId = uri.slice(this.persistedUriPrefix.length);
+    if (!mediaId) {
+      return uri;
+    }
+
+    const cached = this.uriCache.get(mediaId);
+    if (cached) {
+      return cached;
+    }
+
+    try {
+      const blob = await MediaStorageService.getMediaBlob(mediaId);
+      if (!blob) {
+        return uri;
+      }
+
+      const blobUrl = URL.createObjectURL(blob);
+      this.uriCache.set(mediaId, blobUrl);
+      return blobUrl;
+    } catch (error) {
+      console.error('Failed to resolve persisted media URI:', error);
+      return uri;
+    }
+  }
+
+  private static createImageDataUrl(file: File): Promise<string> {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string) || '');
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
   }
 
   // Get duration of video/audio

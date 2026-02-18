@@ -1,6 +1,7 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import type { Project, TimelineClip, MediaItem, ExportSettings } from '@/types';
+import { MediaService } from '@/services/MediaService';
 
 export interface FFmpegProgress {
   stage: 'loading' | 'preparing' | 'processing' | 'encoding' | 'finalizing' | 'complete';
@@ -111,7 +112,8 @@ class FFmpegService {
       const media = project.mediaItems.find(m => m.id === clip.mediaId);
       if (!media) continue;
 
-      const ext = this.getExtension(media.uri, media.type);
+      const mediaUri = await MediaService.resolveMediaUri(media.uri);
+      const ext = this.getExtension(mediaUri, media.name, media.type);
       const inputName = `input_${i}.${ext}`;
 
       onProgress?.({
@@ -121,7 +123,7 @@ class FFmpegService {
       });
 
       try {
-        const fileData = await fetchFile(media.uri);
+        const fileData = await fetchFile(mediaUri);
         await ffmpeg.writeFile(inputName, fileData);
 
         if (media.type === 'photo') {
@@ -255,13 +257,15 @@ class FFmpegService {
     return `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
   }
 
-  private getExtension(uri: string, type: string): string {
+  private getExtension(uri: string, name: string, type: string): string {
+    const normalizedName = name.toLowerCase();
+
     if (type === 'photo') {
-      if (uri.includes('image/png') || uri.endsWith('.png')) return 'png';
+      if (uri.includes('image/png') || normalizedName.endsWith('.png') || uri.endsWith('.png')) return 'png';
       return 'jpg';
     }
-    if (uri.includes('video/webm') || uri.endsWith('.webm')) return 'webm';
-    if (uri.includes('video/quicktime') || uri.endsWith('.mov')) return 'mov';
+    if (uri.includes('video/webm') || normalizedName.endsWith('.webm') || uri.endsWith('.webm')) return 'webm';
+    if (uri.includes('video/quicktime') || normalizedName.endsWith('.mov') || uri.endsWith('.mov')) return 'mov';
     return 'mp4';
   }
 
