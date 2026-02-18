@@ -5,7 +5,6 @@ import {
   Check,
   Merge,
   Sparkles,
-  Lock,
   Play,
   ChevronRight,
   Zap,
@@ -49,7 +48,6 @@ const transitionEffects: TransitionEffect[] = [
 
 interface VideoMergePanelProps {
   clipCount: number;
-  isPro?: boolean;
   onClose: () => void;
   onApplyTransition: (transitionId: string, duration: number) => void;
   onMergeAll: (transitionId: string) => Promise<void>;
@@ -57,7 +55,6 @@ interface VideoMergePanelProps {
 
 export const VideoMergePanel = ({
   clipCount,
-  isPro = false,
   onClose,
   onApplyTransition,
   onMergeAll,
@@ -67,15 +64,6 @@ export const VideoMergePanel = ({
   const [previewTransition, setPreviewTransition] = useState<string | null>(null);
 
   const handleSelectTransition = (effect: TransitionEffect) => {
-    if (effect.isPro && !isPro) {
-      toast.error('This feature is available in Pro version', {
-        action: {
-          label: 'Upgrade to Pro',
-          onClick: () => toast.info('Pro feature coming soon!'),
-        },
-      });
-      return;
-    }
     setSelectedTransition(effect.id);
   };
 
@@ -242,7 +230,6 @@ export const VideoMergePanel = ({
           <p className="text-xs text-muted-foreground mb-2 font-medium flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-amber-500" />
             Pro Transitions
-            {!isPro && <Lock className="w-3 h-3 ml-1" />}
           </p>
           <div className="grid grid-cols-2 gap-2">
             {proTransitions.map((effect) => (
@@ -251,20 +238,14 @@ export const VideoMergePanel = ({
                 onClick={() => handleSelectTransition(effect)}
                 className={cn(
                   'p-3 rounded-lg border text-left transition-all relative',
-                  selectedTransition === effect.id && isPro
+                  selectedTransition === effect.id
                     ? 'border-primary bg-primary/10 ring-2 ring-primary/30'
-                    : 'border-border',
-                  !isPro && 'opacity-60'
+                    : 'border-border hover:bg-muted/50'
                 )}
               >
-                {!isPro && (
-                  <div className="absolute top-1 right-1">
-                    <Lock className="w-3 h-3 text-muted-foreground" />
-                  </div>
-                )}
                 <effect.icon className={cn(
                   'w-4 h-4 mb-1',
-                  selectedTransition === effect.id && isPro ? 'text-primary' : 'text-amber-500'
+                  selectedTransition === effect.id ? 'text-primary' : 'text-amber-500'
                 )} />
                 <p className="text-xs font-medium">{effect.name}</p>
                 <p className="text-[10px] text-muted-foreground truncate">{effect.description}</p>
@@ -278,7 +259,6 @@ export const VideoMergePanel = ({
           <p className="text-xs text-muted-foreground mb-2 font-medium flex items-center gap-1">
             <Wand2 className="w-3 h-3 text-purple-500" />
             AI Transitions
-            {!isPro && <Lock className="w-3 h-3 ml-1" />}
           </p>
           <div className="space-y-2">
             {aiTransitions.map((effect) => (
@@ -287,17 +267,11 @@ export const VideoMergePanel = ({
                 onClick={() => handleSelectTransition(effect)}
                 className={cn(
                   'w-full p-3 rounded-lg border text-left transition-all relative flex items-center gap-3',
-                  selectedTransition === effect.id && isPro
+                  selectedTransition === effect.id
                     ? 'border-primary bg-primary/10 ring-2 ring-primary/30'
-                    : 'border-border hover:bg-muted/50',
-                  !isPro && 'opacity-60'
+                    : 'border-border hover:bg-muted/50'
                 )}
               >
-                {!isPro && (
-                  <div className="absolute top-2 right-2">
-                    <Lock className="w-3 h-3 text-muted-foreground" />
-                  </div>
-                )}
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center shrink-0">
                   <effect.icon className="w-5 h-5 text-purple-500" />
                 </div>
