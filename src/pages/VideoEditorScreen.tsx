@@ -16,6 +16,7 @@ import {
   Layers,
   Sparkles,
   Download,
+  Share2,
   Plus,
   ChevronUp,
   ChevronDown,
@@ -49,6 +50,12 @@ import { VideoRotateCropPanel } from '@/components/VideoRotateCropPanel';
 import VideoAIGeneratePanel from '@/components/VideoAIGeneratePanel';
 import VideoTranslatePanel from '@/components/VideoTranslatePanel';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -1587,10 +1594,24 @@ const VideoEditorScreen = () => {
           >
             <Redo2 className="w-4 h-4" />
           </Button>
-          <Button variant="gradient" size="sm" onClick={() => navigate(`/export/${project.id}`)}>
-            <Download className="w-4 h-4" />
-            Export
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="gradient" size="sm">
+                <Download className="w-4 h-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={() => navigate(`/export/${project.id}?mode=share`)}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/export/${project.id}?mode=download`)}>
+                <Download className="w-4 h-4 mr-2" />
+                Download
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 

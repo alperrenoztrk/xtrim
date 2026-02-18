@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -115,19 +115,57 @@ const socialPresets: SocialPreset[] = [
 const ExportScreen = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
+  const [searchParams] = useSearchParams();
+  const requestedAction = searchParams.get('mode') === 'share'
+    ? 'share'
+    : searchParams.get('mode') === 'download'
+      ? 'download'
+      : null;
+  const pendingActionRef = useRef<'share' | 'download' | null>(requestedAction);
+  const autoExportStartedRef = useRef(false);
 
-  const [project, setProject] = useState<Project | null>(() => {
+  const getDefaultExportSettings = (): ExportSettings => {
+    const fallback: ExportSettings = {
+      resolution: '1080p',
+      fps: 30,
+      bitrate: 'medium',
+      format: 'mp4',
+      fastStart: true,
+      hdr: false,
+      removeAudio: false,
+    };
+
+    try {
+      const raw = localStorage.getItem('xtrim_settings');
+      if (!raw) return fallback;
+
+      const parsed = JSON.parse(raw) as { defaultExport?: Partial<ExportSettings> };
+      return {
+        ...fallback,
+        ...parsed.defaultExport,
+      };
+    } catch {
+      return fallback;
+    }
+  };
+
+  const defaultExportSettings = useRef(getDefaultExportSettings()).current;
+
+  const [project] = useState<Project | null>(() => {
     return projectId ? ProjectService.getProject(projectId) : null;
   });
 
   const [settings, setSettings] = useState<ExportSettings>(() => ({
-    resolution: project?.exportSettings?.resolution ?? '1080p',
-    fps: project?.exportSettings?.fps ?? 30,
-    bitrate: project?.exportSettings?.bitrate ?? 'medium',
-    format: project?.exportSettings?.format ?? 'mp4',
+    resolution: project?.exportSettings?.resolution ?? defaultExportSettings.resolution,
+    fps: project?.exportSettings?.fps ?? defaultExportSettings.fps,
+    bitrate: project?.exportSettings?.bitrate ?? defaultExportSettings.bitrate,
+    format: project?.exportSettings?.format ?? defaultExportSettings.format,
+    fastStart: project?.exportSettings?.fastStart ?? defaultExportSettings.fastStart,
+    hdr: project?.exportSettings?.hdr ?? defaultExportSettings.hdr,
+    removeAudio: project?.exportSettings?.removeAudio ?? defaultExportSettings.removeAudio,
   }));
 
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>(() => project?.exportSettings?.format ?? 'mp4');
+  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>(() => project?.exportSettings?.format ?? defaultExportSettings.format ?? 'mp4');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [enableHDR, setEnableHDR] = useState(project?.exportSettings?.hdr ?? false);
@@ -146,16 +184,25 @@ const ExportScreen = () => {
     if (!project) return;
 
     setSettings({
-      resolution: project.exportSettings?.resolution ?? '1080p',
-      fps: project.exportSettings?.fps ?? 30,
-      bitrate: project.exportSettings?.bitrate ?? 'medium',
-      format: project.exportSettings?.format ?? 'mp4',
+      resolution: project.exportSettings?.resolution ?? defaultExportSettings.resolution,
+      fps: project.exportSettings?.fps ?? defaultExportSettings.fps,
+      bitrate: project.exportSettings?.bitrate ?? defaultExportSettings.bitrate,
+      format: project.exportSettings?.format ?? defaultExportSettings.format,
+      fastStart: project.exportSettings?.fastStart ?? defaultExportSettings.fastStart,
+      hdr: project.exportSettings?.hdr ?? defaultExportSettings.hdr,
+      removeAudio: project.exportSettings?.removeAudio ?? defaultExportSettings.removeAudio,
     });
-    setSelectedFormat(project.exportSettings?.format ?? 'mp4');
-    setEnableHDR(project.exportSettings?.hdr ?? false);
-    setEnableFastStart(project.exportSettings?.fastStart ?? true);
-    setRemoveAudio(project.exportSettings?.removeAudio ?? false);
+    setSelectedFormat(project.exportSettings?.format ?? defaultExportSettings.format ?? 'mp4');
+    setEnableHDR(project.exportSettings?.hdr ?? defaultExportSettings.hdr ?? false);
+    setEnableFastStart(project.exportSettings?.fastStart ?? defaultExportSettings.fastStart ?? true);
+    setRemoveAudio(project.exportSettings?.removeAudio ?? defaultExportSettings.removeAudio ?? false);
   }, [project?.id]);
+
+  const getFileName = (format: ExportFormat) => {
+    if (!project) return `Xtrim_export.${format}`;
+    const ext = format === 'gif' ? 'gif' : format;
+    return `${project.name.replace(/\s+/g, '_')}.${ext}`;
+  };
 
   // Calculate estimated file size and time
   useEffect(() => {
@@ -217,8 +264,18 @@ const ExportScreen = () => {
     }));
   };
 
-  const handleStartExport = async () => {
+  const handleStartExport = async (overrideSettings?: ExportSettings) => {
     if (!project) return;
+
+    const effectiveSettings = overrideSettings ?? {
+      ...settings,
+      format: selectedFormat,
+      hdr: enableHDR,
+      fastStart: enableFastStart,
+      removeAudio,
+    };
+
+    const effectiveFormat = effectiveSettings.format as ExportFormat;
 
     // Check permissions first on native
     if (isNative) {
@@ -236,14 +293,8 @@ const ExportScreen = () => {
     try {
       const videoBlob = await ffmpegService.mergeAndExport(
         project,
-        {
-          ...settings,
-          format: selectedFormat,
-          hdr: enableHDR,
-          fastStart: enableFastStart,
-          removeAudio,
-        },
-        selectedFormat,
+        effectiveSettings,
+        effectiveFormat,
         (p) => {
           setProgress(p.progress);
           setProgressMessage(p.message);
@@ -261,14 +312,17 @@ const ExportScreen = () => {
       const updatedProject = {
         ...project,
         exportSettings: {
-          ...settings,
-          format: selectedFormat,
-          hdr: enableHDR,
-          fastStart: enableFastStart,
-          removeAudio,
+          ...effectiveSettings,
         },
       };
       ProjectService.saveProject(updatedProject);
+
+      if (pendingActionRef.current === 'share') {
+        await handleShare(videoBlob, effectiveFormat);
+      } else if (pendingActionRef.current === 'download') {
+        await handleSaveToDevice(videoBlob, effectiveFormat);
+      }
+      pendingActionRef.current = null;
 
       toast.success('Video created successfully!');
     } catch (error) {
@@ -286,42 +340,60 @@ const ExportScreen = () => {
     setExportedVideoBlob(null);
   };
 
-  const handleShare = async () => {
+  const handleShare = async (blob?: Blob, format?: ExportFormat) => {
     if (!project) return;
 
-    const ext = selectedFormat === 'gif' ? 'gif' : selectedFormat;
-    const fileName = `${project.name.replace(/\s+/g, '_')}.${ext}`;
+    const targetBlob = blob ?? exportedVideoBlob;
+    const targetFormat = format ?? selectedFormat;
+    const fileName = getFileName(targetFormat);
 
-    if (exportedVideoBlob) {
-      const success = await nativeExportService.shareVideoBlob(exportedVideoBlob, fileName);
-      if (success) {
-        toast.success('Sharing successful!');
-      } else if (navigator.share) {
-        try {
+    if (!targetBlob) return;
+
+    const success = await nativeExportService.shareVideoBlob(targetBlob, fileName);
+    if (success) {
+      toast.success('Sharing successful!');
+      return;
+    }
+
+    if (navigator.share) {
+      try {
+        const shareFile = new File([targetBlob], fileName, { type: targetBlob.type || 'video/mp4' });
+        const canShareFile = navigator.canShare?.({ files: [shareFile] }) ?? false;
+
+        if (canShareFile) {
+          await navigator.share({
+            title: project.name,
+            text: 'Created with Xtrim',
+            files: [shareFile],
+          });
+        } else {
           await navigator.share({
             title: project.name,
             text: 'Created with Xtrim',
           });
-        } catch (e) {
-          // User cancelled
         }
-      } else {
-        toast.error('Sharing is not supported');
+      } catch {
+        // User cancelled
       }
+    } else {
+      toast.error('Sharing is not supported');
     }
   };
 
-  const handleSaveToDevice = async () => {
-    if (!project || !exportedVideoBlob) return;
+  const handleSaveToDevice = async (blob?: Blob, format?: ExportFormat) => {
+    if (!project) return;
 
-    const ext = selectedFormat === 'gif' ? 'gif' : selectedFormat;
-    const fileName = `${project.name.replace(/\s+/g, '_')}.${ext}`;
+    const targetBlob = blob ?? exportedVideoBlob;
+    const targetFormat = format ?? selectedFormat;
+    if (!targetBlob) return;
 
-    const result = await nativeExportService.saveVideoToDevice(exportedVideoBlob, fileName);
+    const fileName = getFileName(targetFormat);
+
+    const result = await nativeExportService.saveVideoToDevice(targetBlob, fileName);
 
     if (result.success) {
       toast.success(
-        isNative 
+        isNative
           ? `Xtrim saved to Xtrim folder: ${result.filePath?.split('/').pop() || fileName}`
           : `Downloaded as Xtrim_${fileName}!`
       );
@@ -329,6 +401,28 @@ const ExportScreen = () => {
       toast.error(result.error || 'Save error');
     }
   };
+
+  useEffect(() => {
+    if (!project || !requestedAction || autoExportStartedRef.current || exportStatus !== 'idle') return;
+
+    autoExportStartedRef.current = true;
+    pendingActionRef.current = requestedAction;
+
+    const autoSettings: ExportSettings = {
+      ...defaultExportSettings,
+      fastStart: defaultExportSettings.fastStart ?? true,
+      hdr: defaultExportSettings.hdr ?? false,
+      removeAudio: defaultExportSettings.removeAudio ?? false,
+    };
+
+    setSettings(autoSettings);
+    setSelectedFormat((autoSettings.format as ExportFormat) ?? 'mp4');
+    setEnableHDR(autoSettings.hdr ?? false);
+    setEnableFastStart(autoSettings.fastStart ?? true);
+    setRemoveAudio(autoSettings.removeAudio ?? false);
+
+    void handleStartExport(autoSettings);
+  }, [project, requestedAction, exportStatus]);
 
   if (!project) {
     return (
@@ -427,7 +521,7 @@ const ExportScreen = () => {
                   </Button>
                   <Button variant="gradient" className="flex-1" onClick={handleSaveToDevice}>
                     <FolderDown className="w-4 h-4" />
-                    Save
+                    Download
                   </Button>
                 </div>
               )}
