@@ -268,6 +268,7 @@ const VideoEditorScreen = () => {
   const [isEditingTextOverlays, setIsEditingTextOverlays] = useState(false);
   const [selectedTextOverlayId, setSelectedTextOverlayId] = useState<string | null>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
+  const [requestedToolFromUrl, setRequestedToolFromUrl] = useState<string | null>(null);
 
   // Handle phone back button - navigate only one page back
   useEffect(() => {
@@ -285,17 +286,11 @@ const VideoEditorScreen = () => {
     };
   }, [navigate]);
 
-  // Handle URL tool parameter to open panels automatically
+  // Read URL tool parameter; defer opening panels until timeline/media selection is ready.
   useEffect(() => {
     const tool = searchParams.get('tool');
-    if (tool === 'ai-generate') {
-      setShowAIGeneratePanel(true);
-    } else if (tool === 'autocut') {
-      setShowAutoCutPanel(true);
-    } else if (tool === 'enhance') {
-      setShowEnhancePanel(true);
-    } else if (tool === 'translate') {
-      setShowTranslatePanel(true);
+    if (tool === 'ai-generate' || tool === 'autocut' || tool === 'enhance' || tool === 'translate') {
+      setRequestedToolFromUrl(tool);
     }
   }, [searchParams]);
 
@@ -853,6 +848,29 @@ const VideoEditorScreen = () => {
     setShowStabilizePanel(false);
     setShowColorPanel(false);
   };
+
+  useEffect(() => {
+    if (!requestedToolFromUrl) return;
+
+    switch (requestedToolFromUrl) {
+      case 'ai-generate':
+        handleOpenAIGenerate();
+        break;
+      case 'autocut':
+        handleOpenAutoCut();
+        break;
+      case 'enhance':
+        handleOpenEnhance();
+        break;
+      case 'translate':
+        handleOpenTranslate();
+        break;
+      default:
+        break;
+    }
+
+    setRequestedToolFromUrl(null);
+  }, [requestedToolFromUrl, project, selectedClipId]);
 
   // Handle speed change - persist to timeline clip
   const handleApplySpeed = (speed: number) => {
