@@ -66,21 +66,35 @@ serve(async (req) => {
     const targetLangName = languageNames[targetLanguage] || targetLanguage;
     const sourceLangName = sourceLanguage ? (languageNames[sourceLanguage] || sourceLanguage) : 'auto-detected';
 
+    const translationTasks: string[] = [];
+    if (options?.translateAudio) {
+      translationTasks.push(`A script for voice dubbing in ${targetLangName}`);
+    }
+    if (options?.generateSubtitles) {
+      translationTasks.push(`Subtitle text in ${targetLangName} with timestamps`);
+    }
+
+    if (translationTasks.length === 0) {
+      translationTasks.push(`A translated script in ${targetLangName}`);
+    }
+
     // Build translation prompt for AI
-    const translationPrompt = `You are a professional video translator. 
-    
+    const translationPrompt = `You are a professional video translator.
+
 Task: Analyze the provided video content and generate:
-1. ${options?.translateAudio ? 'A script for voice dubbing in ' + targetLangName : ''}
-2. ${options?.generateSubtitles ? 'Subtitle text in ' + targetLangName + ' with timestamps' : ''}
+${translationTasks.map((task, index) => `${index + 1}. ${task}`).join('\n')}
 
 Source language: ${sourceLangName}
 Target language: ${targetLangName}
+Video URL: ${videoUrl}
 
 Requirements:
 - Preserve the original meaning and tone
 - Adapt cultural references appropriately
 - Maintain natural speech patterns for the target language
 - Include timestamps for subtitles in SRT format
+- Use the provided video URL as the source content to analyze
+- If the video URL is inaccessible, return an "error" field that explains the reason
 
 Please provide the translated content in JSON format with the following structure:
 {
@@ -137,9 +151,18 @@ Please provide the translated content in JSON format with the following structur
     const data = await response.json();
     const translationResult = data.choices?.[0]?.message?.content;
 
+    if (!translationResult) {
+      throw new Error("AI response did not include translation content");
+    }
+
     let parsedResult;
     try {
-      parsedResult = JSON.parse(translationResult);
+      const cleanedResult = translationResult
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/```\s*$/i, '')
+        .trim();
+      parsedResult = JSON.parse(cleanedResult);
     } catch {
       parsedResult = {
         detectedSourceLanguage: sourceLanguage || 'unknown',
@@ -147,6 +170,17 @@ Please provide the translated content in JSON format with the following structur
         subtitles: []
       };
     }
+
+    if (parsedResult?.error) {
+      return new Response(
+        JSON.stringify({ error: parsedResult.error }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const normalizedSubtitles = Array.isArray(parsedResult.subtitles)
+      ? parsedResult.subtitles
+      : [];
 
     console.log("Translation completed successfully");
 
@@ -156,7 +190,7 @@ Please provide the translated content in JSON format with the following structur
         sourceLanguage: parsedResult.detectedSourceLanguage || sourceLanguage,
         targetLanguage,
         translatedScript: parsedResult.translatedScript,
-        subtitles: parsedResult.subtitles,
+        subtitles: normalizedSubtitles,
         options: {
           audioTranslated: options?.translateAudio || false,
           subtitlesGenerated: options?.generateSubtitles || false,
