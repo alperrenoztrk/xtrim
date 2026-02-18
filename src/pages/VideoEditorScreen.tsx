@@ -118,6 +118,91 @@ const moreMenuItems = [
   { id: 'duplicate', icon: Copy, label: 'Duplicate' },
 ];
 
+interface SearchSongResult {
+  trackName?: string;
+  artistName?: string;
+  previewUrl?: string;
+}
+
+const normalizeSearchText = (value: string) =>
+  value
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const scoreSongMatch = (query: string, song: SearchSongResult) => {
+  const normalizedQuery = normalizeSearchText(query);
+  const queryTokens = normalizedQuery.split(' ').filter((token) => token.length > 1);
+  const songText = normalizeSearchText(`${song.trackName ?? ''} ${song.artistName ?? ''}`);
+
+  if (!songText) {
+    return 0;
+  }
+
+  let score = 0;
+  for (const token of queryTokens) {
+    if (songText.includes(token)) {
+      score += token.length;
+    }
+  }
+
+  if (normalizedQuery && songText.includes(normalizedQuery)) {
+    score += normalizedQuery.length * 2;
+  }
+
+  return score;
+};
+
+const findBestSongMatch = async (query: string): Promise<SearchSongResult | null> => {
+  const songCandidates: SearchSongResult[] = [];
+
+  const itunesUrl = new URL('https://itunes.apple.com/search');
+  itunesUrl.searchParams.set('term', query);
+  itunesUrl.searchParams.set('entity', 'song');
+  itunesUrl.searchParams.set('limit', '8');
+
+  const itunesResponse = await fetch(itunesUrl.toString());
+  if (itunesResponse.ok) {
+    const itunesData = (await itunesResponse.json()) as {
+      results?: SearchSongResult[];
+    };
+
+    songCandidates.push(...(itunesData.results ?? []).filter((item) => item.previewUrl));
+  }
+
+  if (!songCandidates.length) {
+    const lyricsSuggestResponse = await fetch(`https://api.lyrics.ovh/suggest/${encodeURIComponent(query)}`);
+    if (lyricsSuggestResponse.ok) {
+      const lyricsSuggestData = (await lyricsSuggestResponse.json()) as {
+        data?: Array<{
+          title?: string;
+          artist?: { name?: string };
+          preview?: string;
+        }>;
+      };
+
+      for (const item of lyricsSuggestData.data ?? []) {
+        if (!item.preview) continue;
+        songCandidates.push({
+          trackName: item.title,
+          artistName: item.artist?.name,
+          previewUrl: item.preview,
+        });
+      }
+    }
+  }
+
+  if (!songCandidates.length) {
+    return null;
+  }
+
+  return songCandidates
+    .sort((a, b) => scoreSongMatch(query, b) - scoreSongMatch(query, a))[0] ?? null;
+};
+
 const TimelineClipItem = ({
   clip,
   media,
@@ -598,28 +683,9 @@ const VideoEditorScreen = () => {
     try {
       setIsSearchingAudio(true);
 
-      const searchUrl = new URL('https://itunes.apple.com/search');
-      searchUrl.searchParams.set('term', query);
-      searchUrl.searchParams.set('entity', 'song');
-      searchUrl.searchParams.set('limit', '1');
-
-      const response = await fetch(searchUrl.toString());
-      if (!response.ok) {
-        throw new Error('search-failed');
-      }
-
-      const data = await response.json() as {
-        resultCount: number;
-        results: Array<{
-          trackName?: string;
-          artistName?: string;
-          previewUrl?: string;
-        }>;
-      };
-
-      const bestMatch = data.results.find((item) => item.previewUrl);
+      const bestMatch = await findBestSongMatch(query);
       if (!bestMatch?.previewUrl) {
-        toast.error('No song found for this name');
+        toast.error('No matching song found from this name or lyrics');
         return;
       }
 
@@ -2038,7 +2104,7 @@ const VideoEditorScreen = () => {
             </Button>
 
             <div className="rounded-lg border border-border p-3 mb-4 space-y-2">
-              <p className="text-xs text-muted-foreground">Type the song name and let the app find it online and add it</p>
+              <p className="text-xs text-muted-foreground">Type the song name or a lyric line and let the app find it online and add it</p>
               <Input
                 placeholder="Song name (e.g., Believer Imagine Dragons)"
                 value={customAudioName}
