@@ -158,49 +158,67 @@ const scoreSongMatch = (query: string, song: SearchSongResult) => {
 
 const findBestSongMatch = async (query: string): Promise<SearchSongResult | null> => {
   const songCandidates: SearchSongResult[] = [];
+  const searchTimeoutController = new AbortController();
+  const timeoutId = window.setTimeout(() => {
+    searchTimeoutController.abort();
+  }, 15_000);
 
-  const itunesUrl = new URL('https://itunes.apple.com/search');
-  itunesUrl.searchParams.set('term', query);
-  itunesUrl.searchParams.set('entity', 'song');
-  itunesUrl.searchParams.set('limit', '8');
+  try {
+    const itunesUrl = new URL('https://itunes.apple.com/search');
+    itunesUrl.searchParams.set('term', query);
+    itunesUrl.searchParams.set('entity', 'song');
+    itunesUrl.searchParams.set('limit', '8');
 
-  const itunesResponse = await fetch(itunesUrl.toString());
-  if (itunesResponse.ok) {
-    const itunesData = (await itunesResponse.json()) as {
-      results?: SearchSongResult[];
-    };
-
-    songCandidates.push(...(itunesData.results ?? []).filter((item) => item.previewUrl));
-  }
-
-  if (!songCandidates.length) {
-    const lyricsSuggestResponse = await fetch(`https://api.lyrics.ovh/suggest/${encodeURIComponent(query)}`);
-    if (lyricsSuggestResponse.ok) {
-      const lyricsSuggestData = (await lyricsSuggestResponse.json()) as {
-        data?: Array<{
-          title?: string;
-          artist?: { name?: string };
-          preview?: string;
-        }>;
+    const itunesResponse = await fetch(itunesUrl.toString(), {
+      signal: searchTimeoutController.signal,
+    });
+    if (itunesResponse.ok) {
+      const itunesData = (await itunesResponse.json()) as {
+        results?: SearchSongResult[];
       };
 
-      for (const item of lyricsSuggestData.data ?? []) {
-        if (!item.preview) continue;
-        songCandidates.push({
-          trackName: item.title,
-          artistName: item.artist?.name,
-          previewUrl: item.preview,
-        });
+      songCandidates.push(...(itunesData.results ?? []).filter((item) => item.previewUrl));
+    }
+
+    if (!songCandidates.length) {
+      const lyricsSuggestResponse = await fetch(`https://api.lyrics.ovh/suggest/${encodeURIComponent(query)}`, {
+        signal: searchTimeoutController.signal,
+      });
+      if (lyricsSuggestResponse.ok) {
+        const lyricsSuggestData = (await lyricsSuggestResponse.json()) as {
+          data?: Array<{
+            title?: string;
+            artist?: { name?: string };
+            preview?: string;
+          }>;
+        };
+
+        for (const item of lyricsSuggestData.data ?? []) {
+          if (!item.preview) continue;
+          songCandidates.push({
+            trackName: item.title,
+            artistName: item.artist?.name,
+            previewUrl: item.preview,
+          });
+        }
       }
     }
-  }
 
-  if (!songCandidates.length) {
-    return null;
-  }
+    if (!songCandidates.length) {
+      return null;
+    }
 
-  return songCandidates
-    .sort((a, b) => scoreSongMatch(query, b) - scoreSongMatch(query, a))[0] ?? null;
+    return songCandidates
+      .sort((a, b) => scoreSongMatch(query, b) - scoreSongMatch(query, a))[0] ?? null;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return null;
+    }
+
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 };
 
 const TimelineClipItem = ({
