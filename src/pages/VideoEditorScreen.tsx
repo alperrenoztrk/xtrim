@@ -1498,6 +1498,13 @@ const VideoEditorScreen = () => {
     }
   };
 
+  const handleTrimPreviewSeek = (time: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.currentTime = Math.max(0, Math.min(time, selectedMedia?.duration || time));
+  };
+
   // When selected clip changes, reset video position
   useEffect(() => {
     const video = videoRef.current;
@@ -1762,6 +1769,7 @@ const VideoEditorScreen = () => {
                   max={selectedClip.endTime - selectedClip.startTime}
                   step={0.01}
                   onValueChange={([value]) => handleSeek(value)}
+                  onValueCommit={([value]) => handleSeek(value)}
                   className="w-full"
                 />
                 {/* Progress indicator line */}
@@ -1818,6 +1826,7 @@ const VideoEditorScreen = () => {
             max={selectedClip ? (selectedClip.endTime - selectedClip.startTime) : Math.max(project.duration, 1)}
             step={0.1}
             onValueChange={([value]) => handleSeek(value)}
+            onValueCommit={([value]) => handleSeek(value)}
             className="w-full"
           />
         </div>
@@ -1910,7 +1919,11 @@ const VideoEditorScreen = () => {
                   min={0}
                   max={trimEnd - 0.1}
                   step={0.1}
-                  onValueChange={([v]) => setTrimStart(v)}
+                  onValueChange={([v]) => {
+                    setTrimStart(v);
+                    handleTrimPreviewSeek(v);
+                  }}
+                  onValueCommit={([v]) => handleTrimPreviewSeek(v)}
                 />
               </div>
               <div>
@@ -1920,7 +1933,11 @@ const VideoEditorScreen = () => {
                   min={trimStart + 0.1}
                   max={selectedMedia?.duration || 10}
                   step={0.1}
-                  onValueChange={([v]) => setTrimEnd(v)}
+                  onValueChange={([v]) => {
+                    setTrimEnd(v);
+                    handleTrimPreviewSeek(v);
+                  }}
+                  onValueCommit={([v]) => handleTrimPreviewSeek(v)}
                 />
               </div>
               <p className="text-xs text-muted-foreground text-center">
