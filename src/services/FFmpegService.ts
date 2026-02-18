@@ -94,6 +94,7 @@ class FFmpegService {
 
     const ffmpeg = this.ffmpeg;
     const sortedClips = [...project.timeline].sort((a, b) => a.order - b.order);
+    const sourceBitrateMbps = this.estimateTimelineSourceBitrateMbps(project, sortedClips);
 
     if (sortedClips.length === 0) {
       throw new Error('Timeline is empty, no clips to export');
@@ -184,7 +185,7 @@ class FFmpegService {
     await ffmpeg.writeFile('concat.txt', concatList);
 
     // Get output settings
-    const { outputExt, codecArgs } = this.getOutputSettings(format, settings);
+    const { outputExt, codecArgs } = this.getOutputSettings(format, settings, sourceBitrateMbps);
     const outputName = `output.${outputExt}`;
 
     // Concatenate all clips
@@ -264,17 +265,34 @@ class FFmpegService {
     return 'mp4';
   }
 
-  private getOutputSettings(format: string, settings: ExportSettings) {
-    const bitrateMap = { low: '2M', medium: '5M', high: '10M' };
-    const bitrate = bitrateMap[settings.bitrate] || '5M';
+  private getOutputSettings(format: string, settings: ExportSettings, sourceBitrateMbps?: number | null) {
+    const qualityBitrateMap = {
+      low: 2,
+      medium: 4,
+      high: 8,
+    } as const;
+    const crfMap = {
+      low: 30,
+      medium: 26,
+      high: 23,
+    } as const;
+
+    const baseBitrateMbps = qualityBitrateMap[settings.bitrate] ?? qualityBitrateMap.medium;
+    const adaptiveBitrateMbps = sourceBitrateMbps
+      ? Math.min(baseBitrateMbps, Math.max(sourceBitrateMbps * 1.15, 1.2))
+      : baseBitrateMbps;
+    const bitrate = `${adaptiveBitrateMbps.toFixed(1)}M`;
+    const maxRate = `${(adaptiveBitrateMbps * 1.25).toFixed(1)}M`;
+    const bufferSize = `${(adaptiveBitrateMbps * 2).toFixed(1)}M`;
+    const crf = String(crfMap[settings.bitrate] ?? crfMap.medium);
 
     switch (format) {
       case 'webm': {
-        const codecArgs = ['-c:v', 'libvpx', '-b:v', bitrate];
+        const codecArgs = ['-c:v', 'libvpx-vp9', '-b:v', bitrate, '-crf', crf, '-maxrate', maxRate, '-bufsize', bufferSize];
         if (settings.removeAudio) {
           codecArgs.push('-an');
         } else {
-          codecArgs.push('-c:a', 'libvorbis');
+          codecArgs.push('-c:a', 'libopus', '-b:a', '128k');
         }
         return { outputExt: 'webm', codecArgs };
       }
@@ -284,14 +302,27 @@ class FFmpegService {
           codecArgs: ['-vf', `fps=${Math.min(settings.fps, 15)},scale=480:-1:flags=lanczos`],
         };
       default: {
-        const codecArgs = ['-c:v', 'libx264', '-b:v', bitrate];
+        const codecArgs = [
+          '-c:v',
+          'libx264',
+          '-preset',
+          'medium',
+          '-crf',
+          crf,
+          '-b:v',
+          bitrate,
+          '-maxrate',
+          maxRate,
+          '-bufsize',
+          bufferSize,
+        ];
         if (settings.hdr) {
           codecArgs.push('-color_primaries', 'bt2020', '-color_trc', 'smpte2084', '-colorspace', 'bt2020nc');
         }
         if (settings.removeAudio) {
           codecArgs.push('-an');
         } else {
-          codecArgs.push('-c:a', 'aac');
+          codecArgs.push('-c:a', 'aac', '-b:a', '128k');
         }
         if (settings.fastStart !== false) {
           codecArgs.push('-movflags', '+faststart');
@@ -302,6 +333,30 @@ class FFmpegService {
         };
       }
     }
+  }
+
+  private estimateTimelineSourceBitrateMbps(project: Project, clips: TimelineClip[]): number | null {
+    let totalBytes = 0;
+    let totalSeconds = 0;
+
+    for (const clip of clips) {
+      const media = project.mediaItems.find(item => item.id === clip.mediaId);
+      if (!media || media.type !== 'video' || !media.size || !media.duration || media.duration <= 0) {
+        continue;
+      }
+
+      const usedDuration = Math.max(clip.endTime - clip.startTime, 0.1);
+      const ratio = Math.min(usedDuration / media.duration, 1);
+      totalBytes += media.size * ratio;
+      totalSeconds += usedDuration;
+    }
+
+    if (totalBytes <= 0 || totalSeconds <= 0) {
+      return null;
+    }
+
+    const bitrateMbps = (totalBytes * 8) / (totalSeconds * 1_000_000);
+    return Number.isFinite(bitrateMbps) ? bitrateMbps : null;
   }
 
   private getMimeType(format: string): string {
