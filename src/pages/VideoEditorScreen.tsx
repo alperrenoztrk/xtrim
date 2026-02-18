@@ -337,6 +337,18 @@ const VideoEditorScreen = () => {
     if (!files || !project) return;
 
     const selectedFiles = Array.from(files);
+    const videoFiles = selectedFiles.filter((file) => MediaService.isVideoFile(file));
+    const ignoredFilesCount = selectedFiles.length - videoFiles.length;
+
+    if (videoFiles.length === 0) {
+      toast.error('Only video files are allowed');
+      return;
+    }
+
+    if (ignoredFilesCount > 0) {
+      toast.warning(`${ignoredFilesCount} non-video file(s) were skipped`);
+    }
+
     setIsMediaImporting(true);
     setMediaImportProgress(0);
     setCurrentImportFileName(null);
@@ -347,7 +359,7 @@ const VideoEditorScreen = () => {
     let photoCount = 0;
 
     try {
-      for (const [index, file] of selectedFiles.entries()) {
+      for (const [index, file] of videoFiles.entries()) {
         setCurrentImportFileName(file.name);
         const mediaItem = await MediaService.createMediaItem(file);
         newMediaItems.push(mediaItem);
@@ -368,7 +380,7 @@ const VideoEditorScreen = () => {
           newClips.push(clip);
         }
 
-        setMediaImportProgress(Math.round(((index + 1) / selectedFiles.length) * 100));
+        setMediaImportProgress(Math.round(((index + 1) / videoFiles.length) * 100));
       }
 
       const updatedProject = {
@@ -1499,7 +1511,7 @@ const VideoEditorScreen = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept={MediaService.getSupportedVideoFormats()}
+        accept="video/*"
         multiple
         className="hidden"
         onChange={(e) => {
