@@ -552,15 +552,18 @@ const PhotoEditorScreen = () => {
       {/* Image preview */}
       <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden p-4">
         {imageUrl ? (
-          <motion.img
+          <motion.div
             key={imageUrl}
-            src={imageUrl}
-            alt="Editing"
-            className="max-h-full max-w-full object-contain rounded-lg"
-            style={getImageStyle()}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-          />
+          >
+            <img
+              src={imageUrl}
+              alt="Editing"
+              className="max-h-full max-w-full object-contain rounded-lg"
+              style={getImageStyle()}
+            />
+          </motion.div>
         ) : (
           <div className="flex flex-col items-center gap-4 text-center">
             <motion.div
