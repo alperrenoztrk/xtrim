@@ -8,6 +8,7 @@ import {
   Undo2,
   Redo2,
   Scissors,
+  Split,
   Trash2,
   Volume2,
   Music,
@@ -86,7 +87,7 @@ interface TextOverlay {
 
 const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string }[] = [
   { id: 'trim', icon: Scissors, label: 'Trim' },
-  { id: 'split', icon: Scissors, label: 'Split' },
+  { id: 'split', icon: Split, label: 'Split' },
   { id: 'delete', icon: Trash2, label: 'Delete' },
   { id: 'audio', icon: Volume2, label: 'Audio' },
   { id: 'text', icon: Type, label: 'Text' },
