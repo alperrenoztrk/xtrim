@@ -1684,12 +1684,6 @@ const VideoEditorScreen = () => {
             <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center">
               <Plus className="w-8 h-8 text-muted-foreground" />
             </div>
-            <div>
-              <p className="text-foreground font-medium">Add media to start editing</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Import video or photo from your device
-              </p>
-            </div>
             <Button
               variant="gradient"
               onClick={() => fileInputRef.current?.click()}
