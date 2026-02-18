@@ -60,6 +60,12 @@ interface FilterPreset {
   preview: string;
 }
 
+interface EditorSnapshot {
+  imageUrl: string | null;
+  adjustments: ImageAdjustments;
+  selectedFilter: string;
+}
+
 const filterPresets: FilterPreset[] = [
   { id: 'none', name: 'Original', adjustments: {}, preview: 'none' },
   { id: 'vivid', name: 'Vivid', adjustments: { saturation: 30, contrast: 15 }, preview: 'saturate(1.45) contrast(1.2)' },
@@ -102,8 +108,8 @@ const PhotoEditorScreen = () => {
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(defaultAdjustments);
   const [selectedFilter, setSelectedFilter] = useState<string>('none');
   const [selectedCropRatio, setSelectedCropRatio] = useState<string>('free');
-  const [undoStack, setUndoStack] = useState<ImageAdjustments[]>([]);
-  const [redoStack, setRedoStack] = useState<ImageAdjustments[]>([]);
+  const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([]);
+  const [redoStack, setRedoStack] = useState<EditorSnapshot[]>([]);
   const [showBackgroundRemover, setShowBackgroundRemover] = useState(false);
   
   // AI Tool states
@@ -137,24 +143,42 @@ const PhotoEditorScreen = () => {
     }
   }, [searchParams]);
 
+  const createSnapshot = useCallback(
+    (): EditorSnapshot => ({
+      imageUrl,
+      adjustments: { ...adjustments },
+      selectedFilter,
+    }),
+    [imageUrl, adjustments, selectedFilter]
+  );
+
+  const restoreSnapshot = useCallback((snapshot: EditorSnapshot) => {
+    setImageUrl(snapshot.imageUrl);
+    setAdjustments(snapshot.adjustments);
+    setSelectedFilter(snapshot.selectedFilter);
+  }, []);
+
   const saveState = useCallback(() => {
-    setUndoStack((prev) => [...prev.slice(-20), adjustments]);
+    const snapshot = createSnapshot();
+    setUndoStack((prev) => [...prev.slice(-20), snapshot]);
     setRedoStack([]);
-  }, [adjustments]);
+  }, [createSnapshot]);
 
   const handleUndo = () => {
     if (undoStack.length === 0) return;
     const previous = undoStack[undoStack.length - 1];
-    setRedoStack((prev) => [...prev, adjustments]);
-    setAdjustments(previous);
+    const currentSnapshot = createSnapshot();
+    setRedoStack((prev) => [...prev, currentSnapshot]);
+    restoreSnapshot(previous);
     setUndoStack((prev) => prev.slice(0, -1));
   };
 
   const handleRedo = () => {
     if (redoStack.length === 0) return;
     const next = redoStack[redoStack.length - 1];
-    setUndoStack((prev) => [...prev, adjustments]);
-    setAdjustments(next);
+    const currentSnapshot = createSnapshot();
+    setUndoStack((prev) => [...prev, currentSnapshot]);
+    restoreSnapshot(next);
     setRedoStack((prev) => prev.slice(0, -1));
   };
 
@@ -296,6 +320,7 @@ const PhotoEditorScreen = () => {
       );
 
       const dataUrl = canvas.toDataURL('image/png');
+      saveState();
       setImageUrl(dataUrl);
       setActiveTab('adjust');
       toast.success('Crop applied');
@@ -303,7 +328,7 @@ const PhotoEditorScreen = () => {
       console.error('Crop error:', error);
       toast.error('Crop could not be applied');
     }
-  }, [imageUrl, selectedCropRatio]);
+  }, [imageUrl, selectedCropRatio, saveState]);
 
   const handleSave = async () => {
     if (!imageUrl) {
@@ -463,6 +488,7 @@ const PhotoEditorScreen = () => {
       if (result.success) {
         const outputUrl = result.outputUrl || result.imageUrl;
         if (outputUrl) {
+          saveState();
           setImageUrl(outputUrl);
           toast.success('AI operation completed!');
         } else {
@@ -937,6 +963,7 @@ const PhotoEditorScreen = () => {
             imageUrl={imageUrl}
             onClose={() => setShowBackgroundRemover(false)}
             onSave={async (resultUrl) => {
+              saveState();
               setImageUrl(resultUrl);
               setShowBackgroundRemover(false);
 
