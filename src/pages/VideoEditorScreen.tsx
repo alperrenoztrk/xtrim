@@ -1500,7 +1500,7 @@ const VideoEditorScreen = () => {
                       This format may not be supported by your browser.
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Desteklenen formatlar: MP4, WebM, OGG
+                      Supported formats: MP4, WebM, OGG
                     </p>
                     <p className="text-xs text-muted-foreground">
                       File name: {selectedMedia?.name}
