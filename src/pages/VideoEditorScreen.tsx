@@ -50,6 +50,7 @@ import VideoTranslatePanel from '@/components/VideoTranslatePanel';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import { ProjectService } from '@/services/ProjectService';
 import { MediaService } from '@/services/MediaService';
 import { ffmpegService } from '@/services/FFmpegService';
@@ -227,6 +228,9 @@ const VideoEditorScreen = () => {
   const [undoStack, setUndoStack] = useState<Project[]>([]);
   const [redoStack, setRedoStack] = useState<Project[]>([]);
   const [videoError, setVideoError] = useState(false);
+  const [isMediaImporting, setIsMediaImporting] = useState(false);
+  const [mediaImportProgress, setMediaImportProgress] = useState(0);
+  const [currentImportFileName, setCurrentImportFileName] = useState<string | null>(null);
   
   // Panel states
   const [showTrimPanel, setShowTrimPanel] = useState(false);
@@ -324,52 +328,70 @@ const VideoEditorScreen = () => {
   const handleAddMedia = async (files: FileList | null) => {
     if (!files || !project) return;
 
+    const selectedFiles = Array.from(files);
+    setIsMediaImporting(true);
+    setMediaImportProgress(0);
+    setCurrentImportFileName(null);
+
     const newMediaItems: MediaItem[] = [];
     const newClips: TimelineClip[] = [];
     let videoCount = 0;
     let photoCount = 0;
 
-    for (const file of Array.from(files)) {
-      const mediaItem = await MediaService.createMediaItem(file);
-      newMediaItems.push(mediaItem);
+    try {
+      for (const [index, file] of selectedFiles.entries()) {
+        setCurrentImportFileName(file.name);
+        const mediaItem = await MediaService.createMediaItem(file);
+        newMediaItems.push(mediaItem);
 
-      if (mediaItem.type === 'video') videoCount++;
-      if (mediaItem.type === 'photo') photoCount++;
+        if (mediaItem.type === 'video') videoCount++;
+        if (mediaItem.type === 'photo') photoCount++;
 
-      if (mediaItem.type !== 'audio') {
-        // Photos get default 5 second duration, videos use their actual duration
-        const defaultDuration = mediaItem.type === 'photo' ? 5 : (mediaItem.duration || 5);
-        const clip: TimelineClip = {
-          id: uuidv4(),
-          mediaId: mediaItem.id,
-          startTime: 0,
-          endTime: defaultDuration,
-          order: project.timeline.length + newClips.length,
-        };
-        newClips.push(clip);
+        if (mediaItem.type !== 'audio') {
+          // Photos get default 5 second duration, videos use their actual duration
+          const defaultDuration = mediaItem.type === 'photo' ? 5 : (mediaItem.duration || 5);
+          const clip: TimelineClip = {
+            id: uuidv4(),
+            mediaId: mediaItem.id,
+            startTime: 0,
+            endTime: defaultDuration,
+            order: project.timeline.length + newClips.length,
+          };
+          newClips.push(clip);
+        }
+
+        setMediaImportProgress(Math.round(((index + 1) / selectedFiles.length) * 100));
       }
-    }
 
-    const updatedProject = {
-      ...project,
-      mediaItems: [...project.mediaItems, ...newMediaItems],
-      timeline: [...project.timeline, ...newClips],
-      duration: [...project.timeline, ...newClips].reduce(
-        (acc, clip) => acc + (clip.endTime - clip.startTime),
-        0
-      ),
-    };
+      const updatedProject = {
+        ...project,
+        mediaItems: [...project.mediaItems, ...newMediaItems],
+        timeline: [...project.timeline, ...newClips],
+        duration: [...project.timeline, ...newClips].reduce(
+          (acc, clip) => acc + (clip.endTime - clip.startTime),
+          0
+        ),
+      };
 
-    saveProject(updatedProject);
+      saveProject(updatedProject);
 
-    // Show feedback toast
-    const parts = [];
-    if (videoCount > 0) parts.push(`${videoCount} video`);
-    if (photoCount > 0) parts.push(`${photoCount} photo`);
-    if (parts.length > 0) {
-      toast.success('Media added', {
-        description: `${parts.join(' and ')} added to timeline`,
+      // Show feedback toast
+      const parts = [];
+      if (videoCount > 0) parts.push(`${videoCount} video`);
+      if (photoCount > 0) parts.push(`${photoCount} photo`);
+      if (parts.length > 0) {
+        toast.success('Media added', {
+          description: `${parts.join(' and ')} added to timeline`,
+        });
+      }
+    } catch (error) {
+      toast.error('Media import failed', {
+        description: 'An error occurred while adding media. Please try again.',
       });
+    } finally {
+      setCurrentImportFileName(null);
+      setMediaImportProgress(0);
+      setIsMediaImporting(false);
     }
   };
 
@@ -1185,7 +1207,10 @@ const VideoEditorScreen = () => {
         accept={MediaService.getSupportedVideoFormats()}
         multiple
         className="hidden"
-        onChange={(e) => handleAddMedia(e.target.files)}
+        onChange={(e) => {
+          handleAddMedia(e.target.files);
+          e.target.value = '';
+        }}
       />
       <input
         ref={audioInputRef}
@@ -1337,10 +1362,26 @@ const VideoEditorScreen = () => {
                 Import video or photo from your device
               </p>
             </div>
-            <Button variant="gradient" onClick={() => fileInputRef.current?.click()}>
+            <Button
+              variant="gradient"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isMediaImporting}
+            >
               <Plus className="w-4 h-4" />
-              Add Media
+              {isMediaImporting ? `Loading... %${mediaImportProgress}` : 'Add Media'}
             </Button>
+
+            {isMediaImporting && (
+              <div className="w-full max-w-sm rounded-lg border border-border bg-card/90 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-muted-foreground truncate">
+                    {currentImportFileName ? `Loading: ${currentImportFileName}` : 'Loading media...'}
+                  </span>
+                  <span className="text-foreground font-semibold">%{mediaImportProgress}</span>
+                </div>
+                <Progress value={mediaImportProgress} className="h-2" />
+              </div>
+            )}
           </div>
         )}
 
@@ -1508,9 +1549,10 @@ const VideoEditorScreen = () => {
               variant="ghost"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
+              disabled={isMediaImporting}
             >
               <Plus className="w-4 h-4" />
-              Add Media
+              {isMediaImporting ? `Loading... %${mediaImportProgress}` : 'Add Media'}
             </Button>
           </div>
         )}
