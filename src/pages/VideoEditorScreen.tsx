@@ -235,8 +235,8 @@ const VideoEditorScreen = () => {
   // Panel states
   const [showTrimPanel, setShowTrimPanel] = useState(false);
   const [showAudioPanel, setShowAudioPanel] = useState(false);
-  const [customAudioUrl, setCustomAudioUrl] = useState('');
   const [customAudioName, setCustomAudioName] = useState('');
+  const [isSearchingAudio, setIsSearchingAudio] = useState(false);
   const [showTextPanel, setShowTextPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAutoCutPanel, setShowAutoCutPanel] = useState(false);
@@ -530,24 +530,50 @@ const VideoEditorScreen = () => {
     });
   };
 
-  const handleAddAudioFromUrl = () => {
+  const handleAddAudioFromSearch = async () => {
     if (!project) return;
 
-    const trimmedUrl = customAudioUrl.trim();
-    if (!trimmedUrl) {
-      toast.error('Please enter an audio URL');
+    const query = customAudioName.trim();
+    if (!query) {
+      toast.error('Please enter a song name');
       return;
     }
 
     try {
-      const parsedUrl = new URL(trimmedUrl);
-      const urlPathName = parsedUrl.pathname.split('/').pop() || '';
-      const fallbackName = decodeURIComponent(urlPathName) || 'Custom Audio';
+      setIsSearchingAudio(true);
+
+      const searchUrl = new URL('https://itunes.apple.com/search');
+      searchUrl.searchParams.set('term', query);
+      searchUrl.searchParams.set('entity', 'song');
+      searchUrl.searchParams.set('limit', '1');
+
+      const response = await fetch(searchUrl.toString());
+      if (!response.ok) {
+        throw new Error('search-failed');
+      }
+
+      const data = await response.json() as {
+        resultCount: number;
+        results: Array<{
+          trackName?: string;
+          artistName?: string;
+          previewUrl?: string;
+        }>;
+      };
+
+      const bestMatch = data.results.find((item) => item.previewUrl);
+      if (!bestMatch?.previewUrl) {
+        toast.error('No song found for this name');
+        return;
+      }
+
+      const trackLabel = [bestMatch.trackName, bestMatch.artistName].filter(Boolean).join(' - ');
+      const resolvedName = trackLabel || query;
 
       const audioTrack: AudioTrack = {
         id: uuidv4(),
-        uri: parsedUrl.toString(),
-        name: customAudioName.trim() || fallbackName,
+        uri: bestMatch.previewUrl,
+        name: resolvedName,
         startTime: 0,
         endTime: project.duration || 10,
         trimStart: 0,
@@ -563,11 +589,12 @@ const VideoEditorScreen = () => {
         audioTracks: [...project.audioTracks, audioTrack],
       });
 
-      setCustomAudioUrl('');
       setCustomAudioName('');
-      toast.success('Audio track added');
+      toast.success('Song found and added');
     } catch {
-      toast.error('Please enter a valid URL');
+      toast.error('Could not search song right now');
+    } finally {
+      setIsSearchingAudio(false);
     }
   };
 
@@ -1683,28 +1710,26 @@ const VideoEditorScreen = () => {
             </Button>
 
             <div className="rounded-lg border border-border p-3 mb-4 space-y-2">
-              <p className="text-xs text-muted-foreground">Add music with an audio link</p>
+              <p className="text-xs text-muted-foreground">Şarkı adını yazın, uygulama internetten bulup eklesin</p>
               <Input
-                placeholder="Song name (optional)"
+                placeholder="Şarkı adı (örn: Believer Imagine Dragons)"
                 value={customAudioName}
                 onChange={(e) => setCustomAudioName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddAudioFromSearch();
+                  }
+                }}
               />
-              <div className="flex gap-2">
-                <Input
-                  placeholder="https://example.com/song.mp3"
-                  value={customAudioUrl}
-                  onChange={(e) => setCustomAudioUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddAudioFromUrl();
-                    }
-                  }}
-                />
-                <Button size="sm" onClick={handleAddAudioFromUrl}>
-                  Add
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                onClick={handleAddAudioFromSearch}
+                disabled={isSearchingAudio}
+                className="w-full"
+              >
+                {isSearchingAudio ? 'Aranıyor...' : 'Şarkıyı Bul ve Ekle'}
+              </Button>
             </div>
             
             {/* Audio tracks list */}
