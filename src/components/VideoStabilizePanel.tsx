@@ -191,7 +191,7 @@ export const VideoStabilizePanel = ({
   const getShakeLevelLabel = (level: StabilizationResult['shakeLevel']) => {
     switch (level) {
       case 'low': return 'Low Shake';
-      case 'medium': return 'Middle Titreme';
+      case 'medium': return 'Medium Shake';
       case 'high': return 'High Shake';
     }
   };
@@ -207,7 +207,7 @@ export const VideoStabilizePanel = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Aperture className="w-5 h-5 text-primary" />
-          <h3 className="font-medium">AI Video Stabilizasyon</h3>
+          <h3 className="font-medium">AI Video Stabilization</h3>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="w-4 h-4" />
@@ -223,7 +223,7 @@ export const VideoStabilizePanel = ({
               <Activity className="w-8 h-8 text-primary" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium">Video Titreme Analizi</p>
+              <p className="text-sm font-medium">Video Shake Analysis</p>
               <p className="text-xs text-muted-foreground mt-1">
                 AI, will analyze shake levels in your video and suggest suitable stabilization settings
               </p>
@@ -280,7 +280,7 @@ export const VideoStabilizePanel = ({
             {/* Shake Level Indicator */}
             <div className="bg-secondary rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium">Titreme Seviyesi</span>
+                <span className="text-sm font-medium">Shake Level</span>
                 <span className={`text-sm font-bold ${getShakeLevelColor(analysisResult.shakeLevel)}`}>
                   {getShakeLevelLabel(analysisResult.shakeLevel)}
                 </span>
@@ -294,9 +294,9 @@ export const VideoStabilizePanel = ({
                 />
               </div>
               <div className="flex justify-between mt-1">
-                <span className="text-xs text-muted-foreground">Stabil</span>
+                <span className="text-xs text-muted-foreground">Stable</span>
                 <span className="text-xs text-muted-foreground">%{analysisResult.shakeLevelPercent}</span>
-                <span className="text-xs text-muted-foreground">Titrek</span>
+                <span className="text-xs text-muted-foreground">Shaky</span>
               </div>
             </div>
 

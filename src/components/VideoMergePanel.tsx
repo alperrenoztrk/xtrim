@@ -36,7 +36,7 @@ const transitionEffects: TransitionEffect[] = [
   { id: 'zoom', name: 'Zoom', icon: Sparkles, description: 'Zoom effect', isPro: false, duration: 0.5 },
   
   // Pro transitions
-  { id: 'glitch', name: 'Glitch', icon: Zap, description: 'Dijital bozulma efekti', isPro: true, duration: 0.75 },
+  { id: 'glitch', name: 'Glitch', icon: Zap, description: 'Digital glitch effect', isPro: true, duration: 0.75 },
   { id: 'whip', name: 'Quick Transition', icon: Zap, description: 'Quick pan effect', isPro: true, duration: 0.3 },
   { id: 'morph', name: 'Morph', icon: Wand2, description: 'Shape morph', isPro: true, duration: 1 },
   { id: 'light-leak', name: 'Light Leak', icon: Sparkles, description: 'Cinematic light effect', isPro: true, duration: 0.75 },
@@ -167,7 +167,7 @@ export const VideoMergePanel = ({
         <div className="relative h-20 bg-black/80 rounded-lg overflow-hidden flex items-center justify-center">
           <div className="flex items-center gap-2">
             <div className="w-16 h-12 rounded bg-gradient-to-br from-primary/50 to-primary/30 flex items-center justify-center text-xs text-white">
-              Klip 1
+              Clip 1
             </div>
             <div className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center transition-all",
@@ -190,7 +190,7 @@ export const VideoMergePanel = ({
               </AnimatePresence>
             </div>
             <div className="w-16 h-12 rounded bg-gradient-to-br from-accent/50 to-accent/30 flex items-center justify-center text-xs text-white">
-              Klip 2
+              Clip 2
             </div>
           </div>
           {previewTransition && (

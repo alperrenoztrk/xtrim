@@ -138,7 +138,7 @@ const ExportScreen = () => {
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const [estimatedSize, setEstimatedSize] = useState('0 MB');
-  const [estimatedTime, setEstimatedTime] = useState('0 dk');
+  const [estimatedTime, setEstimatedTime] = useState('0 min');
   const [exportedVideoBlob, setExportedVideoBlob] = useState<Blob | null>(null);
   const [isNative] = useState(nativeExportService.isNativePlatform());
 
@@ -202,9 +202,9 @@ const ExportScreen = () => {
     const estimatedSeconds = duration * timeMultiplier * 0.5;
     
     if (estimatedSeconds < 60) {
-      setEstimatedTime(`~${Math.max(5, Math.round(estimatedSeconds))} sn`);
+      setEstimatedTime(`~${Math.max(5, Math.round(estimatedSeconds))} sec`);
     } else {
-      setEstimatedTime(`~${Math.round(estimatedSeconds / 60)} dk`);
+      setEstimatedTime(`~${Math.round(estimatedSeconds / 60)} min`);
     }
   }, [project, settings, selectedFormat]);
 
@@ -224,7 +224,7 @@ const ExportScreen = () => {
     if (isNative) {
       const hasPermission = await nativeExportService.checkPermissions();
       if (!hasPermission) {
-        toast.error('Dosya kaydetme izni gerekli');
+        toast.error('File save permission required');
         return;
       }
     }

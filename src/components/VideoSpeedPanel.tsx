@@ -134,7 +134,7 @@ export const VideoSpeedPanel = ({
 
         {/* Speed Presets */}
         <div>
-          <p className="text-xs text-muted-foreground mb-3 font-medium">Fast Selectim</p>
+          <p className="text-xs text-muted-foreground mb-3 font-medium">Quick Selection</p>
           <div className="grid grid-cols-4 gap-2">
             {speedPresets.map((preset) => (
               <Button
@@ -206,7 +206,7 @@ export const VideoSpeedPanel = ({
         <div className="bg-secondary rounded-lg p-3">
           <div className="flex items-center gap-2 mb-2">
             <Timer className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">Duration Bilgisi</span>
+            <span className="text-sm font-medium">Duration Info</span>
           </div>
           <p className="text-xs text-muted-foreground">
             Clip duration does not change, only playback speed is updated.
