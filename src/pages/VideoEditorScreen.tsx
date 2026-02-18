@@ -1987,7 +1987,7 @@ const VideoEditorScreen = () => {
             <div className="space-y-4">
               <div>
                 <label className="text-xs text-muted-foreground block mb-2">
-                  Hangi saniyeden kesilsin?
+                  At which second should it be cut?
                 </label>
                 <Input
                   type="number"
@@ -1998,12 +1998,12 @@ const VideoEditorScreen = () => {
                   onChange={(e) => setSplitTime(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  Aralık: {selectedClip.startTime.toFixed(1)}s - {selectedClip.endTime.toFixed(1)}s
+                  Range: {selectedClip.startTime.toFixed(1)}s - {selectedClip.endTime.toFixed(1)}s
                 </p>
               </div>
               <Button variant="gradient" size="sm" onClick={handleApplySplit} className="w-full">
                 <Scissors className="w-4 h-4" />
-                Uygula
+                Apply
               </Button>
             </div>
           </motion.div>
