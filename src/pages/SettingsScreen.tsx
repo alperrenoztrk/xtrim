@@ -418,10 +418,9 @@ const SettingsScreen = () => {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="absolute bottom-0 left-0 right-0 bg-card rounded-t-2xl p-6 safe-area-bottom max-h-[80vh] overflow-y-auto"
+              className="absolute inset-0 bg-card p-6 safe-area-bottom overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-6" />
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Privacy Policy</h3>
                 <Button variant="ghost" size="sm" onClick={() => setShowPrivacySheet(false)}>
