@@ -2207,27 +2207,30 @@ const VideoEditorScreen = () => {
                 <Slider
                   value={[trimStart]}
                   min={0}
-                  max={trimEnd - 0.1}
+                  max={selectedMedia?.duration || 10}
                   step={0.1}
                   onValueChange={([v]) => {
-                    setTrimStart(v);
-                    handleTrimPreviewSeek(v);
+                    const nextStart = Math.max(0, Math.min(v, trimEnd - 0.1));
+                    setTrimStart(nextStart);
+                    handleTrimPreviewSeek(nextStart);
                   }}
-                  onValueCommit={([v]) => handleTrimPreviewSeek(v)}
+                  onValueCommit={([v]) => handleTrimPreviewSeek(Math.max(0, Math.min(v, trimEnd - 0.1)))}
                 />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">End: {MediaService.formatDuration(trimEnd)}</label>
                 <Slider
                   value={[trimEnd]}
-                  min={trimStart + 0.1}
+                  min={0}
                   max={selectedMedia?.duration || 10}
                   step={0.1}
                   onValueChange={([v]) => {
-                    setTrimEnd(v);
-                    handleTrimPreviewSeek(v);
+                    const maxEnd = selectedMedia?.duration || 10;
+                    const nextEnd = Math.min(maxEnd, Math.max(v, trimStart + 0.1));
+                    setTrimEnd(nextEnd);
+                    handleTrimPreviewSeek(nextEnd);
                   }}
-                  onValueCommit={([v]) => handleTrimPreviewSeek(v)}
+                  onValueCommit={([v]) => handleTrimPreviewSeek(Math.min(selectedMedia?.duration || 10, Math.max(v, trimStart + 0.1)))}
                 />
               </div>
               <p className="text-xs text-muted-foreground text-center">
