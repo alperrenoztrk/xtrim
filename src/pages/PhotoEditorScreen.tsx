@@ -27,7 +27,6 @@ import {
   Trash2,
   Volume2,
   MoreHorizontal,
-  Plus,
   Bot,
   Loader2,
   Share2,
@@ -145,6 +144,7 @@ const PhotoEditorScreen = () => {
   const [activeQuickTool, setActiveQuickTool] = useState<QuickTool | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [openCollageAfterSelection, setOpenCollageAfterSelection] = useState(false);
   
   // AI Tool states
   const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
@@ -267,7 +267,10 @@ const PhotoEditorScreen = () => {
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      setOpenCollageAfterSelection(false);
+      return;
+    }
 
     const imageUrls = files.map((file) => URL.createObjectURL(file));
     const mergedImages = Array.from(new Set([...selectedImageUrls, ...imageUrls]));
@@ -279,8 +282,9 @@ const PhotoEditorScreen = () => {
     setUndoStack([]);
     setRedoStack([]);
 
-    if (files.length > 1) {
-      openCollageEditor(imageUrls);
+    if (openCollageAfterSelection || mergedImages.length > 1) {
+      openCollageEditor(mergedImages);
+      setOpenCollageAfterSelection(false);
     }
 
     e.target.value = '';
@@ -607,7 +611,13 @@ const PhotoEditorScreen = () => {
 
     switch (toolId) {
       case 'collage':
-        openCollageEditor(selectedImageUrls);
+        if (selectedImageUrls.length < 2) {
+          setOpenCollageAfterSelection(true);
+          fileInputRef.current?.click();
+          toast.info('Select another photo to continue with collage.');
+        } else {
+          openCollageEditor(selectedImageUrls);
+        }
         break;
       case 'delete':
         setShowDeleteConfirm(true);
@@ -772,17 +782,6 @@ const PhotoEditorScreen = () => {
 
       {imageUrl && (
         <>
-          <div className="bg-card border-t border-border border-b">
-            <Button
-              variant="ghost"
-              className="w-full h-16 rounded-none text-lg font-medium"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Plus className="w-7 h-7" />
-              Add Media
-            </Button>
-          </div>
-
           {/* Tab selector */}
           <div className="flex border-b border-border bg-card overflow-x-auto scrollbar-hide">
             {[
@@ -1112,12 +1111,9 @@ const PhotoEditorScreen = () => {
                         key={tool.id}
                         className={cn(
                           'h-20 rounded-xl border border-border bg-background transition-colors px-3 flex items-center gap-3',
-                          tool.id === 'collage' && selectedImageUrls.length < 2
-                            ? 'opacity-50 cursor-not-allowed'
-                            : 'hover:bg-secondary/40'
+                          'hover:bg-secondary/40'
                         )}
                         onClick={() => handleQuickToolClick(tool.id)}
-                        disabled={tool.id === 'collage' && selectedImageUrls.length < 2}
                       >
                         <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                           <tool.icon className="w-4 h-4" />
