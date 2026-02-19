@@ -76,7 +76,7 @@ const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect, onProjectOpen }: 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="fixed inset-0 z-50 bg-background"
+            className="fixed inset-0 z-50 bg-background flex h-full flex-col"
             initial={{ opacity: 0, y: '100%' }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: '100%' }}
@@ -91,7 +91,7 @@ const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect, onProjectOpen }: 
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6 pb-32">
+            <div className="min-h-0 flex-1 overflow-y-auto p-6 pb-32">
               {/* New Project Button */}
               <Button
                 variant="gradient"
