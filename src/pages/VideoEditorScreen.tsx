@@ -2025,39 +2025,61 @@ const VideoEditorScreen = () => {
         )}
 
         {/* Timeline controls */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">
-              {MediaService.formatDuration(currentTime)}
-            </span>
-            <span className="text-xs text-muted-foreground">/</span>
-            <span className="text-xs text-muted-foreground">
-              {MediaService.formatDuration(project.duration)}
-            </span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="iconGhost"
-              size="iconSm"
-              onClick={() => setTimelineZoom((z) => Math.max(0.5, z - 0.25))}
-            >
-              <ZoomOut className="w-4 h-4" />
-            </Button>
-            <span className="text-xs text-muted-foreground w-12 text-center">
-              {Math.round(timelineZoom * 100)}%
-            </span>
-            <Button
-              variant="iconGhost"
-              size="iconSm"
-              onClick={() => setTimelineZoom((z) => Math.min(2, z + 0.25))}
-            >
-              <ZoomIn className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+        <div className="px-4 py-3 border-b border-border bg-muted/20 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground tabular-nums">
+                {MediaService.formatDuration(currentTime)}
+              </span>
+              <span>/</span>
+              <span className="tabular-nums">{MediaService.formatDuration(project.duration)}</span>
+            </div>
 
-        {/* Timeline scrubber */}
-        <div className="px-4 py-2">
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="iconGhost"
+                size="iconSm"
+                onClick={() => handleSeek(0)}
+                title="Başa git"
+              >
+                <SkipBack className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="iconGhost"
+                size="iconSm"
+                onClick={() => setTimelineZoom((z) => Math.max(0.5, z - 0.25))}
+              >
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground w-12 text-center tabular-nums">
+                {Math.round(timelineZoom * 100)}%
+              </span>
+              <Button
+                variant="iconGhost"
+                size="iconSm"
+                onClick={() => setTimelineZoom((z) => Math.min(2, z + 0.25))}
+              >
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setTimelineZoom(1)}
+                className="h-8 px-2 text-[11px]"
+              >
+                Fit
+              </Button>
+              <Button
+                variant="iconGhost"
+                size="iconSm"
+                onClick={() => handleSeek(Math.max(project.duration, 0))}
+                title="Sona git"
+              >
+                <SkipForward className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
           <Slider
             value={[currentTime]}
             max={selectedClip ? (selectedClip.endTime - selectedClip.startTime) : Math.max(project.duration, 1)}
@@ -2068,8 +2090,36 @@ const VideoEditorScreen = () => {
           />
         </div>
 
+        {/* Timeline ruler */}
+        <div className="relative px-4 pt-2 border-b border-border bg-background/70">
+          <div className="relative h-5 rounded-md bg-muted/30 overflow-hidden">
+            {Array.from({ length: 6 }).map((_, index) => {
+              const ratio = index / 5;
+              const duration = Math.max(project.duration, 1) * ratio;
+
+              return (
+                <div
+                  key={`ruler-${index}`}
+                  className="absolute top-0 bottom-0 border-l border-border/70"
+                  style={{ left: `${ratio * 100}%` }}
+                >
+                  <span className="absolute -top-0.5 left-1 text-[10px] text-muted-foreground tabular-nums">
+                    {MediaService.formatDuration(duration)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Clips */}
-        <div className="relative h-24 px-4 overflow-x-auto scrollbar-hide">
+        <div className="relative h-24 px-4 overflow-x-auto scrollbar-hide bg-gradient-to-b from-background to-muted/20">
+          <div
+            className="absolute top-0 bottom-0 w-px bg-primary/60 pointer-events-none"
+            style={{
+              left: `${(Math.max(currentTime, 0) / Math.max(project.duration, 1)) * 100}%`,
+            }}
+          />
           {project.timeline.length > 0 ? (
             <Reorder.Group
               axis="x"
