@@ -2364,7 +2364,7 @@ const VideoEditorScreen = () => {
               </Button>
             </div>
             
-            {/* Add audio track button */}
+            {/* Add local audio track button */}
             <Button
               variant="outline"
               size="sm"
@@ -2372,8 +2372,12 @@ const VideoEditorScreen = () => {
               onClick={() => audioInputRef.current?.click()}
             >
               <Music className="w-4 h-4" />
-              Add Audio Track
+              Add Audio from Device
             </Button>
+
+            <p className="text-xs text-muted-foreground mb-3">
+              You can upload local audio files (MP3, WAV, M4A...) from your device or search songs online below.
+            </p>
 
             <div className="rounded-lg border border-border p-3 mb-4 space-y-2">
               <p className="text-xs text-muted-foreground">Type the song name or a lyric line and let the app find it online and add it</p>
