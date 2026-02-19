@@ -37,6 +37,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import BackgroundRemover from '@/components/BackgroundRemover';
@@ -104,12 +110,11 @@ const defaultAdjustments: ImageAdjustments = {
 
 type QuickTool = 'trim' | 'delete' | 'audio' | 'text' | 'more';
 
-const quickTools: { id: QuickTool; icon: React.ComponentType<any>; label: string }[] = [
+const moreMenuTools: { id: Exclude<QuickTool, 'more'>; icon: React.ComponentType<any>; label: string }[] = [
   { id: 'trim', icon: Scissors, label: 'Trim' },
   { id: 'delete', icon: Trash2, label: 'Delete' },
   { id: 'audio', icon: Volume2, label: 'Audio' },
   { id: 'text', icon: Type, label: 'Text' },
-  { id: 'more', icon: MoreHorizontal, label: 'More' },
 ];
 
 const PhotoEditorScreen = () => {
@@ -690,22 +695,35 @@ const PhotoEditorScreen = () => {
             </Button>
           </div>
 
-          <div className="flex items-center justify-around py-2 px-2 border-b border-border bg-card overflow-x-auto scrollbar-hide">
-            {quickTools.map((tool) => (
-              <Button
-                key={tool.id}
-                variant="ghost"
-                size="sm"
-                className={cn(
-                  'flex-col gap-1 h-auto min-w-[70px] py-2',
-                  activeQuickTool === tool.id && 'text-primary'
-                )}
-                onClick={() => handleQuickToolClick(tool.id)}
-              >
-                <tool.icon className="w-5 h-5" />
-                <span className="text-xxs">{tool.label}</span>
-              </Button>
-            ))}
+          <div className="flex items-center justify-around py-2 px-2 border-b border-border bg-card">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    'flex-col gap-1 h-auto min-w-[70px] py-2',
+                    activeQuickTool === 'more' && 'text-primary'
+                  )}
+                  onClick={() => setActiveQuickTool('more')}
+                >
+                  <MoreHorizontal className="w-5 h-5" />
+                  <span className="text-xxs">More</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                {moreMenuTools.map((tool) => (
+                  <DropdownMenuItem
+                    key={tool.id}
+                    className="gap-2"
+                    onClick={() => handleQuickToolClick(tool.id)}
+                  >
+                    <tool.icon className="w-4 h-4" />
+                    {tool.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Tab selector */}
