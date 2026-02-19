@@ -39,57 +39,25 @@ class NativeExportService {
         return this.downloadForWeb(videoBlob, safeFileName);
       }
 
-      const hasPermission = await this.checkPermissions();
-      if (!hasPermission) {
-        return {
-          success: false,
-          error: 'File save permission required',
-        };
+      const hasPublicStoragePermission = await this.checkPermissions();
+
+      // Public location when possible; otherwise fallback to app documents so export still succeeds.
+      const targetDirectory = hasPublicStoragePermission
+        ? this.getPlatform() === 'ios'
+          ? Directory.Documents
+          : Directory.External
+        : Directory.Documents;
+
+      const result = await this.writeVideoFile(videoBlob, safeFileName, targetDirectory);
+
+      // For Android, attempt additional gallery copy only when permission is available.
+      if (this.getPlatform() === 'android' && hasPublicStoragePermission && result.filePath) {
+        const fileExtensionMatch = safeFileName.match(/(\.[^./]+)$/);
+        const fileExtension = fileExtensionMatch ? fileExtensionMatch[1] : '';
+        await this.copyToGallery(result.filePath, result.fileName, fileExtension);
       }
 
-      // Convert blob to base64
-      const base64Data = await this.blobToBase64(videoBlob);
-
-      // Determine directory based on platform
-      const directory = this.getPlatform() === 'ios' 
-        ? Directory.Documents 
-        : Directory.External;
-
-      // Create Xtrim folder if it doesn't exist
-      try {
-        await Filesystem.mkdir({
-          path: 'Xtrim',
-          directory,
-          recursive: true,
-        });
-      } catch (e) {
-        // Directory might already exist, that's fine
-      }
-
-      // Generate unique filename with timestamp while preserving extension
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const fileExtensionMatch = safeFileName.match(/(\.[^./]+)$/);
-      const fileExtension = fileExtensionMatch ? fileExtensionMatch[1] : '';
-      const fileBaseName = fileExtension ? safeFileName.slice(0, -fileExtension.length) : safeFileName;
-      const uniqueFileName = `${fileBaseName}_${timestamp}${fileExtension}`;
-
-      // Write file
-      const result = await Filesystem.writeFile({
-        path: `Xtrim/${uniqueFileName}`,
-        data: base64Data,
-        directory,
-        recursive: true,
-      });
-
-      // For Android, also save to gallery
-      if (this.getPlatform() === 'android') {
-        await this.copyToGallery(result.uri, uniqueFileName, fileExtension);
-      }
-
-      return {
-        success: true,
-        filePath: result.uri,
-      };
+      return { success: true, filePath: result.filePath };
     } catch (error) {
       console.error('Save video error:', error);
       return {
@@ -97,6 +65,42 @@ class NativeExportService {
         error: error instanceof Error ? error.message : 'Save error',
       };
     }
+  }
+
+  private async writeVideoFile(
+    videoBlob: Blob,
+    safeFileName: string,
+    directory: Directory
+  ): Promise<{ filePath: string; fileName: string }> {
+    const base64Data = await this.blobToBase64(videoBlob);
+
+    try {
+      await Filesystem.mkdir({
+        path: 'Xtrim',
+        directory,
+        recursive: true,
+      });
+    } catch {
+      // Directory may already exist.
+    }
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileExtensionMatch = safeFileName.match(/(\.[^./]+)$/);
+    const fileExtension = fileExtensionMatch ? fileExtensionMatch[1] : '';
+    const fileBaseName = fileExtension ? safeFileName.slice(0, -fileExtension.length) : safeFileName;
+    const uniqueFileName = `${fileBaseName}_${timestamp}${fileExtension}`;
+
+    const result = await Filesystem.writeFile({
+      path: `Xtrim/${uniqueFileName}`,
+      data: base64Data,
+      directory,
+      recursive: true,
+    });
+
+    return {
+      filePath: result.uri,
+      fileName: uniqueFileName,
+    };
   }
 
   // Share video using native share sheet
