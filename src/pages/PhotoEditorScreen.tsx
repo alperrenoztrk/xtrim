@@ -639,23 +639,11 @@ const PhotoEditorScreen = () => {
             />
           </motion.div>
         ) : (
-          <div className="flex flex-col items-center gap-4 text-center">
-            <motion.div
-              className="w-24 h-24 rounded-2xl bg-secondary flex items-center justify-center"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <ImagePlus className="w-10 h-10 text-muted-foreground" />
-            </motion.div>
-            <div>
-              <p className="text-foreground font-medium">Select a photo to edit</p>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="gradient" onClick={() => fileInputRef.current?.click()}>
-                <ImagePlus className="w-4 h-4" />
-                Photo Select
-              </Button>
-            </div>
+          <div className="flex items-center justify-center">
+            <Button variant="gradient" onClick={() => fileInputRef.current?.click()}>
+              <ImagePlus className="w-4 h-4" />
+              Select a photo
+            </Button>
           </div>
         )}
 
