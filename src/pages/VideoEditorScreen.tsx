@@ -2204,7 +2204,7 @@ const VideoEditorScreen = () => {
               values={project.timeline}
               onReorder={handleReorderClips}
               className="flex gap-2 h-full items-center py-2"
-              style={{ transform: `scaleX(${timelineZoom})`, transformOrigin: 'left' }}
+              style={{ transform: `scaleX(${timelineZoom})`, transformOrigin: 'right center' }}
             >
               {project.timeline
                 .sort((a, b) => a.order - b.order)
