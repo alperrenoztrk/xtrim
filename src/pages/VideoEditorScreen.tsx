@@ -68,7 +68,7 @@ import { cn } from '@/lib/utils';
 import type { Project, TimelineClip, MediaItem, AudioTrack } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
-type EditorTool = 'trim' | 'split' | 'delete' | 'audio' | 'text' | 'effects' | 'layers' | 'autocut';
+type EditorTool = 'trim' | 'split' | 'audio' | 'text' | 'effects' | 'layers' | 'autocut';
 
 interface TextStyle {
   fontFamily: string;
@@ -97,7 +97,6 @@ interface TextOverlay {
 const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string }[] = [
   { id: 'trim', icon: Scissors, label: 'Trim' },
   { id: 'split', icon: Split, label: 'Split' },
-  { id: 'delete', icon: Trash2, label: 'Delete' },
   { id: 'audio', icon: Volume2, label: 'Audio' },
   { id: 'text', icon: Type, label: 'Text' },
   { id: 'effects', icon: Sparkles, label: 'Effects' },
@@ -117,6 +116,7 @@ const moreMenuItems = [
   { id: 'crop', icon: Crop, label: 'Crop' },
   { id: 'rotate', icon: RotateCcw, label: 'Rotate' },
   { id: 'color', icon: Palette, label: 'Color' },
+  { id: 'delete', icon: Trash2, label: 'Delete' },
   { id: 'duplicate', icon: Copy, label: 'Duplicate' },
 ];
 
@@ -1382,6 +1382,9 @@ const VideoEditorScreen = () => {
           });
         }
         break;
+      case 'delete':
+        if (selectedClipId) handleDeleteClip();
+        break;
       case 'speed':
         handleOpenSpeed();
         break;
@@ -1409,9 +1412,6 @@ const VideoEditorScreen = () => {
         break;
       case 'split':
         if (selectedClipId) handleOpenSplit();
-        break;
-      case 'delete':
-        if (selectedClipId) handleDeleteClip();
         break;
       case 'audio':
         handleOpenAudio();
