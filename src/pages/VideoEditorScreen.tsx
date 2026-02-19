@@ -1350,6 +1350,17 @@ const VideoEditorScreen = () => {
 
   // Tool click handler
   const handleToolClick = (toolId: EditorTool) => {
+    const hasVideoClip = Boolean(
+      project?.timeline.some((clip) => {
+        const media = project.mediaItems.find((item) => item.id === clip.mediaId);
+        return media?.type === 'video';
+      })
+    );
+
+    if ((toolId === 'audio' || toolId === 'text' || toolId === 'effects') && !hasVideoClip) {
+      return;
+    }
+
     setActiveTool(activeTool === toolId ? null : toolId);
     
     switch (toolId) {
@@ -1671,6 +1682,10 @@ const VideoEditorScreen = () => {
     ? project.mediaItems.find((m) => m.id === selectedClip.mediaId)
     : null;
   const hasAnyClip = project.timeline.length > 0;
+  const hasVideoInTimeline = project.timeline.some((clip) => {
+    const media = project.mediaItems.find((item) => item.id === clip.mediaId);
+    return media?.type === 'video';
+  });
 
   return (
     <div className="h-screen flex flex-col bg-background safe-area-top overflow-hidden">
@@ -2586,7 +2601,8 @@ const VideoEditorScreen = () => {
             )}
             onClick={() => handleToolClick(tool.id)}
             disabled={
-              (tool.id === 'trim' || tool.id === 'split' || tool.id === 'delete') && !selectedClipId
+              ((tool.id === 'trim' || tool.id === 'split') && !selectedClipId) ||
+              ((tool.id === 'audio' || tool.id === 'text' || tool.id === 'effects') && !hasVideoInTimeline)
             }
           >
             <tool.icon className="w-5 h-5" />
