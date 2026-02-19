@@ -280,3 +280,17 @@
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
+
+.dragon-wallpaper {
+  display: none;
+}
+
+.light .dragon-wallpaper {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dragon-wallpaper {
+    display: none;
+  }
+}
