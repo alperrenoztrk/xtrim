@@ -689,6 +689,8 @@ const VideoEditorScreen = () => {
 
   const handleApplyTrim = () => {
     if (!selectedClipId || !project) return;
+
+    const video = videoRef.current;
     
     const updatedTimeline = project.timeline.map((clip) => {
       if (clip.id === selectedClipId) {
@@ -701,6 +703,16 @@ const VideoEditorScreen = () => {
       (acc, clip) => acc + (clip.endTime - clip.startTime),
       0
     );
+
+    const updatedSelectedClip = updatedTimeline.find((clip) => clip.id === selectedClipId);
+    if (video && updatedSelectedClip) {
+      const clampedAbsoluteTime = Math.max(
+        updatedSelectedClip.startTime,
+        Math.min(video.currentTime, updatedSelectedClip.endTime)
+      );
+      video.currentTime = clampedAbsoluteTime;
+      setCurrentTime(clampedAbsoluteTime - updatedSelectedClip.startTime);
+    }
     
     saveProject({ ...project, timeline: updatedTimeline, duration: newDuration });
     setShowTrimPanel(false);
