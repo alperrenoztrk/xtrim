@@ -355,6 +355,7 @@ const VideoEditorScreen = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const timelineScrubRef = useRef<HTMLDivElement>(null);
   const audioTrackElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   const [project, setProject] = useState<Project | null>(() => {
@@ -371,6 +372,7 @@ const VideoEditorScreen = () => {
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<EditorTool | null>(null);
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const [isTimelineScrubbing, setIsTimelineScrubbing] = useState(false);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showVideoControls, setShowVideoControls] = useState(false);
@@ -1620,6 +1622,50 @@ const VideoEditorScreen = () => {
     }
   };
 
+  const handleTimelineScrub = useCallback((clientX: number) => {
+    if (!timelineScrubRef.current || !project || !selectedClipId) return;
+
+    const selectedTimelineClip = project.timeline.find((clip) => clip.id === selectedClipId);
+    if (!selectedTimelineClip) return;
+
+    const orderedTimeline = [...project.timeline].sort((a, b) => a.order - b.order);
+    const selectedClipIndex = orderedTimeline.findIndex((clip) => clip.id === selectedClipId);
+    if (selectedClipIndex < 0) return;
+
+    const selectedClipOffset = orderedTimeline
+      .slice(0, selectedClipIndex)
+      .reduce((sum, clip) => sum + (clip.endTime - clip.startTime), 0);
+
+    const selectedClipDuration = selectedTimelineClip.endTime - selectedTimelineClip.startTime;
+    const timelineTotalDuration = Math.max(project.duration, 1);
+    const rect = timelineScrubRef.current.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min((clientX - rect.left) / Math.max(rect.width, 1), 1));
+    const absoluteTime = ratio * timelineTotalDuration;
+    const relativeTime = absoluteTime - selectedClipOffset;
+
+    handleSeek(Math.max(0, Math.min(relativeTime, selectedClipDuration)));
+  }, [handleSeek, project, selectedClipId]);
+
+  const handleTimelinePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!selectedClipId) return;
+
+    setIsTimelineScrubbing(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    handleTimelineScrub(event.clientX);
+  };
+
+  const handleTimelinePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isTimelineScrubbing) return;
+    handleTimelineScrub(event.clientX);
+  };
+
+  const handleTimelinePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    setIsTimelineScrubbing(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
   const handleVideoTap = () => {
     setShowVideoControls(true);
     if (videoControlsTimeoutRef.current) {
@@ -1706,6 +1752,15 @@ const VideoEditorScreen = () => {
   }
 
   const selectedClip = project.timeline.find((c) => c.id === selectedClipId);
+  const orderedTimeline = [...project.timeline].sort((a, b) => a.order - b.order);
+  const selectedClipIndex = orderedTimeline.findIndex((clip) => clip.id === selectedClipId);
+  const selectedClipOffset = selectedClipIndex >= 0
+    ? orderedTimeline
+        .slice(0, selectedClipIndex)
+        .reduce((sum, clip) => sum + (clip.endTime - clip.startTime), 0)
+    : 0;
+  const playheadTime = selectedClip ? selectedClipOffset + currentTime : currentTime;
+  const playheadLeftPercent = (Math.max(playheadTime, 0) / Math.max(project.duration, 1)) * 100;
   const selectedMedia = selectedClip
     ? project.mediaItems.find((m) => m.id === selectedClip.mediaId)
     : null;
@@ -2141,12 +2196,26 @@ const VideoEditorScreen = () => {
         </div>
 
         {/* Clips */}
-        <div className="relative h-24 px-4 overflow-x-auto scrollbar-hide bg-gradient-to-b from-background to-muted/20">
+        <div
+          ref={timelineScrubRef}
+          className={cn(
+            'relative h-24 px-4 overflow-x-auto scrollbar-hide bg-gradient-to-b from-background to-muted/20',
+            selectedClipId && 'cursor-ew-resize'
+          )}
+          onPointerDown={handleTimelinePointerDown}
+          onPointerMove={handleTimelinePointerMove}
+          onPointerUp={handleTimelinePointerUp}
+          onPointerCancel={handleTimelinePointerUp}
+        >
           <div
-            className="absolute top-0 bottom-0 w-px bg-primary/60 pointer-events-none"
+            className="absolute top-0 bottom-0 w-px bg-primary pointer-events-none z-20"
             style={{
-              left: `${(Math.max(currentTime, 0) / Math.max(project.duration, 1)) * 100}%`,
+              left: `${playheadLeftPercent}%`,
             }}
+          />
+          <div
+            className="absolute top-0 h-3 w-3 -translate-x-1/2 rounded-full bg-primary border-2 border-background shadow pointer-events-none z-20"
+            style={{ left: `${playheadLeftPercent}%` }}
           />
           {project.timeline.length > 0 ? (
             <Reorder.Group
