@@ -261,15 +261,17 @@ const TimelineClipItem = ({
   isSelected,
   onSelect,
   isDragging,
+  pixelsPerSecond,
 }: {
   clip: TimelineClip;
   media?: MediaItem;
   isSelected: boolean;
   onSelect: () => void;
   isDragging?: boolean;
+  pixelsPerSecond: number;
 }) => {
   const duration = clip.endTime - clip.startTime;
-  const width = Math.max(80, duration * 50); // 50px per second, min 80px
+  const width = Math.max(duration * pixelsPerSecond, 12);
 
   const isPhoto = media?.type === 'photo';
   
@@ -372,6 +374,7 @@ const VideoEditorScreen = () => {
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<EditorTool | null>(null);
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [isTimelineScrubbing, setIsTimelineScrubbing] = useState(false);
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -385,6 +388,23 @@ const VideoEditorScreen = () => {
   const [isMediaImporting, setIsMediaImporting] = useState(false);
   const [mediaImportProgress, setMediaImportProgress] = useState(0);
   const [currentImportFileName, setCurrentImportFileName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timelineNode = timelineScrubRef.current;
+    if (!timelineNode) return;
+
+    const updateWidth = () => {
+      setTimelineViewportWidth(timelineNode.clientWidth);
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(() => updateWidth());
+    observer.observe(timelineNode);
+
+    return () => observer.disconnect();
+  }, [project?.id, project?.duration]);
+
   
   // Panel states
   const [showTrimPanel, setShowTrimPanel] = useState(false);
@@ -1782,6 +1802,8 @@ const VideoEditorScreen = () => {
     return media?.type === 'video';
   });
 
+  const timelinePixelsPerSecond = (Math.max(timelineViewportWidth, 1) / Math.max(project.duration, 1)) * timelineZoom;
+
   return (
     <div className="h-screen flex flex-col bg-background safe-area-top overflow-hidden">
       <input
@@ -2111,7 +2133,7 @@ const VideoEditorScreen = () => {
               <Button
                 variant="iconGhost"
                 size="iconSm"
-                onClick={() => setTimelineZoom((z) => Math.max(0.5, z - 0.25))}
+                onClick={() => setTimelineZoom((z) => Math.max(0.25, z - 0.25))}
               >
                 <ZoomOut className="w-4 h-4" />
               </Button>
@@ -2203,8 +2225,7 @@ const VideoEditorScreen = () => {
               axis="x"
               values={project.timeline}
               onReorder={handleReorderClips}
-              className="flex gap-2 h-full items-center py-2"
-              style={{ transform: `scaleX(${timelineZoom})`, transformOrigin: 'left' }}
+              className="flex gap-2 h-full items-center py-2 w-max min-w-full"
             >
               {project.timeline
                 .sort((a, b) => a.order - b.order)
@@ -2220,6 +2241,7 @@ const VideoEditorScreen = () => {
                       media={project.mediaItems.find((m) => m.id === clip.mediaId)}
                       isSelected={clip.id === selectedClipId}
                       onSelect={() => setSelectedClipId(clip.id)}
+                      pixelsPerSecond={timelinePixelsPerSecond}
                     />
                   </Reorder.Item>
                 ))}
