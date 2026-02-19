@@ -1380,7 +1380,16 @@ const VideoEditorScreen = () => {
       return;
     }
 
-    setActiveTool(activeTool === toolId ? null : toolId);
+    const isCurrentlyActive = activeTool === toolId;
+
+    if (isCurrentlyActive) {
+      setActiveTool(null);
+      closeAllToolPanels();
+      setShowAIToolsMenu(false);
+      return;
+    }
+
+    setActiveTool(toolId);
     
     switch (toolId) {
       case 'trim':
