@@ -35,6 +35,16 @@ import {
   Minimize,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import {
@@ -134,6 +144,7 @@ const PhotoEditorScreen = () => {
   const [showBackgroundRemover, setShowBackgroundRemover] = useState(false);
   const [activeQuickTool, setActiveQuickTool] = useState<QuickTool | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   // AI Tool states
   const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
@@ -580,6 +591,17 @@ const PhotoEditorScreen = () => {
     }
   };
 
+  const handleConfirmDeletePhoto = () => {
+    saveState();
+    setImageUrl(null);
+    setSelectedImageUrls([]);
+    setActiveAITool(null);
+    setAiPrompt('');
+    setActiveQuickTool(null);
+    setShowDeleteConfirm(false);
+    toast.success('Photo removed from editor');
+  };
+
   const handleQuickToolClick = (toolId: QuickTool) => {
     setActiveQuickTool(toolId);
 
@@ -588,13 +610,7 @@ const PhotoEditorScreen = () => {
         openCollageEditor(selectedImageUrls);
         break;
       case 'delete':
-        saveState();
-        setImageUrl(null);
-        setSelectedImageUrls([]);
-        setActiveAITool(null);
-        setAiPrompt('');
-        setActiveQuickTool(null);
-        toast.success('Photo removed from editor');
+        setShowDeleteConfirm(true);
         break;
       case 'audio':
         toast.info('Audio tools are available in the video editor.');
@@ -1150,6 +1166,21 @@ const PhotoEditorScreen = () => {
           />
         )}
       </AnimatePresence>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This photo will be removed from the editor.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDeletePhoto}>Yes, Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

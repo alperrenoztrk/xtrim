@@ -53,6 +53,16 @@ import VideoAIGeneratePanel from '@/components/VideoAIGeneratePanel';
 import VideoTranslatePanel from '@/components/VideoTranslatePanel';
 import { Button } from '@/components/ui/button';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -373,6 +383,7 @@ const VideoEditorScreen = () => {
   const [showAIGeneratePanel, setShowAIGeneratePanel] = useState(false);
   const [showTranslatePanel, setShowTranslatePanel] = useState(false);
   const [showRotateCropPanel, setShowRotateCropPanel] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const closeAllToolPanels = () => {
     setShowTrimPanel(false);
@@ -565,6 +576,11 @@ const VideoEditorScreen = () => {
       ),
     });
     setSelectedClipId(null);
+  };
+
+  const handleConfirmDeleteClip = () => {
+    handleDeleteClip();
+    setShowDeleteConfirm(false);
   };
 
   const handleSplitClip = (customSplitPoint?: number) => {
@@ -1312,7 +1328,7 @@ const VideoEditorScreen = () => {
         }
         break;
       case 'delete':
-        if (selectedClipId) handleDeleteClip();
+        if (selectedClipId) setShowDeleteConfirm(true);
         break;
       case 'speed':
         handleOpenSpeed();
@@ -2598,6 +2614,21 @@ const VideoEditorScreen = () => {
           <span className="text-xxs">More</span>
         </Button>
       </div>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This clip will be deleted from the timeline.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDeleteClip}>Yes, Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
