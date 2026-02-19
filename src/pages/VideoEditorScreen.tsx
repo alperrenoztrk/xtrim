@@ -383,6 +383,7 @@ const VideoEditorScreen = () => {
   const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
   const [isEditingTextOverlays, setIsEditingTextOverlays] = useState(false);
   const [selectedTextOverlayId, setSelectedTextOverlayId] = useState<string | null>(null);
+  const previewStageRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [requestedToolFromUrl, setRequestedToolFromUrl] = useState<string | null>(null);
 
@@ -1606,14 +1607,52 @@ const VideoEditorScreen = () => {
   };
 
   const handleToggleFullscreen = () => {
-    setIsFullscreen((prev) => {
-      const next = !prev;
-      if (next) {
-        setIsPanelCollapsed(true);
+    const toggle = async () => {
+      const previewStage = previewStageRef.current;
+      if (!previewStage) return;
+
+      if (document.fullscreenElement) {
+        try {
+          await document.exitFullscreen();
+        } catch {
+          toast.error('Failed to close fullscreen mode');
+        }
+        return;
       }
-      return next;
-    });
+
+      setIsPanelCollapsed(true);
+
+      if (typeof previewStage.requestFullscreen === 'function') {
+        try {
+          await previewStage.requestFullscreen();
+          return;
+        } catch {
+          toast.error('Failed to open fullscreen mode');
+          return;
+        }
+      }
+
+      const video = videoRef.current as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
+      if (video && typeof video.webkitEnterFullscreen === 'function') {
+        video.webkitEnterFullscreen();
+        setIsFullscreen(true);
+      }
+    };
+
+    void toggle();
   };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const active = Boolean(document.fullscreenElement);
+      setIsFullscreen(active);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   const handleTrimPreviewSeek = (time: number) => {
     const video = videoRef.current;
@@ -1674,6 +1713,7 @@ const VideoEditorScreen = () => {
       />
 
       {/* Header */}
+      {!isFullscreen && (
       <header className="flex items-center justify-between px-4 py-3 border-b border-border glass">
         <div className="flex items-center gap-3">
           <Button variant="iconGhost" size="iconSm" onClick={() => navigate('/home')}>
@@ -1724,9 +1764,11 @@ const VideoEditorScreen = () => {
           </DropdownMenu>
         </div>
       </header>
+      )}
 
       {/* Preview */}
       <div
+        ref={previewStageRef}
         className="flex-1 relative bg-black flex items-center justify-center overflow-hidden"
         onClick={handleVideoTap}
       >
@@ -1886,6 +1928,7 @@ const VideoEditorScreen = () => {
       </div>
 
       {/* Collapsible Timeline + Toolbar Panel */}
+      {!isFullscreen && (
       <motion.div
         className="border-t border-border bg-card"
         animate={{ height: isPanelCollapsed ? 'auto' : 'auto' }}
@@ -2062,6 +2105,7 @@ const VideoEditorScreen = () => {
         )}
         </AnimatePresence>
       </motion.div>
+      )}
 
       {/* Trim Panel */}
       <AnimatePresence>
