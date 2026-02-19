@@ -49,7 +49,7 @@ import { nativeExportService } from '@/services/NativeExportService';
 import samplePhoto from '@/assets/sample-photo.jpg';
 
 
-type EditorTab = 'adjust' | 'crop' | 'filters' | 'background' | 'ai';
+type EditorTab = 'adjust' | 'crop' | 'filters' | 'background' | 'ai' | 'more';
 type AIToolType = 'enhance' | 'expand' | 'generate' | 'avatar' | 'poster' | null;
 
 interface ImageAdjustments {
@@ -714,6 +714,7 @@ const PhotoEditorScreen = () => {
               { id: 'filters', label: 'Filters', icon: Palette },
               { id: 'background', label: 'Background', icon: Eraser },
               { id: 'ai', label: 'AI Tools', icon: Sparkles },
+              { id: 'more', label: 'More', icon: MoreHorizontal },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -729,35 +730,6 @@ const PhotoEditorScreen = () => {
                 {tab.label}
               </button>
             ))}
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className={cn(
-                    'flex-shrink-0 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2',
-                    activeQuickTool === 'more'
-                      ? 'text-primary border-primary'
-                      : 'text-muted-foreground border-transparent hover:text-foreground'
-                  )}
-                  onClick={() => setActiveQuickTool('more')}
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                  More
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {moreMenuTools.map((tool) => (
-                  <DropdownMenuItem
-                    key={tool.id}
-                    className="gap-2"
-                    onClick={() => handleQuickToolClick(tool.id)}
-                  >
-                    <tool.icon className="w-4 h-4" />
-                    {tool.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
 
           {/* Controls panel */}
@@ -1046,6 +1018,31 @@ const PhotoEditorScreen = () => {
                       </Button>
                     </div>
                   )}
+                </motion.div>
+              )}
+
+              {activeTab === 'more' && (
+                <motion.div
+                  key="more"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="p-4"
+                >
+                  <div className="grid grid-cols-2 gap-3">
+                    {moreMenuTools.map((tool) => (
+                      <button
+                        key={tool.id}
+                        className="h-20 rounded-xl border border-border bg-background hover:bg-secondary/40 transition-colors px-3 flex items-center gap-3"
+                        onClick={() => handleQuickToolClick(tool.id)}
+                      >
+                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                          <tool.icon className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-medium text-left">{tool.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
