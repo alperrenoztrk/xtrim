@@ -33,7 +33,7 @@ const tools: Tool[] = [
     description: 'Edit and enhance photos',
     icon: Image,
     route: '/photo-editor',
-    gradient: 'from-accent to-primary',
+    gradient: 'from-primary to-accent',
   },
   {
     id: 'edits',
@@ -205,17 +205,14 @@ const HomeScreen = () => {
                   {isMainTool && (
                     <div className="absolute inset-0 animate-shimmer opacity-30" />
                   )}
-                  <div className="relative z-10 flex items-center gap-4 w-full px-2">
+                  <div className="relative z-10 flex items-center gap-4 w-full px-2 [&_svg]:h-6 [&_svg]:w-6">
                     <div className={cn(
-                      'w-12 h-12 rounded-xl flex items-center justify-center',
+                      'w-12 h-12 shrink-0 rounded-xl flex items-center justify-center',
                       isMainTool ? 'bg-white/20' : 'bg-primary/10'
                     )}>
-                      <Icon className={cn(
-                        'h-6 w-6',
-                        isMainTool ? 'text-white' : 'text-primary'
-                      )} />
+                      <Icon className={cn(isMainTool ? 'text-white' : 'text-primary')} />
                     </div>
-                    <div className="text-left">
+                    <div className="text-left flex-1 min-w-0">
                       <span className={cn(
                         'text-lg font-semibold block',
                         isMainTool ? 'text-white' : 'text-foreground'
