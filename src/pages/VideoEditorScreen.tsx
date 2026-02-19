@@ -2252,7 +2252,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10"
+            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-40"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Trim Clip</h3>
@@ -2314,7 +2314,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10"
+            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-40"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Split Clip</h3>
@@ -2355,7 +2355,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10 max-h-60 overflow-y-auto"
+            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-40 max-h-60 overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Audio</h3>
@@ -2482,7 +2482,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10"
+            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-40"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">More Options</h3>
@@ -2526,7 +2526,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10"
+            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-40"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">AI Tools</h3>
