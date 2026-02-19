@@ -13,7 +13,7 @@ class FFmpegService {
   private ffmpeg: FFmpeg | null = null;
   private loaded = false;
   private loading = false;
-  private readonly ffmpegVersion = '0.12.10';
+  private readonly ffmpegVersion = '0.12.15';
 
   private async loadFromCDN(baseURL: string) {
     if (!this.ffmpeg) throw new Error('FFmpeg could not be initialized');
@@ -77,7 +77,7 @@ class FFmpegService {
       onProgress?.({ stage: 'loading', progress: 10, message: 'FFmpeg ready' });
     } catch (error) {
       console.error('FFmpeg load error:', error);
-      throw new Error('FFmpeg failed to load. Please refresh the page.');
+      throw new Error('FFmpeg yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
     } finally {
       this.loading = false;
     }
