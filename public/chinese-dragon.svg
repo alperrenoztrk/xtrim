@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Stylized Chinese Dragon</title>
+  <desc id="desc">Decorative line-art dragon drawing used as a wallpaper.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#2e1065" />
+      <stop offset="100%" stop-color="#111827" />
+    </linearGradient>
+    <linearGradient id="dragon" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#ef4444" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="800" fill="url(#bg)"/>
+
+  <g fill="none" stroke="url(#dragon)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M120 520 C210 410, 270 430, 330 500 C370 545, 450 555, 520 515 C590 475, 680 430, 760 470 C825 503, 865 572, 960 575" stroke-width="22"/>
+    <path d="M330 500 C350 440, 395 380, 455 350 C512 320, 575 292, 645 302 C714 312, 774 356, 802 415" stroke-width="16"/>
+    <path d="M500 336 C488 290, 520 248, 570 228 C620 208, 678 211, 726 236" stroke-width="12"/>
+    <path d="M720 236 C742 212, 778 204, 807 217 C836 230, 844 263, 825 287" stroke-width="10"/>
+    <path d="M825 287 C875 274, 920 290, 952 323 C985 356, 995 407, 974 452" stroke-width="10"/>
+    <path d="M974 452 C1005 452, 1038 469, 1048 501 C1058 533, 1046 568, 1018 588" stroke-width="10"/>
+    <path d="M470 360 C442 392, 420 429, 414 468" stroke-width="9"/>
+    <path d="M395 434 L360 408" stroke-width="8"/>
+    <path d="M438 408 L403 374" stroke-width="8"/>
+    <circle cx="780" cy="255" r="8" fill="#fde68a" stroke="none"/>
+    <path d="M790 247 L822 230" stroke-width="6"/>
+    <path d="M787 264 L820 278" stroke-width="6"/>
+    <path d="M195 470 C167 474, 144 494, 137 523 C130 552, 145 580, 170 595" stroke-width="12"/>
+    <path d="M168 595 C194 605, 225 595, 240 571" stroke-width="10"/>
+  </g>
+</svg>
