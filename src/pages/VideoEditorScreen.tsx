@@ -373,6 +373,24 @@ const VideoEditorScreen = () => {
   const [showAIGeneratePanel, setShowAIGeneratePanel] = useState(false);
   const [showTranslatePanel, setShowTranslatePanel] = useState(false);
   const [showRotateCropPanel, setShowRotateCropPanel] = useState(false);
+
+  const closeAllToolPanels = () => {
+    setShowTrimPanel(false);
+    setShowSplitPanel(false);
+    setShowAudioPanel(false);
+    setShowTextPanel(false);
+    setShowMoreMenu(false);
+    setShowAIToolsMenu(false);
+    setShowAutoCutPanel(false);
+    setShowEnhancePanel(false);
+    setShowStabilizePanel(false);
+    setShowSpeedPanel(false);
+    setShowColorPanel(false);
+    setShowMergePanel(false);
+    setShowAIGeneratePanel(false);
+    setShowTranslatePanel(false);
+    setShowRotateCropPanel(false);
+  };
   
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
@@ -595,12 +613,8 @@ const VideoEditorScreen = () => {
     if (!clip) return;
 
     setSplitTime(((clip.startTime + clip.endTime) / 2).toFixed(1));
+    closeAllToolPanels();
     setShowSplitPanel(true);
-    setShowTrimPanel(false);
-    setShowAudioPanel(false);
-    setShowTextPanel(false);
-    setShowMoreMenu(false);
-    setShowAutoCutPanel(false);
   };
 
   const handleApplySplit = () => {
@@ -632,12 +646,8 @@ const VideoEditorScreen = () => {
     if (!clip) return;
     setTrimStart(clip.startTime);
     setTrimEnd(clip.endTime);
+    closeAllToolPanels();
     setShowTrimPanel(true);
-    setShowAudioPanel(false);
-    setShowTextPanel(false);
-    setShowMoreMenu(false);
-    setShowSplitPanel(false);
-    setShowAutoCutPanel(false);
   };
 
   const handleApplyTrim = () => {
@@ -661,12 +671,8 @@ const VideoEditorScreen = () => {
 
   // Handle Audio settings
   const handleOpenAudio = () => {
+    closeAllToolPanels();
     setShowAudioPanel(true);
-    setShowTrimPanel(false);
-    setShowTextPanel(false);
-    setShowMoreMenu(false);
-    setShowSplitPanel(false);
-    setShowAutoCutPanel(false);
   };
 
   const handleAddAudioTrack = async (files: FileList | null) => {
@@ -802,16 +808,8 @@ const VideoEditorScreen = () => {
 
   // Handle Text Overlay
   const handleOpenText = () => {
+    closeAllToolPanels();
     setShowTextPanel(true);
-    setShowTrimPanel(false);
-    setShowAudioPanel(false);
-    setShowMoreMenu(false);
-    setShowSplitPanel(false);
-    setShowAutoCutPanel(false);
-    setShowEnhancePanel(false);
-    setShowStabilizePanel(false);
-    setShowSpeedPanel(false);
-    setShowColorPanel(false);
   };
 
   const handleAddTextOverlay = (overlay: TextOverlay) => {
@@ -937,12 +935,8 @@ const VideoEditorScreen = () => {
     if (!ensureVideoClipSelection()) {
       return;
     }
+    closeAllToolPanels();
     setShowAutoCutPanel(true);
-    setShowTrimPanel(false);
-    setShowAudioPanel(false);
-    setShowTextPanel(false);
-    setShowMoreMenu(false);
-    setShowEnhancePanel(false);
   };
 
   // Handle Enhance Panel
@@ -950,14 +944,8 @@ const VideoEditorScreen = () => {
     if (!ensureVideoClipSelection()) {
       return;
     }
+    closeAllToolPanels();
     setShowEnhancePanel(true);
-    setShowTrimPanel(false);
-    setShowAudioPanel(false);
-    setShowTextPanel(false);
-    setShowMoreMenu(false);
-    setShowSplitPanel(false);
-    setShowAutoCutPanel(false);
-    setShowStabilizePanel(false);
   };
 
   // Handle Stabilize Panel
@@ -965,15 +953,8 @@ const VideoEditorScreen = () => {
     if (!ensureVideoClipSelection()) {
       return;
     }
+    closeAllToolPanels();
     setShowStabilizePanel(true);
-    setShowTrimPanel(false);
-    setShowAudioPanel(false);
-    setShowTextPanel(false);
-    setShowMoreMenu(false);
-    setShowSplitPanel(false);
-    setShowAutoCutPanel(false);
-    setShowEnhancePanel(false);
-    setShowSpeedPanel(false);
   };
 
   // Handle Speed Panel
@@ -981,16 +962,8 @@ const VideoEditorScreen = () => {
     if (!ensureVideoClipSelection()) {
       return;
     }
+    closeAllToolPanels();
     setShowSpeedPanel(true);
-    setShowTrimPanel(false);
-    setShowAudioPanel(false);
-    setShowTextPanel(false);
-    setShowMoreMenu(false);
-    setShowSplitPanel(false);
-    setShowAutoCutPanel(false);
-    setShowEnhancePanel(false);
-    setShowStabilizePanel(false);
-    setShowColorPanel(false);
   };
 
   useEffect(() => {
@@ -1054,17 +1027,8 @@ const VideoEditorScreen = () => {
     if (!ensureVideoClipSelection()) {
       return;
     }
+    closeAllToolPanels();
     setShowColorPanel(true);
-    setShowTrimPanel(false);
-    setShowAudioPanel(false);
-    setShowTextPanel(false);
-    setShowMoreMenu(false);
-    setShowSplitPanel(false);
-    setShowAutoCutPanel(false);
-    setShowEnhancePanel(false);
-    setShowStabilizePanel(false);
-    setShowSpeedPanel(false);
-    setShowMergePanel(false);
   };
 
   // Handle Merge Panel
@@ -1073,17 +1037,8 @@ const VideoEditorScreen = () => {
       toast.error('At least 2 clips are required to merge');
       return;
     }
+    closeAllToolPanels();
     setShowMergePanel(true);
-    setShowTrimPanel(false);
-    setShowAudioPanel(false);
-    setShowTextPanel(false);
-    setShowMoreMenu(false);
-    setShowSplitPanel(false);
-    setShowAutoCutPanel(false);
-    setShowEnhancePanel(false);
-    setShowStabilizePanel(false);
-    setShowSpeedPanel(false);
-    setShowColorPanel(false);
   };
 
   // Handle apply transition between clips
@@ -1180,36 +1135,14 @@ const VideoEditorScreen = () => {
 
   // Handle AI Video Generate Panel
   const handleOpenAIGenerate = () => {
+    closeAllToolPanels();
     setShowAIGeneratePanel(true);
-    setShowTrimPanel(false);
-    setShowAudioPanel(false);
-    setShowTextPanel(false);
-    setShowMoreMenu(false);
-    setShowSplitPanel(false);
-    setShowAutoCutPanel(false);
-    setShowEnhancePanel(false);
-    setShowStabilizePanel(false);
-    setShowSpeedPanel(false);
-    setShowColorPanel(false);
-    setShowMergePanel(false);
-    setShowTranslatePanel(false);
   };
 
   // Handle Translate Panel
   const handleOpenTranslate = () => {
+    closeAllToolPanels();
     setShowTranslatePanel(true);
-    setShowTrimPanel(false);
-    setShowAudioPanel(false);
-    setShowTextPanel(false);
-    setShowMoreMenu(false);
-    setShowSplitPanel(false);
-    setShowAutoCutPanel(false);
-    setShowEnhancePanel(false);
-    setShowStabilizePanel(false);
-    setShowSpeedPanel(false);
-    setShowColorPanel(false);
-    setShowMergePanel(false);
-    setShowAIGeneratePanel(false);
   };
 
   // Handle Rotate/Crop Panel
@@ -1218,20 +1151,8 @@ const VideoEditorScreen = () => {
       toast.error('Please select a clip');
       return;
     }
+    closeAllToolPanels();
     setShowRotateCropPanel(true);
-    setShowTrimPanel(false);
-    setShowAudioPanel(false);
-    setShowTextPanel(false);
-    setShowMoreMenu(false);
-    setShowSplitPanel(false);
-    setShowAutoCutPanel(false);
-    setShowEnhancePanel(false);
-    setShowStabilizePanel(false);
-    setShowSpeedPanel(false);
-    setShowColorPanel(false);
-    setShowMergePanel(false);
-    setShowAIGeneratePanel(false);
-    setShowTranslatePanel(false);
   };
 
   // Handle apply rotation to clip
@@ -1353,8 +1274,8 @@ const VideoEditorScreen = () => {
   const handleMoreMenuAction = (actionId: string) => {
     switch (actionId) {
       case 'effects':
+        closeAllToolPanels();
         setShowAIToolsMenu(true);
-        setShowMoreMenu(false);
         return;
       case 'merge':
         handleOpenMerge();
@@ -1429,11 +1350,8 @@ const VideoEditorScreen = () => {
         handleOpenText();
         break;
       case 'effects':
+        closeAllToolPanels();
         setShowAIToolsMenu(true);
-        setShowMoreMenu(false);
-        setShowTrimPanel(false);
-        setShowAudioPanel(false);
-        setShowTextPanel(false);
         break;
       default:
         break;
@@ -2668,15 +2586,11 @@ const VideoEditorScreen = () => {
           )}
           onClick={() => {
             const nextOpenState = !showMoreMenu;
-            setShowMoreMenu(nextOpenState);
             if (nextOpenState) {
-              setShowAIToolsMenu(false);
-            }
-            setShowTrimPanel(false);
-            setShowAudioPanel(false);
-            setShowTextPanel(false);
-            if (!nextOpenState) {
-              setShowAIToolsMenu(false);
+              closeAllToolPanels();
+              setShowMoreMenu(true);
+            } else {
+              setShowMoreMenu(false);
             }
           }}
         >
