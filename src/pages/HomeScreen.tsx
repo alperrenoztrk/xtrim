@@ -55,7 +55,7 @@ const tools: Tool[] = [
 const DragonWallpaper = () => (
   <div className="dragon-wallpaper pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
     <img
-      src="https://upload.wikimedia.org/wikipedia/commons/4/49/Chinese_Dragon.svg"
+      src="/chinese-dragon.svg"
       alt="Chinese dragon artwork"
       className="absolute inset-0 h-full w-full object-cover opacity-20"
     />
