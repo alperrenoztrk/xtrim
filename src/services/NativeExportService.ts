@@ -41,14 +41,7 @@ class NativeExportService {
 
       const hasPublicStoragePermission = await this.checkPermissions();
 
-      // Public location when possible; otherwise fallback to app documents so export still succeeds.
-      const targetDirectory = hasPublicStoragePermission
-        ? this.getPlatform() === 'ios'
-          ? Directory.Documents
-          : Directory.External
-        : Directory.Documents;
-
-      const result = await this.writeVideoFile(videoBlob, safeFileName, targetDirectory);
+      const result = await this.writeVideoWithFallback(videoBlob, safeFileName, hasPublicStoragePermission);
 
       // For Android, attempt additional gallery copy only when permission is available.
       if (this.getPlatform() === 'android' && hasPublicStoragePermission && result.filePath) {
@@ -65,6 +58,31 @@ class NativeExportService {
         error: error instanceof Error ? error.message : 'Save error',
       };
     }
+  }
+
+  private async writeVideoWithFallback(
+    videoBlob: Blob,
+    safeFileName: string,
+    hasPublicStoragePermission: boolean
+  ): Promise<{ filePath: string; fileName: string }> {
+    const platform = this.getPlatform();
+    const directoryCandidates: Directory[] = platform === 'ios'
+      ? [Directory.Documents]
+      : hasPublicStoragePermission
+        ? [Directory.Documents, Directory.External, Directory.ExternalStorage]
+        : [Directory.Documents];
+
+    let lastError: unknown;
+
+    for (const directory of directoryCandidates) {
+      try {
+        return await this.writeVideoFile(videoBlob, safeFileName, directory);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('Unable to write export file');
   }
 
   private async writeVideoFile(
@@ -118,12 +136,26 @@ class NativeExportService {
         return false;
       }
 
-      await Share.share({
+      const sharePayload = {
         title,
         text: 'Created with Xtrim',
-        url: videoPath,
         dialogTitle: 'Share Video',
-      });
+      };
+
+      const localFilePath = this.resolveNativeFilePath(videoPath);
+
+      try {
+        await Share.share({
+          ...sharePayload,
+          files: [localFilePath],
+        });
+      } catch {
+        // Older plugin/platform combinations may only support url.
+        await Share.share({
+          ...sharePayload,
+          url: localFilePath,
+        });
+      }
 
       return true;
     } catch (error) {
@@ -158,7 +190,8 @@ class NativeExportService {
   private async shareBlobOnWeb(videoBlob: Blob, fileName: string): Promise<boolean> {
     try {
       if (!navigator.share) {
-        return false;
+        const downloadResult = this.downloadForWeb(videoBlob, fileName);
+        return downloadResult.success;
       }
 
       const fileToShare = this.createShareFile(videoBlob, fileName);
@@ -186,8 +219,20 @@ class NativeExportService {
       return true;
     } catch (error) {
       console.error('Web share error:', error);
+      const downloadResult = this.downloadForWeb(videoBlob, fileName);
+      if (downloadResult.success) {
+        return true;
+      }
       return false;
     }
+  }
+
+  private resolveNativeFilePath(filePath: string): string {
+    if (filePath.startsWith('file://') || filePath.startsWith('content://')) {
+      return filePath;
+    }
+
+    return `file://${filePath}`;
   }
 
   private createShareFile(videoBlob: Blob, fileName: string): File {
