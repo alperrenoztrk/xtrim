@@ -52,6 +52,86 @@ const tools: Tool[] = [
   },
 ];
 
+const dragonLayers = [
+  {
+    id: 'jade-dragon',
+    size: 'w-[18rem] h-[7rem] md:w-[24rem] md:h-[9rem]',
+    className: 'top-[12%]',
+    duration: 26,
+    delay: 0,
+    opacity: 0.35,
+  },
+  {
+    id: 'violet-dragon',
+    size: 'w-[14rem] h-[5.5rem] md:w-[20rem] md:h-[7.5rem]',
+    className: 'top-[42%]',
+    duration: 20,
+    delay: 4,
+    opacity: 0.28,
+  },
+  {
+    id: 'mist-dragon',
+    size: 'w-[16rem] h-[6rem] md:w-[22rem] md:h-[8rem]',
+    className: 'top-[70%]',
+    duration: 30,
+    delay: 2,
+    opacity: 0.24,
+  },
+];
+
+const DragonWallpaper = () => (
+  <div className="dragon-wallpaper pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.12),transparent_55%),radial-gradient(circle_at_85%_80%,hsl(var(--accent)/0.1),transparent_50%)]" />
+
+    {dragonLayers.map((layer) => (
+      <motion.div
+        key={layer.id}
+        className={cn('absolute left-[-35%] drop-shadow-[0_12px_30px_hsl(var(--accent)/0.2)]', layer.className, layer.size)}
+        initial={{ x: '-10vw', y: 0 }}
+        animate={{ x: ['0vw', '130vw'], y: [0, -18, 0, 14, 0] }}
+        transition={{
+          duration: layer.duration,
+          delay: layer.delay,
+          repeat: Number.POSITIVE_INFINITY,
+          ease: 'linear',
+          times: [0, 1],
+        }}
+        style={{ opacity: layer.opacity }}
+      >
+        <svg viewBox="0 0 560 220" className="h-full w-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M26 134C69 85 131 75 179 103C218 126 267 153 316 140C368 126 390 80 431 68C465 58 499 64 531 88"
+            stroke="url(#dragon-stroke)"
+            strokeWidth="12"
+            strokeLinecap="round"
+          />
+          <path
+            d="M46 130C71 117 108 126 131 140C156 156 197 176 222 160"
+            stroke="hsl(var(--primary)/0.5)"
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
+          <path
+            d="M213 102L236 84L253 103L242 126L220 123Z"
+            fill="hsl(var(--accent)/0.35)"
+          />
+          <circle cx="246" cy="103" r="5" fill="hsl(var(--primary)/0.7)" />
+          <path
+            d="M388 80L408 58L426 79L412 99Z"
+            fill="hsl(var(--primary)/0.3)"
+          />
+          <defs>
+            <linearGradient id="dragon-stroke" x1="26" y1="66" x2="531" y2="140" gradientUnits="userSpaceOnUse">
+              <stop stopColor="hsl(var(--primary)/0.75)" />
+              <stop offset="1" stopColor="hsl(var(--accent)/0.68)" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </motion.div>
+    ))}
+  </div>
+);
+
 const HomeScreen = () => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -166,10 +246,12 @@ const HomeScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background safe-area-top safe-area-bottom flex flex-col">
+    <div className="relative min-h-screen bg-background safe-area-top safe-area-bottom flex flex-col overflow-hidden">
+      <DragonWallpaper />
+
       {/* Header */}
       <motion.header
-        className="px-6 pt-12 pb-8 text-center"
+        className="relative z-10 px-6 pt-12 pb-8 text-center"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
@@ -179,7 +261,7 @@ const HomeScreen = () => {
       </motion.header>
 
       {/* Main Tools */}
-      <section className="flex-1 flex flex-col justify-center px-6 pb-12">
+      <section className="relative z-10 flex-1 flex flex-col justify-center px-6 pb-12">
         <div className="space-y-4 max-w-sm mx-auto w-full">
           {tools.map((tool, index) => {
             const Icon = tool.icon;
