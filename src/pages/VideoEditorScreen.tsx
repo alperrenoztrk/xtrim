@@ -8,7 +8,6 @@ import {
   Undo2,
   Redo2,
   Scissors,
-  Split,
   Trash2,
   Volume2,
   Music,
@@ -106,12 +105,32 @@ interface TextOverlay {
 
 const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string }[] = [
   { id: 'trim', icon: Scissors, label: 'Trim' },
-  { id: 'split', icon: Split, label: 'Split' },
+  { id: 'split', icon: SplitBracketIcon, label: 'Split' },
   { id: 'audio', icon: Volume2, label: 'Audio' },
   { id: 'text', icon: Type, label: 'Text' },
   { id: 'effects', icon: Wand2, label: 'AI Tools' },
   { id: 'layers', icon: Layers, label: 'Layers' },
 ];
+
+function SplitBracketIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M9 5.5c-2 1.8-3 3.8-3 6.5s1 4.7 3 6.5" />
+      <path d="M15 5.5c2 1.8 3 3.8 3 6.5s-1 4.7-3 6.5" />
+    </svg>
+  );
+}
 
 const moreMenuItems = [
   { id: 'merge', icon: Layers, label: 'Merge' },
