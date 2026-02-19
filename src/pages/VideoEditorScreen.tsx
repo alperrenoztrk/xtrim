@@ -397,13 +397,19 @@ const VideoEditorScreen = () => {
       setTimelineViewportWidth(timelineNode.clientWidth);
     };
 
-    updateWidth();
+    const frame = requestAnimationFrame(updateWidth);
 
     const observer = new ResizeObserver(() => updateWidth());
     observer.observe(timelineNode);
 
-    return () => observer.disconnect();
-  }, [project?.id, project?.duration]);
+    window.addEventListener('resize', updateWidth);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, [project?.id, project?.duration, isFullscreen, isPanelCollapsed]);
 
   
   // Panel states
