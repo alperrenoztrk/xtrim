@@ -1854,15 +1854,11 @@ const VideoEditorScreen = () => {
           <div className="text-muted-foreground text-sm">Select a clip for preview</div>
         ) : (
           <div className="flex flex-col items-center gap-4 text-center p-8">
-            <div className="w-20 h-20 rounded-full bg-secondary flex items-center justify-center">
-              <Plus className="w-8 h-8 text-muted-foreground" />
-            </div>
             <Button
               variant="gradient"
               onClick={() => fileInputRef.current?.click()}
               disabled={isMediaImporting}
             >
-              <Plus className="w-4 h-4" />
               {isMediaImporting ? `Loading... %${mediaImportProgress}` : 'Add Media'}
             </Button>
             {isMediaImporting && (
@@ -2123,7 +2119,6 @@ const VideoEditorScreen = () => {
               onClick={() => fileInputRef.current?.click()}
               disabled={isMediaImporting}
             >
-              <Plus className="w-4 h-4" />
               {isMediaImporting ? `Loading... %${mediaImportProgress}` : 'Add Media'}
             </Button>
           </div>
