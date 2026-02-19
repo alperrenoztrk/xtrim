@@ -99,7 +99,7 @@ const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string
   { id: 'split', icon: Split, label: 'Split' },
   { id: 'audio', icon: Volume2, label: 'Audio' },
   { id: 'text', icon: Type, label: 'Text' },
-  { id: 'effects', icon: Sparkles, label: 'Effects' },
+  { id: 'effects', icon: Wand2, label: 'AI Tools' },
   { id: 'layers', icon: Layers, label: 'Layers' },
 ];
 
@@ -112,7 +112,7 @@ const moreMenuItems = [
   { id: 'stabilize', icon: Sparkles, label: 'Stabilize', isAI: true },
   { id: 'speed', icon: SlidersHorizontal, label: 'Speed' },
   { id: 'filters', icon: Filter, label: 'Filters' },
-  { id: 'effects', icon: Sparkles, label: 'Effects' },
+  { id: 'effects', icon: Wand2, label: 'AI Tools' },
   { id: 'crop', icon: Crop, label: 'Crop' },
   { id: 'rotate', icon: RotateCcw, label: 'Rotate' },
   { id: 'color', icon: Palette, label: 'Color' },
