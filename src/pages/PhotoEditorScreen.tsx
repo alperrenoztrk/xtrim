@@ -23,7 +23,7 @@ import {
   Eraser,
   Expand,
   Type,
-  Scissors,
+  LayoutGrid,
   Trash2,
   Volume2,
   MoreHorizontal,
@@ -108,10 +108,10 @@ const defaultAdjustments: ImageAdjustments = {
   flipV: false,
 };
 
-type QuickTool = 'trim' | 'delete' | 'audio' | 'text' | 'more';
+type QuickTool = 'collage' | 'delete' | 'audio' | 'text' | 'more';
 
 const moreMenuTools: { id: Exclude<QuickTool, 'more'>; icon: React.ComponentType<any>; label: string }[] = [
-  { id: 'trim', icon: Scissors, label: 'Trim' },
+  { id: 'collage', icon: LayoutGrid, label: 'Collage' },
   { id: 'delete', icon: Trash2, label: 'Delete' },
   { id: 'audio', icon: Volume2, label: 'Audio' },
   { id: 'text', icon: Type, label: 'Text' },
@@ -124,6 +124,7 @@ const PhotoEditorScreen = () => {
   const previewStageRef = useRef<HTMLDivElement>(null);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [selectedImageUrls, setSelectedImageUrls] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<EditorTab>('adjust');
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(defaultAdjustments);
   const [selectedFilter, setSelectedFilter] = useState<string>('none');
@@ -243,16 +244,35 @@ const PhotoEditorScreen = () => {
     setSelectedFilter('none');
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setImageUrl(url);
-      setAdjustments(defaultAdjustments);
-      setSelectedFilter('none');
-      setUndoStack([]);
-      setRedoStack([]);
+  const openCollageEditor = useCallback((images: string[]) => {
+    if (images.length < 2) {
+      toast.info('Collage requires at least 2 photos.');
+      return;
     }
+
+    sessionStorage.setItem('collageSeedImages', JSON.stringify(images));
+    navigate('/collage?source=photo-editor');
+  }, [navigate]);
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+
+    const imageUrls = files.map((file) => URL.createObjectURL(file));
+    const mergedImages = Array.from(new Set([...selectedImageUrls, ...imageUrls]));
+
+    setSelectedImageUrls(mergedImages);
+    setImageUrl(imageUrls[0]);
+    setAdjustments(defaultAdjustments);
+    setSelectedFilter('none');
+    setUndoStack([]);
+    setRedoStack([]);
+
+    if (files.length > 1) {
+      openCollageEditor(imageUrls);
+    }
+
+    e.target.value = '';
   };
 
   const handleToggleFullscreen = useCallback(() => {
@@ -564,12 +584,13 @@ const PhotoEditorScreen = () => {
     setActiveQuickTool(toolId);
 
     switch (toolId) {
-      case 'trim':
-        setActiveTab('crop');
+      case 'collage':
+        openCollageEditor(selectedImageUrls);
         break;
       case 'delete':
         saveState();
         setImageUrl(null);
+        setSelectedImageUrls([]);
         setActiveAITool(null);
         setAiPrompt('');
         setActiveQuickTool(null);
@@ -609,6 +630,7 @@ const PhotoEditorScreen = () => {
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         onChange={handleImageSelect}
       />
@@ -1072,8 +1094,14 @@ const PhotoEditorScreen = () => {
                     {moreMenuTools.map((tool) => (
                       <button
                         key={tool.id}
-                        className="h-20 rounded-xl border border-border bg-background hover:bg-secondary/40 transition-colors px-3 flex items-center gap-3"
+                        className={cn(
+                          'h-20 rounded-xl border border-border bg-background transition-colors px-3 flex items-center gap-3',
+                          tool.id === 'collage' && selectedImageUrls.length < 2
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'hover:bg-secondary/40'
+                        )}
                         onClick={() => handleQuickToolClick(tool.id)}
+                        disabled={tool.id === 'collage' && selectedImageUrls.length < 2}
                       >
                         <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                           <tool.icon className="w-4 h-4" />

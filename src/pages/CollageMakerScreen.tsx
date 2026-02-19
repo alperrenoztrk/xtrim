@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -139,6 +139,35 @@ const CollageMakerScreen = () => {
   const [borderWidth, setBorderWidth] = useState(4);
   const [borderRadius, setBorderRadius] = useState(8);
   const [activeTab, setActiveTab] = useState<EditorTab>('layout');
+
+  useEffect(() => {
+    const rawImages = sessionStorage.getItem('collageSeedImages');
+    if (!rawImages) return;
+
+    try {
+      const images = JSON.parse(rawImages) as string[];
+      if (!Array.isArray(images) || images.length < 2) return;
+
+      const seededLayout = collageLayouts.find((layout) => layout.cells >= images.length) ?? collageLayouts[collageLayouts.length - 1];
+      setSelectedLayout(seededLayout);
+
+      const seededCellIds = Array.from({ length: seededLayout.cells }, (_, i) => String.fromCharCode(97 + i));
+      setPhotos(
+        images.slice(0, seededLayout.cells).map((url, index) => ({
+          id: uuidv4(),
+          url,
+          cellId: seededCellIds[index],
+          zoom: 1,
+          offsetX: 0,
+          offsetY: 0,
+        }))
+      );
+    } catch (error) {
+      console.error('Failed to load collage seed images', error);
+    } finally {
+      sessionStorage.removeItem('collageSeedImages');
+    }
+  }, []);
 
   const cellIds = Array.from({ length: selectedLayout.cells }, (_, i) => 
     String.fromCharCode(97 + i)
