@@ -163,8 +163,19 @@ class NativeExportService {
         text: 'Created with Xtrim',
       };
 
-      if (navigator.canShare?.({ files: [fileToShare] })) {
-        sharePayload.files = [fileToShare];
+      const canShareResult = navigator.canShare?.({ files: [fileToShare] });
+      const shouldAttachFile = canShareResult !== false;
+
+      if (shouldAttachFile) {
+        try {
+          await navigator.share({
+            ...sharePayload,
+            files: [fileToShare],
+          });
+          return true;
+        } catch {
+          // Fallback to text-only share for browsers that reject file payloads at runtime.
+        }
       }
 
       await navigator.share(sharePayload);
