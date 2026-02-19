@@ -645,9 +645,6 @@ const PhotoEditorScreen = () => {
             </motion.div>
             <div>
               <p className="text-foreground font-medium">Select a photo to edit</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Choose from your device or try a demo photo
-              </p>
             </div>
             <div className="flex gap-3">
               <Button variant="gradient" onClick={() => fileInputRef.current?.click()}>
