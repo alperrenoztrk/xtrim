@@ -126,8 +126,8 @@ function SplitBracketIcon(props: React.SVGProps<SVGSVGElement>) {
       strokeLinejoin="round"
       {...props}
     >
-      <path d="M9 5.5c-2 1.8-3 3.8-3 6.5s1 4.7 3 6.5" />
-      <path d="M15 5.5c2 1.8 3 3.8 3 6.5s-1 4.7-3 6.5" />
+      <path d="M10 5H7v14h3" />
+      <path d="M14 5h3v14h-3" />
     </svg>
   );
 }
