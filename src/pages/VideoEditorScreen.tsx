@@ -1145,7 +1145,9 @@ const VideoEditorScreen = () => {
 
   // Handle merge all clips with transition
   const handleMergeAllClips = async (transitionId: string) => {
-    if (!project || project.timeline.length < 2) return;
+    if (!project || project.timeline.length < 2) {
+      throw new Error('At least 2 clips are required to merge');
+    }
 
     const orderedClips = [...project.timeline].sort((a, b) => a.order - b.order);
     const totalDuration = orderedClips.reduce(
@@ -1161,8 +1163,7 @@ const VideoEditorScreen = () => {
     const mergedMediaSource = firstVideoMedia ?? primaryMedia;
 
     if (!mergedMediaSource) {
-      toast.error('No suitable media found for merge');
-      return;
+      throw new Error('No suitable media found for merge');
     }
 
     let mergedUri = mergedMediaSource.uri;
@@ -1174,8 +1175,7 @@ const VideoEditorScreen = () => {
       mergedSize = mergedBlob.size;
     } catch (error) {
       console.error('Merge failed:', error);
-      toast.error('Merge failed. Timeline has been kept unchanged.');
-      return;
+      throw new Error('Merge failed. Timeline has been kept unchanged.');
     }
 
     const mergedMediaId = uuidv4();
