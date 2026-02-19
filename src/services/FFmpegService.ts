@@ -105,7 +105,7 @@ class FFmpegService {
     onProgress?.({ stage: 'preparing', progress: 12, message: 'Preparing media files...' });
 
     // Write all media files to FFmpeg virtual filesystem
-    const inputFiles: string[] = [];
+    const tempFiles: string[] = [];
     const concatEntries: string[] = [];
 
     for (let i = 0; i < sortedClips.length; i++) {
@@ -126,12 +126,14 @@ class FFmpegService {
       try {
         const fileData = await fetchFile(mediaUri);
         await ffmpeg.writeFile(inputName, fileData);
+        tempFiles.push(inputName);
 
         if (media.type === 'photo') {
           // Convert photo to a short video clip
           const duration = clip.endTime - clip.startTime;
           const photoVideoName = `pv_${i}.mp4`;
           await ffmpeg.exec([
+            '-y',
             '-loop', '1',
             '-i', inputName,
             '-c:v', 'libx264',
@@ -141,7 +143,7 @@ class FFmpegService {
             '-r', String(settings.fps),
             photoVideoName,
           ]);
-          inputFiles.push(photoVideoName);
+          tempFiles.push(photoVideoName);
           concatEntries.push(`file '${photoVideoName}'`);
         } else {
           // Trim video clip if needed
@@ -149,6 +151,7 @@ class FFmpegService {
           const trimmedName = `trimmed_${i}.mp4`;
           
           const trimArgs = [
+            '-y',
             '-i', inputName,
             '-ss', String(clip.startTime),
             '-t', String(clipDuration),
@@ -168,7 +171,7 @@ class FFmpegService {
           }
 
           await ffmpeg.exec(trimArgs);
-          inputFiles.push(trimmedName);
+          tempFiles.push(trimmedName);
           concatEntries.push(`file '${trimmedName}'`);
         }
       } catch (err) {
@@ -193,6 +196,7 @@ class FFmpegService {
 
     // Concatenate all clips
     await ffmpeg.exec([
+      '-y',
       '-f', 'concat',
       '-safe', '0',
       '-i', 'concat.txt',
@@ -209,7 +213,7 @@ class FFmpegService {
 
     // Cleanup virtual filesystem
     try {
-      for (const file of inputFiles) {
+      for (const file of tempFiles) {
         await ffmpeg.deleteFile(file).catch(() => {});
       }
       await ffmpeg.deleteFile('concat.txt').catch(() => {});
