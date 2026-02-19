@@ -31,6 +31,8 @@ import {
   Bot,
   Loader2,
   Share2,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -119,6 +121,7 @@ const PhotoEditorScreen = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewStageRef = useRef<HTMLDivElement>(null);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<EditorTab>('adjust');
@@ -129,6 +132,7 @@ const PhotoEditorScreen = () => {
   const [redoStack, setRedoStack] = useState<EditorSnapshot[]>([]);
   const [showBackgroundRemover, setShowBackgroundRemover] = useState(false);
   const [activeQuickTool, setActiveQuickTool] = useState<QuickTool | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   // AI Tool states
   const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
@@ -250,6 +254,44 @@ const PhotoEditorScreen = () => {
       setRedoStack([]);
     }
   };
+
+  const handleToggleFullscreen = useCallback(() => {
+    const toggle = async () => {
+      const previewStage = previewStageRef.current;
+      if (!previewStage) return;
+
+      if (document.fullscreenElement) {
+        try {
+          await document.exitFullscreen();
+        } catch {
+          toast.error('Failed to close fullscreen mode');
+        }
+        return;
+      }
+
+      if (typeof previewStage.requestFullscreen === 'function') {
+        try {
+          await previewStage.requestFullscreen();
+          return;
+        } catch {
+          toast.error('Failed to open fullscreen mode');
+        }
+      }
+    };
+
+    void toggle();
+  }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   const getFilterString = (values: ImageAdjustments) =>
     [
@@ -647,12 +689,17 @@ const PhotoEditorScreen = () => {
       </header>
 
       {/* Image preview */}
-      <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden p-4">
+      <div
+        ref={previewStageRef}
+        className="flex-1 relative bg-black flex items-center justify-center overflow-hidden p-4"
+      >
         {imageUrl ? (
           <motion.div
             key={imageUrl}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
+            className={cn(isFullscreen ? 'cursor-zoom-out' : 'cursor-zoom-in')}
+            onClick={handleToggleFullscreen}
           >
             <img
               src={imageUrl}
@@ -668,6 +715,21 @@ const PhotoEditorScreen = () => {
               Select a photo
             </Button>
           </div>
+        )}
+
+        {imageUrl && (
+          <Button
+            variant="icon"
+            size="iconSm"
+            className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm hover:bg-black/70"
+            onClick={handleToggleFullscreen}
+          >
+            {isFullscreen ? (
+              <Minimize className="w-4 h-4 text-white" />
+            ) : (
+              <Maximize className="w-4 h-4 text-white" />
+            )}
+          </Button>
         )}
 
         {/* AI Processing Overlay */}
