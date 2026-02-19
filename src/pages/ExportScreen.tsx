@@ -506,11 +506,11 @@ const ExportScreen = () => {
 
               {exportStatus === 'complete' && (
                 <div className="flex gap-2 pt-2">
-                  <Button variant="outline" className="flex-1" onClick={handleShare}>
+                  <Button variant="outline" className="flex-1" onClick={() => handleShare()}>
                     <Share2 className="w-4 h-4" />
                     Share
                   </Button>
-                  <Button variant="gradient" className="flex-1" onClick={handleSaveToDevice}>
+                  <Button variant="gradient" className="flex-1" onClick={() => handleSaveToDevice()}>
                     <FolderDown className="w-4 h-4" />
                     Download
                   </Button>
@@ -789,7 +789,7 @@ const ExportScreen = () => {
               variant="gradient"
               size="lg"
               className="w-full"
-              onClick={handleStartExport}
+              onClick={() => handleStartExport()}
             >
               <Download className="w-5 h-5" />
               Export
