@@ -443,6 +443,11 @@ const VideoEditorScreen = () => {
     setShowTranslatePanel(false);
     setShowRotateCropPanel(false);
   };
+
+  const closeAIToolsMenu = () => {
+    setShowAIToolsMenu(false);
+    setActiveTool((currentTool) => (currentTool === 'effects' ? null : currentTool));
+  };
   
   // Trim state
   const [trimStart, setTrimStart] = useState(0);
@@ -1398,7 +1403,7 @@ const VideoEditorScreen = () => {
         break;
     }
     setShowMoreMenu(false);
-    setShowAIToolsMenu(false);
+    closeAIToolsMenu();
   };
 
   // Tool click handler
@@ -1419,7 +1424,7 @@ const VideoEditorScreen = () => {
     if (isCurrentlyActive) {
       setActiveTool(null);
       closeAllToolPanels();
-      setShowAIToolsMenu(false);
+      closeAIToolsMenu();
       return;
     }
 
@@ -2568,7 +2573,7 @@ const VideoEditorScreen = () => {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">AI Tools</h3>
-              <Button variant="ghost" size="sm" onClick={() => setShowAIToolsMenu(false)}>
+              <Button variant="ghost" size="sm" onClick={closeAIToolsMenu}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
