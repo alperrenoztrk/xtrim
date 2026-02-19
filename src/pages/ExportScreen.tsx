@@ -309,9 +309,9 @@ const ExportScreen = () => {
       ProjectService.saveProject(updatedProject);
 
       if (pendingActionRef.current === 'share') {
-        await handleShare(videoBlob, effectiveFormat);
+        toast.info('Export is ready. Tap Share to continue.');
       } else if (pendingActionRef.current === 'download') {
-        await handleSaveToDevice(videoBlob, effectiveFormat);
+        toast.info('Export is ready. Tap Download to continue.');
       }
       pendingActionRef.current = null;
 
