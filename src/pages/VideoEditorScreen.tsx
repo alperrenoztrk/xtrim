@@ -681,6 +681,7 @@ const VideoEditorScreen = () => {
           endTime: mediaItem.duration || 10,
           trimStart: 0,
           trimEnd: mediaItem.duration || 10,
+          sourceDuration: mediaItem.duration || 10,
           volume: 1,
           fadeIn: 0,
           fadeOut: 0,
@@ -725,6 +726,7 @@ const VideoEditorScreen = () => {
         endTime: project.duration || 10,
         trimStart: 0,
         trimEnd: project.duration || 10,
+        sourceDuration: project.duration || 10,
         volume: 1,
         fadeIn: 0,
         fadeOut: 0,
@@ -767,6 +769,30 @@ const VideoEditorScreen = () => {
       audioTracks: project.audioTracks.map((t) =>
         t.id === trackId ? { ...t, volume: volume / 100 } : t
       ),
+    });
+  };
+
+  const handleUpdateAudioTrim = (trackId: string, values: number[]) => {
+    if (!project || values.length !== 2) return;
+
+    const [rawStart, rawEnd] = values;
+    const minGap = 0.1;
+
+    saveProject({
+      ...project,
+      audioTracks: project.audioTracks.map((track) => {
+        if (track.id !== trackId) return track;
+
+        const sourceDuration = track.sourceDuration ?? Math.max(track.trimEnd, track.trimStart + minGap);
+        const start = Math.max(0, Math.min(rawStart, sourceDuration - minGap));
+        const end = Math.max(start + minGap, Math.min(rawEnd, sourceDuration));
+
+        return {
+          ...track,
+          trimStart: start,
+          trimEnd: end,
+        };
+      }),
     });
   };
 
@@ -1457,8 +1483,10 @@ const VideoEditorScreen = () => {
       const now = video.currentTime;
 
       for (const track of project.audioTracks) {
+        const trimDuration = Math.max(0, track.trimEnd - track.trimStart);
+        const trackPlayableEnd = Math.min(track.endTime, track.startTime + trimDuration);
         const trackStart = Math.max(track.startTime, clip.startTime);
-        const trackEnd = Math.min(track.endTime, clip.endTime);
+        const trackEnd = Math.min(trackPlayableEnd, clip.endTime);
         const shouldPlayTrack =
           isPlaying &&
           !track.isMuted &&
@@ -1485,7 +1513,10 @@ const VideoEditorScreen = () => {
           continue;
         }
 
-        const desiredTime = Math.max(0, now - track.startTime + track.trimStart);
+        const desiredTime = Math.min(
+          track.trimEnd,
+          Math.max(track.trimStart, now - track.startTime + track.trimStart)
+        );
         if (Math.abs(audioEl.currentTime - desiredTime) > 0.35) {
           audioEl.currentTime = desiredTime;
         }
@@ -2316,6 +2347,22 @@ const VideoEditorScreen = () => {
                       <span className="text-xs text-muted-foreground w-8">
                         {Math.round(track.volume * 100)}%
                       </span>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Music timeline</span>
+                        <span>
+                          {MediaService.formatDuration(track.trimStart)} - {MediaService.formatDuration(track.trimEnd)}
+                        </span>
+                      </div>
+                      <Slider
+                        value={[track.trimStart, track.trimEnd]}
+                        min={0}
+                        max={track.sourceDuration ?? Math.max(track.trimEnd, track.trimStart + 0.1)}
+                        step={0.1}
+                        onValueChange={(values) => handleUpdateAudioTrim(track.id, values)}
+                      />
                     </div>
                   </div>
                 ))}

@@ -37,6 +37,7 @@ export interface AudioTrack {
   endTime: number;      // when it ends in timeline
   trimStart: number;    // trim of audio file itself
   trimEnd: number;
+  sourceDuration?: number; // full source duration in seconds
   volume: number;       // 0-1
   fadeIn: number;       // duration in seconds
   fadeOut: number;
