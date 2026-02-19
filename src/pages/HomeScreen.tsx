@@ -59,7 +59,10 @@ const dragonLayers = [
     className: 'top-[12%]',
     duration: 26,
     delay: 0,
-    opacity: 0.35,
+    opacity: 0.3,
+    bodyFrom: 'hsl(160 48% 56% / 0.9)',
+    bodyTo: 'hsl(204 42% 38% / 0.8)',
+    glow: 'hsl(168 90% 64% / 0.3)',
   },
   {
     id: 'violet-dragon',
@@ -67,7 +70,10 @@ const dragonLayers = [
     className: 'top-[42%]',
     duration: 20,
     delay: 4,
-    opacity: 0.28,
+    opacity: 0.24,
+    bodyFrom: 'hsl(271 60% 66% / 0.85)',
+    bodyTo: 'hsl(300 46% 42% / 0.72)',
+    glow: 'hsl(284 100% 70% / 0.24)',
   },
   {
     id: 'mist-dragon',
@@ -75,7 +81,10 @@ const dragonLayers = [
     className: 'top-[70%]',
     duration: 30,
     delay: 2,
-    opacity: 0.24,
+    opacity: 0.22,
+    bodyFrom: 'hsl(205 38% 76% / 0.78)',
+    bodyTo: 'hsl(226 30% 44% / 0.65)',
+    glow: 'hsl(213 94% 78% / 0.2)',
   },
 ];
 
@@ -86,7 +95,7 @@ const DragonWallpaper = () => (
     {dragonLayers.map((layer) => (
       <motion.div
         key={layer.id}
-        className={cn('absolute left-[-35%] drop-shadow-[0_12px_30px_hsl(var(--accent)/0.2)]', layer.className, layer.size)}
+        className={cn('absolute left-[-35%]', layer.className, layer.size)}
         initial={{ x: '-10vw', y: 0 }}
         animate={{ x: ['0vw', '130vw'], y: [0, -18, 0, 14, 0] }}
         transition={{
@@ -99,32 +108,91 @@ const DragonWallpaper = () => (
         style={{ opacity: layer.opacity }}
       >
         <svg viewBox="0 0 560 220" className="h-full w-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M26 134C69 85 131 75 179 103C218 126 267 153 316 140C368 126 390 80 431 68C465 58 499 64 531 88"
-            stroke="url(#dragon-stroke)"
-            strokeWidth="12"
-            strokeLinecap="round"
-          />
-          <path
-            d="M46 130C71 117 108 126 131 140C156 156 197 176 222 160"
-            stroke="hsl(var(--primary)/0.5)"
-            strokeWidth="7"
-            strokeLinecap="round"
-          />
-          <path
-            d="M213 102L236 84L253 103L242 126L220 123Z"
-            fill="hsl(var(--accent)/0.35)"
-          />
-          <circle cx="246" cy="103" r="5" fill="hsl(var(--primary)/0.7)" />
-          <path
-            d="M388 80L408 58L426 79L412 99Z"
-            fill="hsl(var(--primary)/0.3)"
-          />
+          <g filter={`url(#dragon-soft-shadow-${layer.id})`}>
+            <path
+              d="M78 132C95 89 148 55 205 56C250 58 309 90 341 118C373 147 401 161 444 162C484 163 509 149 530 128C504 122 491 109 490 95C489 80 500 67 522 61C497 49 468 47 447 56C423 66 410 86 402 103C392 91 379 80 364 70C322 41 257 23 201 30C123 40 78 89 56 131L78 132Z"
+              fill={`url(#dragon-body-${layer.id})`}
+            />
+            <path
+              d="M206 62C195 82 196 106 211 120C228 136 262 138 284 121"
+              stroke="hsl(45 94% 80% / 0.45)"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+            />
+            <path
+              d="M236 62C224 83 223 104 235 116"
+              stroke="hsl(43 93% 72% / 0.4)"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M68 131C44 128 32 109 38 95C44 80 62 73 85 82C69 90 61 103 61 115C61 121 64 127 68 131Z"
+              fill="hsl(14 77% 67% / 0.7)"
+            />
+            <path
+              d="M71 119C54 117 48 106 50 98C53 90 64 86 78 91C69 96 67 109 71 119Z"
+              fill="hsl(14 88% 74% / 0.8)"
+            />
+            <path
+              d="M86 90L99 71L112 90"
+              stroke="hsl(46 90% 86% / 0.66)"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+            />
+            <path
+              d="M100 89L115 72L126 94"
+              stroke="hsl(48 92% 82% / 0.55)"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <ellipse cx="72" cy="102" rx="4.3" ry="3.4" fill="hsl(188 95% 74% / 0.92)" />
+            <circle cx="73" cy="102" r="1.3" fill="hsl(210 62% 16% / 0.95)" />
+            <path
+              d="M205 53C251 28 294 41 328 78C347 98 353 114 351 138C334 113 311 96 272 95C240 95 214 103 184 118C186 92 192 72 205 53Z"
+              fill="hsl(205 48% 92% / 0.2)"
+            />
+            <path
+              d="M196 130C222 146 268 155 304 154C336 154 367 146 392 131"
+              stroke="hsl(45 100% 88% / 0.45)"
+              strokeWidth="3.4"
+              strokeLinecap="round"
+            />
+            <path
+              d="M344 116C362 124 380 126 396 124"
+              stroke="hsl(49 98% 83% / 0.42)"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+            />
+            <path
+              d="M427 149C445 136 456 120 460 104"
+              stroke="hsl(48 97% 81% / 0.38)"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M438 84C458 95 473 113 478 133"
+              stroke="hsl(201 67% 88% / 0.28)"
+              strokeWidth="8"
+              strokeLinecap="round"
+            />
+          </g>
           <defs>
-            <linearGradient id="dragon-stroke" x1="26" y1="66" x2="531" y2="140" gradientUnits="userSpaceOnUse">
-              <stop stopColor="hsl(var(--primary)/0.75)" />
-              <stop offset="1" stopColor="hsl(var(--accent)/0.68)" />
+            <linearGradient id={`dragon-body-${layer.id}`} x1="56" y1="30" x2="533" y2="168" gradientUnits="userSpaceOnUse">
+              <stop stopColor={layer.bodyFrom} />
+              <stop offset="0.48" stopColor="hsl(202 45% 20% / 0.65)" />
+              <stop offset="1" stopColor={layer.bodyTo} />
             </linearGradient>
+            <filter id={`dragon-soft-shadow-${layer.id}`} x="10" y="10" width="540" height="200" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+              <feGaussianBlur stdDeviation="2.8" result="blur" />
+              <feColorMatrix
+                in="blur"
+                type="matrix"
+                values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 .72 0"
+                result="soft"
+              />
+              <feDropShadow dx="0" dy="8" stdDeviation="10" floodColor={layer.glow} />
+              <feBlend in="SourceGraphic" in2="soft" mode="normal" />
+            </filter>
           </defs>
         </svg>
       </motion.div>
