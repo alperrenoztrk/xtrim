@@ -1931,6 +1931,31 @@ const VideoEditorScreen = () => {
             </span>
           </div>
         )}
+
+        {/* Fullscreen timeline overlay - shown on tap */}
+        {isFullscreen && selectedClip && showVideoControls && (
+          <div
+            className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-8 bg-gradient-to-t from-black/85 via-black/60 to-transparent"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-white/90 min-w-[40px]">
+                {MediaService.formatDuration(currentTime)}
+              </span>
+              <Slider
+                value={[currentTime]}
+                max={selectedClip.endTime - selectedClip.startTime}
+                step={0.01}
+                onValueChange={([value]) => handleSeek(value)}
+                onValueCommit={([value]) => handleSeek(value)}
+                className="w-full"
+              />
+              <span className="text-xs text-white/90 min-w-[40px] text-right">
+                {MediaService.formatDuration(selectedClip.endTime - selectedClip.startTime)}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Collapsible Timeline + Toolbar Panel */}
