@@ -695,37 +695,6 @@ const PhotoEditorScreen = () => {
             </Button>
           </div>
 
-          <div className="flex items-center justify-around py-2 px-2 border-b border-border bg-card">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    'flex-col gap-1 h-auto min-w-[70px] py-2',
-                    activeQuickTool === 'more' && 'text-primary'
-                  )}
-                  onClick={() => setActiveQuickTool('more')}
-                >
-                  <MoreHorizontal className="w-5 h-5" />
-                  <span className="text-xxs">More</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center">
-                {moreMenuTools.map((tool) => (
-                  <DropdownMenuItem
-                    key={tool.id}
-                    className="gap-2"
-                    onClick={() => handleQuickToolClick(tool.id)}
-                  >
-                    <tool.icon className="w-4 h-4" />
-                    {tool.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
           {/* Tab selector */}
           <div className="flex border-b border-border bg-card overflow-x-auto scrollbar-hide">
             {[
@@ -749,6 +718,35 @@ const PhotoEditorScreen = () => {
                 {tab.label}
               </button>
             ))}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={cn(
+                    'flex-shrink-0 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2',
+                    activeQuickTool === 'more'
+                      ? 'text-primary border-primary'
+                      : 'text-muted-foreground border-transparent hover:text-foreground'
+                  )}
+                  onClick={() => setActiveQuickTool('more')}
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                  More
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {moreMenuTools.map((tool) => (
+                  <DropdownMenuItem
+                    key={tool.id}
+                    className="gap-2"
+                    onClick={() => handleQuickToolClick(tool.id)}
+                  >
+                    <tool.icon className="w-4 h-4" />
+                    {tool.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Controls panel */}
