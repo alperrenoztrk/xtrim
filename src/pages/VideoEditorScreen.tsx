@@ -1901,6 +1901,7 @@ const VideoEditorScreen = () => {
                 ref={videoRef}
                 src={resolvedSelectedMediaUri || selectedMedia.uri}
                 className="max-h-full max-w-full object-contain transition-transform duration-200"
+                onContextMenu={(event) => event.preventDefault()}
                 style={{
                   transform: `rotate(${selectedClip?.rotation || 0}deg) scaleX(${selectedClip?.flipH ? -1 : 1}) scaleY(${selectedClip?.flipV ? -1 : 1})`,
                 }}
@@ -1950,6 +1951,7 @@ const VideoEditorScreen = () => {
                 src={resolvedSelectedMediaUri || selectedMedia.uri}
                 alt=""
                 className="max-h-full max-w-full object-contain transition-transform duration-200"
+                onContextMenu={(event) => event.preventDefault()}
                 style={{
                   transform: `rotate(${selectedClip?.rotation || 0}deg) scaleX(${selectedClip?.flipH ? -1 : 1}) scaleY(${selectedClip?.flipV ? -1 : 1})`,
                 }}

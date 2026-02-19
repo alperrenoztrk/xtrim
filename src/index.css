@@ -123,6 +123,15 @@
     min-height: 100vh;
     min-height: 100dvh;
   }
+
+  /* Prevent Android long-press callout menu (Download / Share / Print) on media */
+  img,
+  video,
+  canvas {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 @layer utilities {
