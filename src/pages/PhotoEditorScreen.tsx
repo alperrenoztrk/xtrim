@@ -256,42 +256,16 @@ const PhotoEditorScreen = () => {
   };
 
   const handleToggleFullscreen = useCallback(() => {
-    const toggle = async () => {
-      const previewStage = previewStageRef.current;
-      if (!previewStage) return;
-
-      if (document.fullscreenElement) {
-        try {
-          await document.exitFullscreen();
-        } catch {
-          toast.error('Failed to close fullscreen mode');
-        }
-        return;
-      }
-
-      if (typeof previewStage.requestFullscreen === 'function') {
-        try {
-          await previewStage.requestFullscreen();
-          return;
-        } catch {
-          toast.error('Failed to open fullscreen mode');
-        }
-      }
-    };
-
-    void toggle();
+    setIsFullscreen((prev) => !prev);
   }, []);
 
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    };
+    document.body.style.overflow = isFullscreen ? 'hidden' : '';
 
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.body.style.overflow = '';
     };
-  }, []);
+  }, [isFullscreen]);
 
   const getFilterString = (values: ImageAdjustments) =>
     [
@@ -691,7 +665,10 @@ const PhotoEditorScreen = () => {
       {/* Image preview */}
       <div
         ref={previewStageRef}
-        className="flex-1 relative bg-muted flex items-center justify-center overflow-hidden p-4"
+        className={cn(
+          'flex-1 relative bg-muted flex items-center justify-center overflow-hidden p-4',
+          isFullscreen && 'fixed inset-0 z-50 bg-black p-2',
+        )}
       >
         {imageUrl ? (
           <motion.div
