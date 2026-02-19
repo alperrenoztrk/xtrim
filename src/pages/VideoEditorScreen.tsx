@@ -1167,8 +1167,9 @@ const VideoEditorScreen = () => {
       mergedUri = URL.createObjectURL(mergedBlob);
       mergedSize = mergedBlob.size;
     } catch (error) {
-      console.error('Real merge failed, using source media:', error);
-      toast.warning('Could not process full merge. Using first clip as fallback.');
+      console.error('Merge failed:', error);
+      toast.error('Merge failed. Timeline has been kept unchanged.');
+      return;
     }
 
     const mergedMediaId = uuidv4();
