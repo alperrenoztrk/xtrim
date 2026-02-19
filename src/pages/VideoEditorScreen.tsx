@@ -846,6 +846,10 @@ const VideoEditorScreen = () => {
   }, [project, selectedClipId]);
 
   useEffect(() => {
+    setVideoError(false);
+  }, [selectedClipId, resolvedSelectedMediaUri]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const resolveAudioTracks = async () => {
@@ -1785,6 +1789,8 @@ const VideoEditorScreen = () => {
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={handleVideoEnded}
                 onError={() => setVideoError(true)}
+                onCanPlay={() => setVideoError(false)}
+                onPlaying={() => setVideoError(false)}
                 playsInline
                 preload="auto"
               />
