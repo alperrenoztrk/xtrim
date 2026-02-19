@@ -62,7 +62,6 @@ interface FilterPreset {
   id: string;
   name: string;
   adjustments: Partial<ImageAdjustments>;
-  preview: string;
 }
 
 interface EditorSnapshot {
@@ -72,16 +71,16 @@ interface EditorSnapshot {
 }
 
 const filterPresets: FilterPreset[] = [
-  { id: 'none', name: 'Original', adjustments: {}, preview: 'none' },
-  { id: 'vivid', name: 'Vivid', adjustments: { saturation: 30, contrast: 15 }, preview: 'saturate(1.45) contrast(1.2)' },
-  { id: 'warm', name: 'Warm', adjustments: { temperature: 25, saturation: 10 }, preview: 'sepia(0.3) saturate(1.2) hue-rotate(-8deg)' },
-  { id: 'cool', name: 'Cool', adjustments: { temperature: -25, brightness: 5 }, preview: 'hue-rotate(18deg) saturate(1.1) brightness(1.04)' },
-  { id: 'dramatic', name: 'Dramatic', adjustments: { contrast: 40, saturation: -20 }, preview: 'contrast(1.55) saturate(0.75) brightness(0.92)' },
-  { id: 'fade', name: 'Fade', adjustments: { contrast: -20, brightness: 10 }, preview: 'contrast(0.78) brightness(1.12) saturate(0.88)' },
-  { id: 'noir', name: 'Noir', adjustments: { saturation: -100, contrast: 30 }, preview: 'grayscale(1) contrast(1.35) brightness(0.95)' },
-  { id: 'vintage', name: 'Vintage', adjustments: { saturation: -30, temperature: 20, contrast: -10 }, preview: 'sepia(0.48) contrast(0.88) saturate(0.85)' },
-  { id: 'chrome', name: 'Chrome', adjustments: { saturation: 20, contrast: 25, brightness: 5 }, preview: 'saturate(1.3) contrast(1.3) brightness(1.08)' },
-  { id: 'mono', name: 'Mono', adjustments: { saturation: -100 }, preview: 'grayscale(1)' },
+  { id: 'none', name: 'Original', adjustments: {} },
+  { id: 'vivid', name: 'Vivid', adjustments: { saturation: 30, contrast: 15 } },
+  { id: 'warm', name: 'Warm', adjustments: { temperature: 25, saturation: 10 } },
+  { id: 'cool', name: 'Cool', adjustments: { temperature: -25, brightness: 5 } },
+  { id: 'dramatic', name: 'Dramatic', adjustments: { contrast: 40, saturation: -20 } },
+  { id: 'fade', name: 'Fade', adjustments: { contrast: -20, brightness: 10 } },
+  { id: 'noir', name: 'Noir', adjustments: { saturation: -100, contrast: 30 } },
+  { id: 'vintage', name: 'Vintage', adjustments: { saturation: -30, temperature: 20, contrast: -10 } },
+  { id: 'chrome', name: 'Chrome', adjustments: { saturation: 20, contrast: 25, brightness: 5 } },
+  { id: 'mono', name: 'Mono', adjustments: { saturation: -100 } },
 ];
 
 const cropRatios = [
@@ -251,18 +250,18 @@ const PhotoEditorScreen = () => {
     }
   };
 
-  const getFilterString = () =>
+  const getFilterString = (values: ImageAdjustments) =>
     [
-      `brightness(${1 + adjustments.brightness / 100})`,
-      `contrast(${1 + adjustments.contrast / 100})`,
-      `saturate(${1 + adjustments.saturation / 100})`,
-      adjustments.temperature > 0
-        ? `sepia(${adjustments.temperature / 100})`
-        : `hue-rotate(${adjustments.temperature}deg)`,
+      `brightness(${1 + values.brightness / 100})`,
+      `contrast(${1 + values.contrast / 100})`,
+      `saturate(${1 + values.saturation / 100})`,
+      values.temperature > 0
+        ? `sepia(${values.temperature / 100})`
+        : `hue-rotate(${values.temperature}deg)`,
     ].join(' ');
 
   const getImageStyle = (): React.CSSProperties => {
-    const filters = getFilterString();
+    const filters = getFilterString(adjustments);
 
     return {
       filter: filters,
@@ -373,7 +372,7 @@ const PhotoEditorScreen = () => {
         throw new Error('Canvas could not be created');
       }
 
-      ctx.filter = getFilterString();
+      ctx.filter = getFilterString(adjustments);
       ctx.translate(canvas.width / 2, canvas.height / 2);
       const scaleX = adjustments.flipH ? -1 : 1;
       const scaleY = adjustments.flipV ? -1 : 1;
@@ -875,7 +874,11 @@ const PhotoEditorScreen = () => {
                             src={filterPreviewImage}
                             alt={filter.name}
                             className="w-full h-full object-cover"
-                            style={{ filter: filter.preview }}
+                            style={{
+                              filter: filter.id === 'none'
+                                ? 'none'
+                                : getFilterString({ ...defaultAdjustments, ...filter.adjustments }),
+                            }}
                           />
                         </div>
                         <span
