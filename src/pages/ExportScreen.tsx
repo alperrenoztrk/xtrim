@@ -309,9 +309,11 @@ const ExportScreen = () => {
       ProjectService.saveProject(updatedProject);
 
       if (pendingActionRef.current === 'share') {
-        toast.info('Export is ready. Tap Share to continue.');
+        setProgressMessage('Opening share sheet...');
+        await handleShare(videoBlob, effectiveFormat);
       } else if (pendingActionRef.current === 'download') {
-        toast.info('Export is ready. Tap Download to continue.');
+        setProgressMessage('Saving to device...');
+        await handleSaveToDevice(videoBlob, effectiveFormat);
       }
       pendingActionRef.current = null;
 
