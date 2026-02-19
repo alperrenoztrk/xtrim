@@ -691,7 +691,7 @@ const PhotoEditorScreen = () => {
       {/* Image preview */}
       <div
         ref={previewStageRef}
-        className="flex-1 relative bg-black flex items-center justify-center overflow-hidden p-4"
+        className="flex-1 relative bg-muted flex items-center justify-center overflow-hidden p-4"
       >
         {imageUrl ? (
           <motion.div
