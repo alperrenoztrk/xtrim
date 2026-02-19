@@ -31,8 +31,6 @@ import {
   Bot,
   Loader2,
   Share2,
-  FolderDown,
-  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -137,8 +135,6 @@ const PhotoEditorScreen = () => {
   const [aiPrompt, setAiPrompt] = useState('');
   const [isAIProcessing, setIsAIProcessing] = useState(false);
   const [aiProgress, setAIProgress] = useState(0);
-  const [showSaveSharePanel, setShowSaveSharePanel] = useState(false);
-  const [savedImageBlob, setSavedImageBlob] = useState<Blob | null>(null);
 
   // Handle URL params for AI tools and generated images
   useEffect(() => {
@@ -350,10 +346,10 @@ const PhotoEditorScreen = () => {
     }
   }, [imageUrl, selectedCropRatio, saveState]);
 
-  const handleSave = async () => {
+  const createEditedImageBlob = async (): Promise<Blob | null> => {
     if (!imageUrl) {
       toast.error('No image found to save');
-      return;
+      return null;
     }
 
     try {
@@ -385,29 +381,31 @@ const PhotoEditorScreen = () => {
       ctx.rotate((rotation * Math.PI) / 180);
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
 
-      canvas.toBlob((blob) => {
-        if (blob) {
-          setSavedImageBlob(blob);
-          setShowSaveSharePanel(true);
-        } else {
-          toast.error('Image could not be created');
-        }
-      }, 'image/png');
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((result) => resolve(result), 'image/png');
+      });
+
+      if (!blob) {
+        toast.error('Image could not be created');
+        return null;
+      }
+
+      return blob;
     } catch (error) {
       console.error('Save error:', error);
       toast.error('Image could not be saved');
+      return null;
     }
   };
 
-  const handleSaveToDevice = async () => {
-    if (!savedImageBlob) return;
+  const handleSaveToDevice = async (imageBlob: Blob) => {
     const fileName = `Xtrim_photo_${Date.now()}.png`;
-    const result = await nativeExportService.saveVideoToDevice(savedImageBlob, fileName);
+    const result = await nativeExportService.saveVideoToDevice(imageBlob, fileName);
     if (result.success) {
       toast.success('Image saved to device!');
     } else {
       // Web fallback - direct download
-      const url = URL.createObjectURL(savedImageBlob);
+      const url = URL.createObjectURL(imageBlob);
       const link = document.createElement('a');
       link.href = url;
       link.download = fileName;
@@ -417,14 +415,13 @@ const PhotoEditorScreen = () => {
     }
   };
 
-  const handleShareImage = async () => {
-    if (!savedImageBlob) return;
+  const handleShareImage = async (imageBlob: Blob) => {
     const fileName = `Xtrim_photo_${Date.now()}.png`;
     
     // Try Web Share API first
     if (navigator.share && navigator.canShare) {
       try {
-        const file = new File([savedImageBlob], fileName, { type: 'image/png' });
+        const file = new File([imageBlob], fileName, { type: 'image/png' });
         if (navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: 'Xtrim Photo',
@@ -440,12 +437,24 @@ const PhotoEditorScreen = () => {
     }
 
     // Native share fallback
-    const success = await nativeExportService.shareVideoBlob(savedImageBlob, fileName);
+    const success = await nativeExportService.shareVideoBlob(imageBlob, fileName);
     if (success) {
       toast.success('Shared!');
     } else {
       toast.error('Sharing is not supported');
     }
+  };
+
+  const handleExportAction = async (action: 'download' | 'share') => {
+    const imageBlob = await createEditedImageBlob();
+    if (!imageBlob) return;
+
+    if (action === 'share') {
+      await handleShareImage(imageBlob);
+      return;
+    }
+
+    await handleSaveToDevice(imageBlob);
   };
 
   // AI Processing functions
@@ -615,10 +624,24 @@ const PhotoEditorScreen = () => {
             <Redo2 className="w-4 h-4" />
           </Button>
           {imageUrl && (
-            <Button variant="gradient" size="sm" onClick={handleSave}>
-              <Download className="w-4 h-4" />
-              Save
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="gradient" size="sm">
+                  <Download className="w-4 h-4" />
+                  Save
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem onClick={() => handleExportAction('download')}>
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportAction('share')}>
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </header>
@@ -1075,57 +1098,6 @@ const PhotoEditorScreen = () => {
               }
             }}
           />
-        )}
-      </AnimatePresence>
-
-      {/* Save & Share Panel */}
-      <AnimatePresence>
-        {showSaveSharePanel && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
-            onClick={() => setShowSaveSharePanel(false)}
-          >
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="w-full max-w-lg bg-card rounded-t-2xl p-6 space-y-4 safe-area-bottom"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-center">
-                <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
-              </div>
-              
-              <div className="flex flex-col items-center gap-2">
-                <CheckCircle2 className="w-10 h-10 text-green-500" />
-                <h3 className="text-lg font-semibold text-foreground">Image Ready!</h3>
-                <p className="text-sm text-muted-foreground">Your photo was processed successfully</p>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 h-14 flex-col gap-1"
-                  onClick={handleShareImage}
-                >
-                  <Share2 className="w-5 h-5" />
-                  <span className="text-xs">Share</span>
-                </Button>
-                <Button
-                  variant="gradient"
-                  className="flex-1 h-14 flex-col gap-1"
-                  onClick={handleSaveToDevice}
-                >
-                  <FolderDown className="w-5 h-5" />
-                  <span className="text-xs">Save</span>
-                </Button>
-              </div>
-            </motion.div>
-          </motion.div>
         )}
       </AnimatePresence>
     </div>
