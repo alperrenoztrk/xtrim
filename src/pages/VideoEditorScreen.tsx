@@ -36,6 +36,8 @@ import {
   SlidersHorizontal,
   Zap,
   Languages,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AutoCutPanel } from '@/components/AutoCutPanel';
@@ -337,6 +339,10 @@ const VideoEditorScreen = () => {
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<EditorTool | null>(null);
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showVideoControls, setShowVideoControls] = useState(false);
+  const videoControlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [undoStack, setUndoStack] = useState<Project[]>([]);
   const [redoStack, setRedoStack] = useState<Project[]>([]);
   const [videoError, setVideoError] = useState(false);
@@ -1589,6 +1595,26 @@ const VideoEditorScreen = () => {
     }
   };
 
+  const handleVideoTap = () => {
+    setShowVideoControls(true);
+    if (videoControlsTimeoutRef.current) {
+      clearTimeout(videoControlsTimeoutRef.current);
+    }
+    videoControlsTimeoutRef.current = setTimeout(() => {
+      setShowVideoControls(false);
+    }, 3000);
+  };
+
+  const handleToggleFullscreen = () => {
+    setIsFullscreen((prev) => {
+      const next = !prev;
+      if (next) {
+        setIsPanelCollapsed(true);
+      }
+      return next;
+    });
+  };
+
   const handleTrimPreviewSeek = (time: number) => {
     const video = videoRef.current;
     if (!video) return;
@@ -1623,7 +1649,7 @@ const VideoEditorScreen = () => {
   const hasAnyClip = project.timeline.length > 0;
 
   return (
-    <div className="h-screen flex flex-col bg-background safe-area-top">
+    <div className="h-screen flex flex-col bg-background safe-area-top overflow-hidden">
       <input
         ref={fileInputRef}
         type="file"
@@ -1700,7 +1726,10 @@ const VideoEditorScreen = () => {
       </header>
 
       {/* Preview */}
-      <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
+      <div
+        className="flex-1 relative bg-black flex items-center justify-center overflow-hidden"
+        onClick={handleVideoTap}
+      >
         {selectedMedia ? (
           selectedMedia.type === 'video' ? (
             <div ref={previewContainerRef} className="relative max-h-full max-w-full w-full h-full flex items-center justify-center">
@@ -1717,13 +1746,10 @@ const VideoEditorScreen = () => {
                 playsInline
                 preload="auto"
               />
-              {/* Draggable Text Overlays on Video */}
               {textOverlays.map((overlay) => {
                 const videoCurrentTime = videoRef.current?.currentTime || 0;
                 const isVisible = videoCurrentTime >= overlay.startTime && videoCurrentTime <= overlay.endTime;
-                
                 if (!isVisible && !isEditingTextOverlays) return null;
-                
                 return (
                   <DraggableTextOverlay
                     key={overlay.id}
@@ -1735,7 +1761,6 @@ const VideoEditorScreen = () => {
                   />
                 );
               })}
-              {/* Text editing mode indicator */}
               {isEditingTextOverlays && (
                 <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
                   <Type className="w-3 h-3" />
@@ -1746,15 +1771,9 @@ const VideoEditorScreen = () => {
                 <div className="absolute inset-0 flex items-center justify-center bg-black/80">
                   <div className="text-center p-4 max-w-sm">
                     <p className="text-destructive font-medium">Video cannot be played</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      This format may not be supported by your browser.
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Supported formats: MP4, WebM, OGG
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      File name: {selectedMedia?.name}
-                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">This format may not be supported by your browser.</p>
+                    <p className="text-xs text-muted-foreground mt-2">Supported formats: MP4, WebM, OGG</p>
+                    <p className="text-xs text-muted-foreground">File name: {selectedMedia?.name}</p>
                   </div>
                 </div>
               )}
@@ -1769,7 +1788,6 @@ const VideoEditorScreen = () => {
                   transform: `rotate(${selectedClip?.rotation || 0}deg) scaleX(${selectedClip?.flipH ? -1 : 1}) scaleY(${selectedClip?.flipV ? -1 : 1})`,
                 }}
               />
-              {/* Draggable Text Overlays on Image */}
               {textOverlays.map((overlay) => (
                 <DraggableTextOverlay
                   key={overlay.id}
@@ -1780,7 +1798,6 @@ const VideoEditorScreen = () => {
                   onSelect={setSelectedTextOverlayId}
                 />
               ))}
-              {/* Text editing mode indicator */}
               {isEditingTextOverlays && (
                 <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
                   <Type className="w-3 h-3" />
@@ -1804,7 +1821,6 @@ const VideoEditorScreen = () => {
               <Plus className="w-4 h-4" />
               {isMediaImporting ? `Loading... %${mediaImportProgress}` : 'Add Media'}
             </Button>
-
             {isMediaImporting && (
               <div className="w-full max-w-sm rounded-lg border border-border bg-card/90 p-3 space-y-2">
                 <div className="flex items-center justify-between gap-2 text-xs">
@@ -1818,15 +1834,14 @@ const VideoEditorScreen = () => {
             )}
           </div>
         )}
-
-        {/* Play button overlay */}
-        {project.timeline.length > 0 && selectedMedia && (
+        {/* Play button overlay - shown when video controls are visible */}
+        {project.timeline.length > 0 && selectedMedia && showVideoControls && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <Button
               variant="icon"
               size="iconLg"
               className="bg-white/10 backdrop-blur-sm hover:bg-white/20 pointer-events-auto"
-              onClick={handlePlayPause}
+              onClick={(e) => { e.stopPropagation(); handlePlayPause(); }}
             >
               {isPlaying ? (
                 <Pause className="w-6 h-6 text-white fill-white" />
@@ -1837,8 +1852,31 @@ const VideoEditorScreen = () => {
           </div>
         )}
 
+        {/* Fullscreen button - appears on tap at bottom right */}
+        {project.timeline.length > 0 && selectedMedia && showVideoControls && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="absolute bottom-4 right-4"
+          >
+            <Button
+              variant="icon"
+              size="iconSm"
+              className="bg-black/50 backdrop-blur-sm hover:bg-black/70"
+              onClick={(e) => { e.stopPropagation(); handleToggleFullscreen(); }}
+            >
+              {isFullscreen ? (
+                <Minimize className="w-4 h-4 text-white" />
+              ) : (
+                <Maximize className="w-4 h-4 text-white" />
+              )}
+            </Button>
+          </motion.div>
+        )}
+
         {/* Video time display overlay */}
-        {selectedMedia?.type === 'video' && selectedClip && (
+        {selectedMedia?.type === 'video' && selectedClip && showVideoControls && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm">
             <span className="text-sm text-white font-medium">
               {MediaService.formatDuration(currentTime)} / {MediaService.formatDuration(selectedClip.endTime - selectedClip.startTime)}
@@ -1847,8 +1885,36 @@ const VideoEditorScreen = () => {
         )}
       </div>
 
-      {/* Timeline */}
-      <div className="border-t border-border bg-card">
+      {/* Collapsible Timeline + Toolbar Panel */}
+      <motion.div
+        className="border-t border-border bg-card"
+        animate={{ height: isPanelCollapsed ? 'auto' : 'auto' }}
+      >
+        {/* Drag Handle / Collapse Toggle */}
+        <div
+          className="flex items-center justify-center py-1.5 cursor-pointer select-none"
+          onClick={() => { setIsPanelCollapsed((v) => !v); if (isFullscreen) setIsFullscreen(false); }}
+        >
+          <div className="flex flex-col items-center gap-0.5">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/40" />
+            {isPanelCollapsed ? (
+              <ChevronUp className="w-3 h-3 text-muted-foreground/60 mt-0.5" />
+            ) : (
+              <ChevronDown className="w-3 h-3 text-muted-foreground/60 mt-0.5" />
+            )}
+          </div>
+        </div>
+
+        {/* Timeline content - collapsible */}
+        <AnimatePresence>
+        {!isPanelCollapsed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            className="overflow-hidden"
+          >
         {/* Video Progress Bar */}
         {selectedMedia?.type === 'video' && selectedClip && (
           <div className="px-4 py-3 border-b border-border">
@@ -1992,7 +2058,10 @@ const VideoEditorScreen = () => {
             </Button>
           </div>
         )}
-      </div>
+          </motion.div>
+        )}
+        </AnimatePresence>
+      </motion.div>
 
       {/* Trim Panel */}
       <AnimatePresence>
