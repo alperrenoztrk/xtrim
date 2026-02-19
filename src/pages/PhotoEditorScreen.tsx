@@ -38,6 +38,16 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -133,6 +143,7 @@ const PhotoEditorScreen = () => {
   const [showBackgroundRemover, setShowBackgroundRemover] = useState(false);
   const [activeQuickTool, setActiveQuickTool] = useState<QuickTool | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   // AI Tool states
   const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
@@ -560,6 +571,15 @@ const PhotoEditorScreen = () => {
     }
   };
 
+  const handleDeletePhoto = () => {
+    saveState();
+    setImageUrl(null);
+    setActiveAITool(null);
+    setAiPrompt('');
+    setActiveQuickTool(null);
+    toast.success('Photo removed from editor');
+  };
+
   const handleQuickToolClick = (toolId: QuickTool) => {
     setActiveQuickTool(toolId);
 
@@ -568,12 +588,8 @@ const PhotoEditorScreen = () => {
         setActiveTab('crop');
         break;
       case 'delete':
-        saveState();
-        setImageUrl(null);
-        setActiveAITool(null);
-        setAiPrompt('');
+        setShowDeleteConfirm(true);
         setActiveQuickTool(null);
-        toast.success('Photo removed from editor');
         break;
       case 'audio':
         toast.info('Audio tools are available in the video editor.');
@@ -605,6 +621,21 @@ const PhotoEditorScreen = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background safe-area-top">
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This photo will be removed from the editor.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePhoto}>Yes, delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <input
         ref={fileInputRef}
         type="file"

@@ -61,6 +61,16 @@ import {
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ProjectService } from '@/services/ProjectService';
 import { MediaService } from '@/services/MediaService';
 import { ffmpegService } from '@/services/FFmpegService';
@@ -364,6 +374,7 @@ const VideoEditorScreen = () => {
   const [showTextPanel, setShowTextPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAIToolsMenu, setShowAIToolsMenu] = useState(false);
+  const [showDeleteClipConfirm, setShowDeleteClipConfirm] = useState(false);
   const [showAutoCutPanel, setShowAutoCutPanel] = useState(false);
   const [showEnhancePanel, setShowEnhancePanel] = useState(false);
   const [showStabilizePanel, setShowStabilizePanel] = useState(false);
@@ -1312,7 +1323,9 @@ const VideoEditorScreen = () => {
         }
         break;
       case 'delete':
-        if (selectedClipId) handleDeleteClip();
+        if (selectedClipId) {
+          setShowDeleteClipConfirm(true);
+        }
         break;
       case 'speed':
         handleOpenSpeed();
@@ -1658,6 +1671,20 @@ const VideoEditorScreen = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background safe-area-top overflow-hidden">
+      <AlertDialog open={showDeleteClipConfirm} onOpenChange={setShowDeleteClipConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This clip will be removed from the timeline.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteClip}>Yes, delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <input
         ref={fileInputRef}
         type="file"
