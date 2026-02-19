@@ -105,11 +105,6 @@ const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string
 
 const moreMenuItems = [
   { id: 'merge', icon: Layers, label: 'Merge' },
-  { id: 'ai-generate', icon: Wand2, label: 'AI Video Generate', isAI: true, isPro: true },
-  { id: 'translate', icon: Languages, label: 'Video Translator', isAI: true, isPro: true },
-  { id: 'autocut', icon: Zap, label: 'AutoCut', isAI: true },
-  { id: 'enhance', icon: Wand2, label: 'AI Enhance', isAI: true },
-  { id: 'stabilize', icon: Sparkles, label: 'Stabilize', isAI: true },
   { id: 'speed', icon: SlidersHorizontal, label: 'Speed' },
   { id: 'filters', icon: Filter, label: 'Filters' },
   { id: 'effects', icon: Wand2, label: 'AI Tools' },
@@ -118,6 +113,14 @@ const moreMenuItems = [
   { id: 'color', icon: Palette, label: 'Color' },
   { id: 'delete', icon: Trash2, label: 'Delete' },
   { id: 'duplicate', icon: Copy, label: 'Duplicate' },
+];
+
+const aiToolsMenuItems = [
+  { id: 'ai-generate', icon: Wand2, label: 'AI Video Generate', isAI: true, isPro: true },
+  { id: 'translate', icon: Languages, label: 'Video Translator', isAI: true, isPro: true },
+  { id: 'autocut', icon: Zap, label: 'AutoCut', isAI: true },
+  { id: 'enhance', icon: Wand2, label: 'AI Enhance', isAI: true },
+  { id: 'stabilize', icon: Sparkles, label: 'Stabilize', isAI: true },
 ];
 
 interface SearchSongResult {
@@ -360,6 +363,7 @@ const VideoEditorScreen = () => {
   const [isSearchingAudio, setIsSearchingAudio] = useState(false);
   const [showTextPanel, setShowTextPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [showAIToolsMenu, setShowAIToolsMenu] = useState(false);
   const [showAutoCutPanel, setShowAutoCutPanel] = useState(false);
   const [showEnhancePanel, setShowEnhancePanel] = useState(false);
   const [showStabilizePanel, setShowStabilizePanel] = useState(false);
@@ -1348,6 +1352,10 @@ const VideoEditorScreen = () => {
   // Handle More menu actions
   const handleMoreMenuAction = (actionId: string) => {
     switch (actionId) {
+      case 'effects':
+        setShowAIToolsMenu(true);
+        setShowMoreMenu(false);
+        return;
       case 'merge':
         handleOpenMerge();
         break;
@@ -1400,6 +1408,7 @@ const VideoEditorScreen = () => {
         break;
     }
     setShowMoreMenu(false);
+    setShowAIToolsMenu(false);
   };
 
   // Tool click handler
@@ -1418,6 +1427,13 @@ const VideoEditorScreen = () => {
         break;
       case 'text':
         handleOpenText();
+        break;
+      case 'effects':
+        setShowAIToolsMenu(true);
+        setShowMoreMenu(false);
+        setShowTrimPanel(false);
+        setShowAudioPanel(false);
+        setShowTextPanel(false);
         break;
       default:
         break;
@@ -2423,7 +2439,7 @@ const VideoEditorScreen = () => {
                   onClick={() => handleMoreMenuAction(item.id)}
                   disabled={
                     (item.id === 'merge' && project.timeline.length < 2) ||
-                    (item.id !== 'ai-generate' && item.id !== 'translate' && item.id !== 'merge' && !hasAnyClip)
+                    (item.id !== 'merge' && !hasAnyClip)
                   }
                 >
                   {item.isAI && (
@@ -2431,6 +2447,41 @@ const VideoEditorScreen = () => {
                       AI
                     </span>
                   )}
+                  <item.icon className="w-5 h-5" />
+                  <span className="text-xxs">{item.label}</span>
+                </Button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Tools Menu */}
+      <AnimatePresence>
+        {showAIToolsMenu && (
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium">AI Tools</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowAIToolsMenu(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {aiToolsMenuItems.map((item) => (
+                <Button
+                  key={item.id}
+                  variant="ghost"
+                  className="flex-col gap-1 h-auto py-3 relative text-primary"
+                  onClick={() => handleMoreMenuAction(item.id)}
+                >
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[8px] px-1 py-0.5 rounded font-medium">
+                    AI
+                  </span>
                   <item.icon className="w-5 h-5" />
                   <span className="text-xxs">{item.label}</span>
                 </Button>
@@ -2613,13 +2664,20 @@ const VideoEditorScreen = () => {
           size="sm"
           className={cn(
             'flex-col gap-1 h-auto py-2',
-            showMoreMenu && 'text-primary'
+            (showMoreMenu || showAIToolsMenu) && 'text-primary'
           )}
           onClick={() => {
-            setShowMoreMenu(!showMoreMenu);
+            const nextOpenState = !showMoreMenu;
+            setShowMoreMenu(nextOpenState);
+            if (nextOpenState) {
+              setShowAIToolsMenu(false);
+            }
             setShowTrimPanel(false);
             setShowAudioPanel(false);
             setShowTextPanel(false);
+            if (!nextOpenState) {
+              setShowAIToolsMenu(false);
+            }
           }}
         >
           <MoreHorizontal className="w-5 h-5" />
