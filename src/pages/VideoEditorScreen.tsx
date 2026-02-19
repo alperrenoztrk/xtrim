@@ -2064,49 +2064,6 @@ const VideoEditorScreen = () => {
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="overflow-hidden"
           >
-        {/* Video Progress Bar */}
-        {selectedMedia?.type === 'video' && selectedClip && (
-          <div className="px-4 py-3 border-b border-border">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="iconGhost"
-                size="iconSm"
-                onClick={handlePlayPause}
-                className="shrink-0"
-              >
-                {isPlaying ? (
-                  <Pause className="w-5 h-5" />
-                ) : (
-                  <Play className="w-5 h-5" />
-                )}
-              </Button>
-              <span className="text-sm font-medium text-primary min-w-[45px]">
-                {MediaService.formatDuration(currentTime)}
-              </span>
-              <div className="flex-1 relative">
-                <Slider
-                  value={[currentTime]}
-                  max={selectedClip.endTime - selectedClip.startTime}
-                  step={0.01}
-                  onValueChange={([value]) => handleSeek(value)}
-                  onValueCommit={([value]) => handleSeek(value)}
-                  className="w-full"
-                />
-                {/* Progress indicator line */}
-                <div 
-                  className="absolute top-1/2 left-0 h-1 bg-primary/30 rounded-full pointer-events-none -translate-y-1/2"
-                  style={{ 
-                    width: `${(currentTime / (selectedClip.endTime - selectedClip.startTime)) * 100}%` 
-                  }}
-                />
-              </div>
-              <span className="text-sm text-muted-foreground min-w-[45px] text-right">
-                {MediaService.formatDuration(selectedClip.endTime - selectedClip.startTime)}
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* Timeline controls */}
         <div className="px-4 py-3 border-b border-border bg-muted/20 space-y-3">
           <div className="flex items-center justify-between gap-3">
@@ -2119,6 +2076,18 @@ const VideoEditorScreen = () => {
             </div>
 
             <div className="flex items-center gap-1.5">
+              <Button
+                variant="iconGhost"
+                size="iconSm"
+                onClick={handlePlayPause}
+                title={isPlaying ? 'Durdur' : 'Oynat'}
+              >
+                {isPlaying ? (
+                  <Pause className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+              </Button>
               <Button
                 variant="iconGhost"
                 size="iconSm"
