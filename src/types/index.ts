@@ -16,6 +16,7 @@ export interface MediaItem {
 export interface TimelineClip {
   id: string;
   mediaId: string;
+  name?: string;
   startTime: number; // trim start in source media
   endTime: number;   // trim end in source media
   order: number;
