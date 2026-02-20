@@ -30,7 +30,6 @@ import {
   Share2,
   Maximize,
   Minimize,
-  ChevronUp,
   ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -811,11 +810,12 @@ const PhotoEditorScreen = () => {
           >
             <div className="flex flex-col items-center gap-0.5">
               <div className="w-10 h-1 rounded-full bg-muted-foreground/40" />
-              {isControlsCollapsed ? (
-                <ChevronUp className="w-3 h-3 text-muted-foreground/60 mt-0.5" />
-              ) : (
-                <ChevronDown className="w-3 h-3 text-muted-foreground/60 mt-0.5" />
-              )}
+              <ChevronDown
+                className={cn(
+                  'w-3 h-3 text-muted-foreground/60 mt-0.5 transition-transform duration-200',
+                  isControlsCollapsed && 'rotate-180'
+                )}
+              />
             </div>
           </div>
 
