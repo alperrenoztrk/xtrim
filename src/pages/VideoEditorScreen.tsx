@@ -276,7 +276,8 @@ const TimelineClipItem = ({
   const width = Math.max(duration * pixelsPerSecond, 12);
   const longPressTimeoutRef = useRef<number | null>(null);
   const startPointerRef = useRef<{ x: number; y: number } | null>(null);
-  const LONG_PRESS_MS = 550;
+  // Require a deliberate long press before opening rename on touch devices.
+  const LONG_PRESS_MS = 1000;
 
   const isPhoto = media?.type === 'photo';
 
