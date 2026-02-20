@@ -13,7 +13,7 @@ class FFmpegService {
   private ffmpeg: FFmpeg | null = null;
   private loaded = false;
   private loading = false;
-  private readonly ffmpegVersion = '0.12.15';
+  private readonly ffmpegVersion = '0.12.10';
 
   private async loadFromCDN(baseURL: string) {
     if (!this.ffmpeg) throw new Error('FFmpeg could not be initialized');
