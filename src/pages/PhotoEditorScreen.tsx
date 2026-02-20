@@ -15,8 +15,6 @@ import {
   Palette,
   Sparkles,
   Download,
-  Undo2,
-  Redo2,
   Check,
   X,
   ImagePlus,
@@ -671,22 +669,6 @@ const PhotoEditorScreen = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="iconGhost"
-            size="iconSm"
-            onClick={handleUndo}
-            disabled={undoStack.length === 0}
-          >
-            <Undo2 className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="iconGhost"
-            size="iconSm"
-            onClick={handleRedo}
-            disabled={redoStack.length === 0}
-          >
-            <Redo2 className="w-4 h-4" />
-          </Button>
           {imageUrl && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
