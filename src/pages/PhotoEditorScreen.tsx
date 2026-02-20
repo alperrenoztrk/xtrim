@@ -810,7 +810,6 @@ const PhotoEditorScreen = () => {
             onClick={() => setIsControlsCollapsed((prev) => !prev)}
           >
             <div className="flex flex-col items-center gap-0.5">
-              <div className="w-10 h-1 rounded-full bg-muted-foreground/40" />
               {isControlsCollapsed ? (
                 <ChevronUp className="w-3 h-3 text-muted-foreground/60 mt-0.5" />
               ) : (
