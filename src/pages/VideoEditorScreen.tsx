@@ -260,6 +260,7 @@ const TimelineClipItem = ({
   media,
   isSelected,
   onSelect,
+  onRename,
   isDragging,
   pixelsPerSecond,
 }: {
@@ -267,13 +268,26 @@ const TimelineClipItem = ({
   media?: MediaItem;
   isSelected: boolean;
   onSelect: () => void;
+  onRename: () => void;
   isDragging?: boolean;
   pixelsPerSecond: number;
 }) => {
   const duration = clip.endTime - clip.startTime;
   const width = Math.max(duration * pixelsPerSecond, 12);
+  const longPressTimeoutRef = useRef<number | null>(null);
+  const startPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const LONG_PRESS_MS = 550;
 
   const isPhoto = media?.type === 'photo';
+
+  const clearLongPress = useCallback(() => {
+    if (longPressTimeoutRef.current) {
+      window.clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => clearLongPress, [clearLongPress]);
   
   return (
     <div
@@ -284,6 +298,34 @@ const TimelineClipItem = ({
       )}
       style={{ width }}
       onClick={onSelect}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        onRename();
+      }}
+      onPointerDown={(event) => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        startPointerRef.current = { x: event.clientX, y: event.clientY };
+        clearLongPress();
+        longPressTimeoutRef.current = window.setTimeout(() => {
+          onRename();
+        }, LONG_PRESS_MS);
+      }}
+      onPointerMove={(event) => {
+        if (!startPointerRef.current) return;
+        const movedX = Math.abs(event.clientX - startPointerRef.current.x);
+        const movedY = Math.abs(event.clientY - startPointerRef.current.y);
+        if (movedX > 8 || movedY > 8) {
+          clearLongPress();
+        }
+      }}
+      onPointerUp={() => {
+        startPointerRef.current = null;
+        clearLongPress();
+      }}
+      onPointerCancel={() => {
+        startPointerRef.current = null;
+        clearLongPress();
+      }}
     >
       {/* Thumbnail background */}
       <div className="absolute inset-0 bg-secondary">
@@ -333,6 +375,10 @@ const TimelineClipItem = ({
       {/* Duration label */}
       <div className="absolute bottom-1 left-2 text-xxs font-medium text-white bg-black/50 px-1 rounded pointer-events-none">
         {MediaService.formatDuration(duration)}
+      </div>
+
+      <div className="absolute bottom-1 right-2 max-w-[70%] text-xxs font-medium text-white/90 bg-black/50 px-1 rounded truncate pointer-events-none">
+        {clip.name || media?.name || 'Clip'}
       </div>
 
       {/* Trim handles - only shown when selected */}
@@ -707,6 +753,31 @@ const VideoEditorScreen = () => {
     saveProject({ ...project, timeline: reorderedTimeline });
     toast.success('Order updated');
   };
+
+  const handleRenameClip = useCallback((clipId: string) => {
+    if (!project) return;
+    const clipToRename = project.timeline.find((clip) => clip.id === clipId);
+    if (!clipToRename) return;
+
+    const mediaName = project.mediaItems.find((item) => item.id === clipToRename.mediaId)?.name;
+    const currentName = clipToRename.name || mediaName || 'Clip';
+    const nextName = window.prompt('Klip adını girin', currentName);
+    if (nextName === null) return;
+
+    const normalizedName = nextName.trim();
+
+    const updatedTimeline = project.timeline.map((clip) =>
+      clip.id === clipId
+        ? {
+            ...clip,
+            name: normalizedName || undefined,
+          }
+        : clip
+    );
+
+    saveProject({ ...project, timeline: updatedTimeline });
+    toast.success(normalizedName ? 'Klip adı güncellendi' : 'Klip adı sıfırlandı');
+  }, [project, saveProject]);
 
   // Handle Trim
   const handleOpenTrim = () => {
@@ -2260,6 +2331,7 @@ const VideoEditorScreen = () => {
                       media={project.mediaItems.find((m) => m.id === clip.mediaId)}
                       isSelected={clip.id === selectedClipId}
                       onSelect={() => setSelectedClipId(clip.id)}
+                      onRename={() => handleRenameClip(clip.id)}
                       pixelsPerSecond={timelinePixelsPerSecond}
                     />
                   </Reorder.Item>
