@@ -2163,6 +2163,49 @@ const VideoEditorScreen = () => {
         className="border-t border-border bg-card"
         animate={{ height: isPanelCollapsed ? 'auto' : 'auto' }}
       >
+        {/* Tool selector */}
+        <div className="flex items-center justify-around px-3 py-2 border-b border-border bg-card/95 overflow-x-auto scrollbar-hide">
+          {toolItems.slice(0, 5).map((tool) => (
+            <Button
+              key={tool.id}
+              variant="ghost"
+              size="sm"
+              className={cn(
+                'flex-col gap-1 h-auto py-2 min-w-14',
+                activeTool === tool.id && 'text-primary'
+              )}
+              onClick={() => handleToolClick(tool.id)}
+              disabled={
+                ((tool.id === 'trim' || tool.id === 'split') && !selectedClipId) ||
+                ((tool.id === 'audio' || tool.id === 'text' || tool.id === 'effects') && !hasVideoInTimeline)
+              }
+            >
+              <tool.icon className="w-5 h-5" />
+              <span className="text-xxs">{tool.label}</span>
+            </Button>
+          ))}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'flex-col gap-1 h-auto py-2 min-w-14',
+              (showMoreMenu || showAIToolsMenu) && 'text-primary'
+            )}
+            onClick={() => {
+              const nextOpenState = !showMoreMenu;
+              if (nextOpenState) {
+                closeAllToolPanels();
+                setShowMoreMenu(true);
+              } else {
+                setShowMoreMenu(false);
+              }
+            }}
+          >
+            <MoreHorizontal className="w-5 h-5" />
+            <span className="text-xxs">More</span>
+          </Button>
+        </div>
+
         {/* Drag Handle / Collapse Toggle */}
         <div
           className="flex items-center justify-center py-1.5 cursor-pointer select-none"
@@ -2377,7 +2420,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-40"
+            className="absolute bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-40"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Trim Clip</h3>
@@ -2439,7 +2482,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-40"
+            className="absolute bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-40"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Split Clip</h3>
@@ -2480,7 +2523,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-40 max-h-60 overflow-y-auto"
+            className="absolute bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-40 max-h-60 overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Audio</h3>
@@ -2611,7 +2654,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-40"
+            className="absolute bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-40"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">More Options</h3>
@@ -2649,7 +2692,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-40"
+            className="absolute bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-40"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">AI Tools</h3>
@@ -2825,49 +2868,6 @@ const VideoEditorScreen = () => {
           currentFlipV={selectedClip.flipV || false}
         />
       )}
-
-      {/* Bottom toolbar */}
-      <div className="flex items-center justify-around py-3 px-4 border-t border-border bg-card safe-area-bottom relative z-20">
-        {toolItems.slice(0, 5).map((tool) => (
-          <Button
-            key={tool.id}
-            variant="ghost"
-            size="sm"
-            className={cn(
-              'flex-col gap-1 h-auto py-2',
-              activeTool === tool.id && 'text-primary'
-            )}
-            onClick={() => handleToolClick(tool.id)}
-            disabled={
-              ((tool.id === 'trim' || tool.id === 'split') && !selectedClipId) ||
-              ((tool.id === 'audio' || tool.id === 'text' || tool.id === 'effects') && !hasVideoInTimeline)
-            }
-          >
-            <tool.icon className="w-5 h-5" />
-            <span className="text-xxs">{tool.label}</span>
-          </Button>
-        ))}
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn(
-            'flex-col gap-1 h-auto py-2',
-            (showMoreMenu || showAIToolsMenu) && 'text-primary'
-          )}
-          onClick={() => {
-            const nextOpenState = !showMoreMenu;
-            if (nextOpenState) {
-              closeAllToolPanels();
-              setShowMoreMenu(true);
-            } else {
-              setShowMoreMenu(false);
-            }
-          }}
-        >
-          <MoreHorizontal className="w-5 h-5" />
-          <span className="text-xxs">More</span>
-        </Button>
-      </div>
 
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
