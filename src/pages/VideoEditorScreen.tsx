@@ -276,10 +276,11 @@ const TimelineClipItem = ({
   const width = Math.max(duration * pixelsPerSecond, 12);
   const longPressTimeoutRef = useRef<number | null>(null);
   const startPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const activePointerTypeRef = useRef<string | null>(null);
   // Require a deliberate long press before opening rename on touch devices.
   const LONG_PRESS_MS = 1000;
 
-  const isPhoto = media?.type === 'photo';
+  const isVideo = media?.type === 'video';
 
   const clearLongPress = useCallback(() => {
     if (longPressTimeoutRef.current) {
@@ -301,12 +302,19 @@ const TimelineClipItem = ({
       onClick={onSelect}
       onContextMenu={(event) => {
         event.preventDefault();
+        if (activePointerTypeRef.current && activePointerTypeRef.current !== 'mouse') {
+          return;
+        }
         onRename();
       }}
       onPointerDown={(event) => {
         if (event.pointerType === 'mouse' && event.button !== 0) return;
+        activePointerTypeRef.current = event.pointerType;
         startPointerRef.current = { x: event.clientX, y: event.clientY };
         clearLongPress();
+        if (!isVideo || event.pointerType === 'mouse') {
+          return;
+        }
         longPressTimeoutRef.current = window.setTimeout(() => {
           onRename();
         }, LONG_PRESS_MS);
@@ -320,10 +328,12 @@ const TimelineClipItem = ({
         }
       }}
       onPointerUp={() => {
+        activePointerTypeRef.current = null;
         startPointerRef.current = null;
         clearLongPress();
       }}
       onPointerCancel={() => {
+        activePointerTypeRef.current = null;
         startPointerRef.current = null;
         clearLongPress();
       }}
