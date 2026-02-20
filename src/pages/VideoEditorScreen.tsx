@@ -2548,8 +2548,7 @@ const VideoEditorScreen = () => {
                   key={item.id}
                   variant="ghost"
                   className={cn(
-                    "flex-col gap-1 h-auto py-3 relative",
-                    item.isAI && "text-primary"
+                    "flex-col gap-1 h-auto py-3 relative"
                   )}
                   onClick={() => handleMoreMenuAction(item.id)}
                   disabled={
@@ -2557,11 +2556,6 @@ const VideoEditorScreen = () => {
                     (item.id !== 'merge' && !hasAnyClip)
                   }
                 >
-                  {item.isAI && (
-                    <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[8px] px-1 py-0.5 rounded font-medium">
-                      AI
-                    </span>
-                  )}
                   <item.icon className="w-5 h-5" />
                   <span className="text-xxs">{item.label}</span>
                 </Button>
