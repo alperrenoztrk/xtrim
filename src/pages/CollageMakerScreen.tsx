@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 
 interface CollageLayout {
@@ -129,6 +130,7 @@ type EditorTab = 'layout' | 'style';
 
 const CollageMakerScreen = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeInputRef = useRef<string | null>(null);
 
@@ -242,6 +244,173 @@ const CollageMakerScreen = () => {
 
   const selectedPhoto = photos.find((p) => p.cellId === selectedCellId);
 
+  const drawRoundedRectPath = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    radius: number
+  ) => {
+    const safeRadius = Math.max(0, Math.min(radius, width / 2, height / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + safeRadius, y);
+    ctx.arcTo(x + width, y, x + width, y + height, safeRadius);
+    ctx.arcTo(x + width, y + height, x, y + height, safeRadius);
+    ctx.arcTo(x, y + height, x, y, safeRadius);
+    ctx.arcTo(x, y, x + width, y, safeRadius);
+    ctx.closePath();
+  };
+
+  const parseGridDimensions = (layout: CollageLayout) => {
+    const hasComplexLayout = layout.areas[0]?.includes(' ');
+    if (hasComplexLayout) {
+      return {
+        rows: layout.areas.length,
+        cols: layout.areas[0].split(' ').length,
+      };
+    }
+
+    const [rowsPart, colsPart] = layout.gridTemplate.split('/').map((part) => part.trim());
+    const rowsMatch = rowsPart.match(/repeat\((\d+),/);
+    const colsMatch = colsPart.match(/repeat\((\d+),/);
+    return {
+      rows: rowsMatch ? Number(rowsMatch[1]) : Math.max(1, Math.round(Math.sqrt(layout.cells))),
+      cols: colsMatch ? Number(colsMatch[1]) : Math.max(1, Math.ceil(layout.cells / Math.max(1, Math.round(Math.sqrt(layout.cells))))),
+    };
+  };
+
+  const getCellBounds = (layout: CollageLayout, cellId: string, canvasSize: number) => {
+    const padding = borderWidth;
+    const contentSize = canvasSize - padding * 2;
+    const gap = borderWidth;
+    const hasComplexLayout = layout.areas[0]?.includes(' ');
+    const { rows, cols } = parseGridDimensions(layout);
+
+    const totalGapX = Math.max(0, cols - 1) * gap;
+    const totalGapY = Math.max(0, rows - 1) * gap;
+    const unitWidth = (contentSize - totalGapX) / cols;
+    const unitHeight = (contentSize - totalGapY) / rows;
+
+    if (!hasComplexLayout) {
+      const index = layout.areas.indexOf(cellId);
+      const row = Math.floor(index / cols);
+      const col = index % cols;
+      return {
+        x: padding + col * (unitWidth + gap),
+        y: padding + row * (unitHeight + gap),
+        width: unitWidth,
+        height: unitHeight,
+      };
+    }
+
+    const matrix = layout.areas.map((row) => row.split(' '));
+    let minRow = Number.POSITIVE_INFINITY;
+    let maxRow = Number.NEGATIVE_INFINITY;
+    let minCol = Number.POSITIVE_INFINITY;
+    let maxCol = Number.NEGATIVE_INFINITY;
+
+    matrix.forEach((row, rowIndex) => {
+      row.forEach((value, colIndex) => {
+        if (value !== cellId) return;
+        minRow = Math.min(minRow, rowIndex);
+        maxRow = Math.max(maxRow, rowIndex);
+        minCol = Math.min(minCol, colIndex);
+        maxCol = Math.max(maxCol, colIndex);
+      });
+    });
+
+    if (!Number.isFinite(minRow) || !Number.isFinite(minCol)) {
+      return null;
+    }
+
+    return {
+      x: padding + minCol * (unitWidth + gap),
+      y: padding + minRow * (unitHeight + gap),
+      width: unitWidth * (maxCol - minCol + 1) + gap * (maxCol - minCol),
+      height: unitHeight * (maxRow - minRow + 1) + gap * (maxRow - minRow),
+    };
+  };
+
+  const loadImage = (url: string) =>
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+      img.src = url;
+    });
+
+  const handleSaveCollage = async () => {
+    if (photos.length === 0) return;
+
+    try {
+      const size = 2048;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context unavailable');
+
+      ctx.fillStyle = backgroundColor.color;
+      drawRoundedRectPath(ctx, 0, 0, size, size, borderRadius + borderWidth);
+      ctx.fill();
+
+      const loadedPhotos = await Promise.all(
+        photos.map(async (photo) => {
+          try {
+            const image = await loadImage(photo.url);
+            return { cellId: photo.cellId, photo, image };
+          } catch {
+            return { cellId: photo.cellId, photo, image: null };
+          }
+        })
+      );
+
+      loadedPhotos.forEach(({ cellId, photo, image }) => {
+        if (!image) return;
+
+        const bounds = getCellBounds(selectedLayout, cellId, size);
+        if (!bounds) return;
+
+        ctx.save();
+        drawRoundedRectPath(ctx, bounds.x, bounds.y, bounds.width, bounds.height, borderRadius);
+        ctx.clip();
+
+        const baseScale = Math.max(bounds.width / image.width, bounds.height / image.height);
+        const scale = baseScale * photo.zoom;
+        const drawWidth = image.width * scale;
+        const drawHeight = image.height * scale;
+
+        const maxShiftX = Math.max(0, (drawWidth - bounds.width) / 2);
+        const maxShiftY = Math.max(0, (drawHeight - bounds.height) / 2);
+
+        const x = bounds.x + (bounds.width - drawWidth) / 2 + (photo.offsetX / 50) * maxShiftX;
+        const y = bounds.y + (bounds.height - drawHeight) / 2 + (photo.offsetY / 50) * maxShiftY;
+
+        ctx.drawImage(image, x, y, drawWidth, drawHeight);
+        ctx.restore();
+      });
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `collage-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({ title: 'Collage indirildi', description: 'Görsel başarıyla cihazınıza kaydedildi.' });
+    } catch (error) {
+      console.error('Collage save error:', error);
+      toast({
+        title: 'Kaydetme başarısız',
+        description: 'Kolaj indirilemedi. Lütfen tekrar deneyin.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getGridStyle = (): React.CSSProperties => {
     const layout = selectedLayout;
     
@@ -296,6 +465,7 @@ const CollageMakerScreen = () => {
             variant="gradient"
             size="sm"
             disabled={photos.length === 0}
+            onClick={handleSaveCollage}
           >
             <Download className="w-4 h-4" />
             Save
