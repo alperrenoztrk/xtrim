@@ -801,7 +801,15 @@ const VideoEditorScreen = () => {
     const clip = project.timeline.find((c) => c.id === selectedClipId);
     if (!clip) return;
 
-    setSplitTime(((clip.startTime + clip.endTime) / 2).toFixed(1));
+    const playbackSplitPoint = videoRef.current?.currentTime;
+    const defaultSplitPoint =
+      playbackSplitPoint !== undefined &&
+      playbackSplitPoint > clip.startTime &&
+      playbackSplitPoint < clip.endTime
+        ? playbackSplitPoint
+        : (clip.startTime + clip.endTime) / 2;
+
+    setSplitTime(defaultSplitPoint.toFixed(1));
     closeAllToolPanels();
     setShowSplitPanel(true);
   };
@@ -816,6 +824,20 @@ const VideoEditorScreen = () => {
     }
 
     handleSplitClip(parsedSplitTime);
+  };
+
+  const handleSplitAtCurrentMoment = () => {
+    if (!selectedClip || !videoRef.current) return;
+
+    const currentPlaybackTime = videoRef.current.currentTime;
+    if (currentPlaybackTime <= selectedClip.startTime || currentPlaybackTime >= selectedClip.endTime) {
+      toast.error('Geçersiz bölme zamanı', {
+        description: 'Videoyu klibin içinde bir ana getirip tekrar deneyin.',
+      });
+      return;
+    }
+
+    handleSplitClip(currentPlaybackTime);
   };
 
   const handleReorderClips = (newOrder: TimelineClip[]) => {
@@ -2584,6 +2606,10 @@ const VideoEditorScreen = () => {
               <Button variant="gradient" size="sm" onClick={handleApplySplit} className="w-full">
                 <Scissors className="w-4 h-4" />
                 Apply
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleSplitAtCurrentMoment} className="w-full">
+                <Scissors className="w-4 h-4" />
+                Split at current moment
               </Button>
             </div>
           </motion.div>
