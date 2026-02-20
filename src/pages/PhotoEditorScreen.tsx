@@ -30,6 +30,8 @@ import {
   Share2,
   Maximize,
   Minimize,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -143,6 +145,7 @@ const PhotoEditorScreen = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [openCollageAfterSelection, setOpenCollageAfterSelection] = useState(false);
+  const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
   
   // AI Tool states
   const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
@@ -791,7 +794,10 @@ const PhotoEditorScreen = () => {
                     ? 'text-primary border-primary'
                     : 'text-muted-foreground border-transparent hover:text-foreground'
                 )}
-                onClick={() => setActiveTab(tab.id as EditorTab)}
+                onClick={() => {
+                  setActiveTab(tab.id as EditorTab);
+                  setIsControlsCollapsed(false);
+                }}
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
@@ -799,8 +805,22 @@ const PhotoEditorScreen = () => {
             ))}
           </div>
 
+          <div
+            className="flex items-center justify-center py-1.5 cursor-pointer select-none border-b border-border bg-card"
+            onClick={() => setIsControlsCollapsed((prev) => !prev)}
+          >
+            <div className="flex flex-col items-center gap-0.5">
+              <div className="w-10 h-1 rounded-full bg-muted-foreground/40" />
+              {isControlsCollapsed ? (
+                <ChevronUp className="w-3 h-3 text-muted-foreground/60 mt-0.5" />
+              ) : (
+                <ChevronDown className="w-3 h-3 text-muted-foreground/60 mt-0.5" />
+              )}
+            </div>
+          </div>
+
           {/* Controls panel */}
-          <div className="bg-card border-t border-border">
+          {!isControlsCollapsed && <div className="bg-card border-t border-border">
             <AnimatePresence mode="wait">
               {activeTab === 'adjust' && (
                 <motion.div
@@ -1116,7 +1136,7 @@ const PhotoEditorScreen = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
+          </div>}
 
           {/* Safe area bottom padding */}
           <div className="safe-area-bottom bg-card" />
