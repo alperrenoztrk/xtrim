@@ -628,14 +628,87 @@ const VideoEditorScreen = () => {
         setMediaImportProgress(Math.round(((index + 1) / videoFiles.length) * 100));
       }
 
+      let clipsToAppend = newClips;
+      let mediaItemsToAppend = [...newMediaItems];
+
+      if (newClips.length > 1) {
+        const clipsTotalDuration = newClips.reduce((acc, clip) => acc + (clip.endTime - clip.startTime), 0);
+        const mergeProject: Project = {
+          ...project,
+          mediaItems: [...project.mediaItems, ...newMediaItems],
+          timeline: newClips.map((clip, index) => ({
+            ...clip,
+            order: index,
+          })),
+          duration: clipsTotalDuration,
+        };
+
+        try {
+          const mergedBlob = await ffmpegService.mergeAndExport(
+            mergeProject,
+            {
+              resolution: project.exportSettings?.resolution ?? '1080p',
+              fps: project.exportSettings?.fps ?? 30,
+              bitrate: project.exportSettings?.bitrate ?? 'medium',
+              format: 'mp4',
+              fastStart: true,
+              removeAudio: false,
+            },
+            'mp4',
+            (p) => setMergeProgress(p)
+          );
+
+          const firstImportedVideo = newMediaItems.find((item) => item.type === 'video') ?? newMediaItems[0];
+          const mergedMediaId = uuidv4();
+          const mergedMedia: MediaItem = {
+            id: mergedMediaId,
+            type: 'video',
+            uri: URL.createObjectURL(mergedBlob),
+            name: `Merged Video (${newClips.length} clips)`,
+            duration: clipsTotalDuration,
+            thumbnail: firstImportedVideo?.thumbnail,
+            width: firstImportedVideo?.width,
+            height: firstImportedVideo?.height,
+            size: mergedBlob.size,
+            createdAt: new Date(),
+          };
+
+          mediaItemsToAppend = [...newMediaItems, mergedMedia];
+          clipsToAppend = [
+            {
+              id: uuidv4(),
+              mediaId: mergedMediaId,
+              startTime: 0,
+              endTime: clipsTotalDuration,
+              order: project.timeline.length,
+            },
+          ];
+
+          toast.success('Videos merged automatically', {
+            description: `${newClips.length} videos were merged and added as a single clip.`,
+          });
+        } catch (error) {
+          toast.warning('Automatic merge failed', {
+            description: 'Videos were added separately to the timeline.',
+          });
+        } finally {
+          setMergeProgress(null);
+        }
+      }
+
+      const appendedTimeline = [
+        ...project.timeline,
+        ...clipsToAppend.map((clip, index) => ({
+          ...clip,
+          order: project.timeline.length + index,
+        })),
+      ];
+
       const updatedProject = {
         ...project,
-        mediaItems: [...project.mediaItems, ...newMediaItems],
-        timeline: [...project.timeline, ...newClips],
-        duration: [...project.timeline, ...newClips].reduce(
-          (acc, clip) => acc + (clip.endTime - clip.startTime),
-          0
-        ),
+        mediaItems: [...project.mediaItems, ...mediaItemsToAppend],
+        timeline: appendedTimeline,
+        duration: appendedTimeline.reduce((acc, clip) => acc + (clip.endTime - clip.startTime), 0),
       };
 
       saveProject(updatedProject);
