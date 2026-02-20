@@ -55,11 +55,9 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     const maskCanvas = maskCanvasRef.current;
     if (!canvas || !maskCanvas) return;
 
-    // Set canvas size based on image
-    const maxSize = 800;
-    const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
-    const width = img.width * scale;
-    const height = img.height * scale;
+    // Keep original upload dimensions to avoid any quality loss.
+    const width = img.width;
+    const height = img.height;
 
     canvas.width = width;
     canvas.height = height;
