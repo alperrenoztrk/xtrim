@@ -72,7 +72,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { ProjectService } from '@/services/ProjectService';
 import { MediaService } from '@/services/MediaService';
-import { ffmpegService } from '@/services/FFmpegService';
+import { ffmpegService, type FFmpegProgress } from '@/services/FFmpegService';
 import { cn } from '@/lib/utils';
 import type { Project, TimelineClip, MediaItem, AudioTrack } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -427,6 +427,7 @@ const VideoEditorScreen = () => {
   const [showSpeedPanel, setShowSpeedPanel] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
   const [showMergePanel, setShowMergePanel] = useState(false);
+  const [mergeProgress, setMergeProgress] = useState<FFmpegProgress | null>(null);
   const [showAIGeneratePanel, setShowAIGeneratePanel] = useState(false);
   const [showTranslatePanel, setShowTranslatePanel] = useState(false);
   const [showRotateCropPanel, setShowRotateCropPanel] = useState(false);
@@ -1170,12 +1171,16 @@ const VideoEditorScreen = () => {
     let mergedSize = mergedMediaSource.size;
 
     try {
-      const mergedBlob = await ffmpegService.mergeTimelineClips(project);
+      const mergedBlob = await ffmpegService.mergeTimelineClips(project, (p) => {
+        setMergeProgress(p);
+      });
       mergedUri = URL.createObjectURL(mergedBlob);
       mergedSize = mergedBlob.size;
     } catch (error) {
       console.error('Merge failed:', error);
       throw new Error('Merge failed. Timeline has been kept unchanged.');
+    } finally {
+      setMergeProgress(null);
     }
 
     const mergedMediaId = uuidv4();
@@ -2662,6 +2667,7 @@ const VideoEditorScreen = () => {
             onClose={() => setShowMergePanel(false)}
             onApplyTransition={handleApplyTransition}
             onMergeAll={handleMergeAllClips}
+            mergeProgress={mergeProgress}
           />
         )}
       </AnimatePresence>
