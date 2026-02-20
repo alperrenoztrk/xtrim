@@ -280,7 +280,7 @@ const PhotoEditorScreen = () => {
     setUndoStack([]);
     setRedoStack([]);
 
-    if (openCollageAfterSelection || mergedImages.length > 1) {
+    if (openCollageAfterSelection) {
       openCollageEditor(mergedImages);
       setOpenCollageAfterSelection(false);
     }
