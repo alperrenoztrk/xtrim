@@ -116,9 +116,10 @@ const ExportScreen = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const [searchParams] = useSearchParams();
-  const requestedAction = searchParams.get('mode') === 'share'
+  const requestedMode = searchParams.get('mode');
+  const requestedAction = requestedMode === 'share'
     ? 'share'
-    : searchParams.get('mode') === 'download'
+    : requestedMode === 'download'
       ? 'download'
       : null;
   const pendingActionRef = useRef<'share' | 'download' | null>(requestedAction);
@@ -416,6 +417,12 @@ const ExportScreen = () => {
 
     void handleStartExport(autoSettings);
   }, [project, requestedAction, exportStatus]);
+
+  useEffect(() => {
+    if (!requestedMode || requestedAction) return;
+
+    toast.info('Videoda “ham dosyayı direkt paylaş” gibi FFmpeg’siz bir kısa yol bu ekranda tanımlı değil.');
+  }, [requestedMode, requestedAction]);
 
   if (!project) {
     return (
