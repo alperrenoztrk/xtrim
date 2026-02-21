@@ -188,43 +188,39 @@ class NativeExportService {
   }
 
   private async shareBlobOnWeb(videoBlob: Blob, fileName: string): Promise<boolean> {
-    try {
-      if (!navigator.share) {
-        const downloadResult = this.downloadForWeb(videoBlob, fileName);
-        return downloadResult.success;
-      }
+    // Try Web Share API with file attachment
+    if (navigator.share) {
+      try {
+        const fileToShare = this.createShareFile(videoBlob, fileName);
+        const canShareFiles = navigator.canShare?.({ files: [fileToShare] }) ?? false;
 
-      const fileToShare = this.createShareFile(videoBlob, fileName);
-      const sharePayload: ShareData = {
-        title: fileName,
-        text: 'Created with Xtrim',
-      };
-
-      const canShareResult = navigator.canShare?.({ files: [fileToShare] });
-      const shouldAttachFile = canShareResult !== false;
-
-      if (shouldAttachFile) {
-        try {
+        if (canShareFiles) {
           await navigator.share({
-            ...sharePayload,
+            title: fileName,
+            text: 'Created with Xtrim',
             files: [fileToShare],
           });
           return true;
-        } catch {
-          // Fallback to text-only share for browsers that reject file payloads at runtime.
         }
-      }
 
-      await navigator.share(sharePayload);
-      return true;
-    } catch (error) {
-      console.error('Web share error:', error);
-      const downloadResult = this.downloadForWeb(videoBlob, fileName);
-      if (downloadResult.success) {
+        // Share without file
+        await navigator.share({
+          title: fileName,
+          text: 'Created with Xtrim',
+        });
         return true;
+      } catch (error) {
+        // AbortError means user cancelled – still considered handled
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return true;
+        }
+        console.warn('Web share failed, falling back to download:', error);
       }
-      return false;
     }
+
+    // Fallback: download the file
+    const downloadResult = this.downloadForWeb(videoBlob, fileName);
+    return downloadResult.success;
   }
 
   private resolveNativeFilePath(filePath: string): string {
@@ -309,28 +305,58 @@ class NativeExportService {
     });
   }
 
-  // Web fallback: trigger download
+  // Web fallback: trigger download with multiple strategies
   private downloadForWeb(blob: Blob, fileName: string): ExportResult {
+    const safeFileName = this.sanitizeFileName(fileName);
+    const xtrimFileName = safeFileName.startsWith('Xtrim_') ? safeFileName : `Xtrim_${safeFileName}`;
+
     try {
       const url = URL.createObjectURL(blob);
+
+      // Strategy 1: Standard anchor click
       const link = document.createElement('a');
       link.href = url;
       link.style.display = 'none';
-      // Add Xtrim prefix for web downloads to indicate the app source
-      const safeFileName = this.sanitizeFileName(fileName);
-      const xtrimFileName = safeFileName.startsWith('Xtrim_') ? safeFileName : `Xtrim_${safeFileName}`;
       link.download = xtrimFileName;
+      // Use target _blank for iframe/sandbox compatibility
+      link.target = '_blank';
+      link.rel = 'noopener';
       document.body.appendChild(link);
-      link.click();
+
+      // Dispatch a real mouse event instead of .click() for better
+      // compatibility inside sandboxed iframes and Capacitor webviews.
+      try {
+        const event = new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        });
+        link.dispatchEvent(event);
+      } catch {
+        link.click();
+      }
+
       document.body.removeChild(link);
 
       // Safari/WebKit may cancel downloads if we revoke immediately.
       window.setTimeout(() => {
         URL.revokeObjectURL(url);
-      }, 1000);
+      }, 3000);
       
       return { success: true, filePath: xtrimFileName };
     } catch (error) {
+      // Strategy 2: window.open fallback
+      try {
+        const url = URL.createObjectURL(blob);
+        const w = window.open(url, '_blank');
+        if (w) {
+          window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+          return { success: true, filePath: xtrimFileName };
+        }
+      } catch {
+        // continue to error
+      }
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Download error',
