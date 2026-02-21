@@ -527,7 +527,6 @@ const PhotoEditorScreen = () => {
   const createEditedImageBlob = async (): Promise<Blob | null> => {
     if (!imageUrl) {
       toast.error('No image found to save');
-      console.error('createEditedImageBlob: imageUrl is empty');
       return null;
     }
 
