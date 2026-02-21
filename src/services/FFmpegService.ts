@@ -20,15 +20,14 @@ class FFmpegService {
 
     const coreURL = await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript');
     const wasmURL = await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm');
-    const workerURL = await toBlobURL(`${baseURL}/ffmpeg-core.worker.js`, 'text/javascript');
 
-    await this.ffmpeg.load({ coreURL, wasmURL, workerURL });
+    // Single-threaded @ffmpeg/core does not include a worker file.
+    await this.ffmpeg.load({ coreURL, wasmURL });
   }
 
   async load(onProgress?: (p: FFmpegProgress) => void): Promise<void> {
     if (this.loaded) return;
     if (this.loading) {
-      // Wait for existing load
       while (this.loading) {
         await new Promise(r => setTimeout(r, 100));
       }
@@ -78,7 +77,7 @@ class FFmpegService {
       onProgress?.({ stage: 'loading', progress: 10, message: 'FFmpeg ready' });
     } catch (error) {
       console.error('FFmpeg load error:', error);
-      throw new Error('FFmpeg yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+      throw new Error('FFmpeg yüklenemedi. Lütfen tekrar deneyin.');
     } finally {
       this.loading = false;
     }
