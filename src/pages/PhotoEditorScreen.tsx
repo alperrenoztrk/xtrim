@@ -130,6 +130,18 @@ const defaultFreeCropSettings: FreeCropSettings = {
   yPercent: 0,
 };
 
+const MIN_FREE_CROP_PERCENT = 10;
+
+type CropHandle = 'nw' | 'ne' | 'sw' | 'se';
+
+interface CropInteractionState {
+  mode: 'move' | 'resize';
+  startX: number;
+  startY: number;
+  startSettings: FreeCropSettings;
+  handle?: CropHandle;
+}
+
 type QuickTool = 'collage' | 'delete' | 'audio' | 'text' | 'more';
 
 const moreMenuTools: { id: Exclude<QuickTool, 'more'>; icon: React.ComponentType<any>; label: string }[] = [
@@ -144,6 +156,7 @@ const PhotoEditorScreen = () => {
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewStageRef = useRef<HTMLDivElement>(null);
+  const previewImageRef = useRef<HTMLImageElement>(null);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [selectedImageUrls, setSelectedImageUrls] = useState<string[]>([]);
@@ -160,6 +173,7 @@ const PhotoEditorScreen = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [openCollageAfterSelection, setOpenCollageAfterSelection] = useState(false);
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
+  const [cropInteraction, setCropInteraction] = useState<CropInteractionState | null>(null);
   
   // AI Tool states
   const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
@@ -417,6 +431,98 @@ const PhotoEditorScreen = () => {
       toast.error('Crop could not be applied');
     }
   }, [freeCropSettings, imageUrl, selectedCropRatio, saveState]);
+
+  const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+  const isFreeCropEditing = activeTab === 'crop' && selectedCropRatio === 'free' && Boolean(imageUrl);
+
+  const beginFreeCropInteraction = useCallback(
+    (
+      event: React.PointerEvent<HTMLDivElement | HTMLButtonElement>,
+      mode: CropInteractionState['mode'],
+      handle?: CropHandle,
+    ) => {
+      if (!isFreeCropEditing) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      setCropInteraction({
+        mode,
+        startX: event.clientX,
+        startY: event.clientY,
+        startSettings: { ...freeCropSettings },
+        handle,
+      });
+    },
+    [freeCropSettings, isFreeCropEditing]
+  );
+
+  useEffect(() => {
+    if (!cropInteraction) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const imageBounds = previewImageRef.current?.getBoundingClientRect();
+      if (!imageBounds?.width || !imageBounds?.height) return;
+
+      const deltaXPct = ((event.clientX - cropInteraction.startX) / imageBounds.width) * 100;
+      const deltaYPct = ((event.clientY - cropInteraction.startY) / imageBounds.height) * 100;
+
+      const nextSettings: FreeCropSettings = { ...cropInteraction.startSettings };
+
+      if (cropInteraction.mode === 'move') {
+        nextSettings.xPercent = clamp(
+          cropInteraction.startSettings.xPercent + deltaXPct,
+          0,
+          100 - cropInteraction.startSettings.widthPercent
+        );
+        nextSettings.yPercent = clamp(
+          cropInteraction.startSettings.yPercent + deltaYPct,
+          0,
+          100 - cropInteraction.startSettings.heightPercent
+        );
+      } else if (cropInteraction.handle) {
+        const minWidth = MIN_FREE_CROP_PERCENT;
+        const minHeight = MIN_FREE_CROP_PERCENT;
+        const { xPercent: startX, yPercent: startY, widthPercent: startWidth, heightPercent: startHeight } = cropInteraction.startSettings;
+
+        if (cropInteraction.handle.includes('e')) {
+          nextSettings.widthPercent = clamp(startWidth + deltaXPct, minWidth, 100 - startX);
+        }
+
+        if (cropInteraction.handle.includes('s')) {
+          nextSettings.heightPercent = clamp(startHeight + deltaYPct, minHeight, 100 - startY);
+        }
+
+        if (cropInteraction.handle.includes('w')) {
+          const maxLeft = startX + startWidth - minWidth;
+          nextSettings.xPercent = clamp(startX + deltaXPct, 0, maxLeft);
+          nextSettings.widthPercent = startX + startWidth - nextSettings.xPercent;
+        }
+
+        if (cropInteraction.handle.includes('n')) {
+          const maxTop = startY + startHeight - minHeight;
+          nextSettings.yPercent = clamp(startY + deltaYPct, 0, maxTop);
+          nextSettings.heightPercent = startY + startHeight - nextSettings.yPercent;
+        }
+
+        nextSettings.widthPercent = clamp(nextSettings.widthPercent, minWidth, 100 - nextSettings.xPercent);
+        nextSettings.heightPercent = clamp(nextSettings.heightPercent, minHeight, 100 - nextSettings.yPercent);
+      }
+
+      setFreeCropSettings(nextSettings);
+    };
+
+    const endInteraction = () => setCropInteraction(null);
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', endInteraction);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', endInteraction);
+    };
+  }, [cropInteraction]);
 
   const createEditedImageBlob = async (): Promise<Blob | null> => {
     if (!imageUrl) {
@@ -737,15 +843,52 @@ const PhotoEditorScreen = () => {
             key={imageUrl}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className={cn(isFullscreen ? 'cursor-zoom-out' : 'cursor-zoom-in')}
-            onClick={handleToggleFullscreen}
+            className={cn('relative inline-block', isFreeCropEditing ? 'cursor-default' : isFullscreen ? 'cursor-zoom-out' : 'cursor-zoom-in')}
+            onClick={() => {
+              if (!isFreeCropEditing) {
+                handleToggleFullscreen();
+              }
+            }}
           >
             <img
+              ref={previewImageRef}
               src={imageUrl}
               alt="Editing"
               className="max-h-full max-w-full object-contain rounded-lg"
               style={getImageStyle()}
             />
+
+            {isFreeCropEditing && (
+              <div className="absolute inset-0 rounded-lg">
+                <div
+                  className="absolute border-2 border-primary bg-primary/15 rounded-sm cursor-move touch-none"
+                  style={{
+                    left: `${freeCropSettings.xPercent}%`,
+                    top: `${freeCropSettings.yPercent}%`,
+                    width: `${freeCropSettings.widthPercent}%`,
+                    height: `${freeCropSettings.heightPercent}%`,
+                  }}
+                  onPointerDown={(event) => beginFreeCropInteraction(event, 'move')}
+                >
+                  {([
+                    { id: 'nw', className: '-left-2 -top-2 cursor-nwse-resize' },
+                    { id: 'ne', className: '-right-2 -top-2 cursor-nesw-resize' },
+                    { id: 'sw', className: '-left-2 -bottom-2 cursor-nesw-resize' },
+                    { id: 'se', className: '-right-2 -bottom-2 cursor-nwse-resize' },
+                  ] as { id: CropHandle; className: string }[]).map((handle) => (
+                    <button
+                      key={handle.id}
+                      type="button"
+                      className={cn(
+                        'absolute w-4 h-4 rounded-full bg-primary border-2 border-background',
+                        handle.className
+                      )}
+                      onPointerDown={(event) => beginFreeCropInteraction(event, 'resize', handle.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </motion.div>
         ) : (
           <div className="flex items-center justify-center">
@@ -934,86 +1077,12 @@ const PhotoEditorScreen = () => {
                   {selectedCropRatio === 'free' ? (
                     <div className="space-y-4 mt-4">
                       <p className="text-xs text-muted-foreground text-center">
-                        Adjust free crop area with sliders
+                        Free crop alanını resim üzerinde sürükleyerek ayarlayın
                       </p>
 
-                      <div className="space-y-3">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>Width</span>
-                            <span>{freeCropSettings.widthPercent}%</span>
-                          </div>
-                          <Slider
-                            value={[freeCropSettings.widthPercent]}
-                            min={10}
-                            max={100}
-                            step={1}
-                            onValueChange={([value]) =>
-                              setFreeCropSettings((prev) => ({
-                                ...prev,
-                                widthPercent: value,
-                              }))
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>Height</span>
-                            <span>{freeCropSettings.heightPercent}%</span>
-                          </div>
-                          <Slider
-                            value={[freeCropSettings.heightPercent]}
-                            min={10}
-                            max={100}
-                            step={1}
-                            onValueChange={([value]) =>
-                              setFreeCropSettings((prev) => ({
-                                ...prev,
-                                heightPercent: value,
-                              }))
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>Horizontal Position</span>
-                            <span>{freeCropSettings.xPercent}%</span>
-                          </div>
-                          <Slider
-                            value={[freeCropSettings.xPercent]}
-                            min={0}
-                            max={100}
-                            step={1}
-                            onValueChange={([value]) =>
-                              setFreeCropSettings((prev) => ({
-                                ...prev,
-                                xPercent: value,
-                              }))
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>Vertical Position</span>
-                            <span>{freeCropSettings.yPercent}%</span>
-                          </div>
-                          <Slider
-                            value={[freeCropSettings.yPercent]}
-                            min={0}
-                            max={100}
-                            step={1}
-                            onValueChange={([value]) =>
-                              setFreeCropSettings((prev) => ({
-                                ...prev,
-                                yPercent: value,
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
+                      <p className="text-[11px] text-muted-foreground text-center">
+                        Kutuyu taşımak için iç kısmı, yeniden boyutlandırmak için köşe noktalarını kullanın.
+                      </p>
                     </div>
                   ) : (
                     <div className="mt-4 text-center">
