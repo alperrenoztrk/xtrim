@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Video, Image, Settings, Sparkles } from 'lucide-react';
@@ -51,72 +51,6 @@ const tools: Tool[] = [
     route: '/settings',
   },
 ];
-
-const DragonWallpaper = () => {
-  const dragons = useMemo(
-      () => [
-        {
-          className: 'top-[8%] w-[360px] max-w-[85vw]',
-          duration: 28,
-          delay: 0,
-          yOffset: [0, -18, 8, -10, 0],
-          rotate: [3, -1, 2, -2, 3],
-          opacity: 0.28,
-          scale: 1,
-        },
-        {
-          className: 'top-[38%] w-[300px] max-w-[75vw]',
-          duration: 23,
-          delay: -7,
-          yOffset: [6, -12, 12, -6, 6],
-          rotate: [-4, -1, -5, -2, -4],
-          opacity: 0.2,
-          scale: 0.85,
-        },
-        {
-          className: 'top-[64%] w-[410px] max-w-[95vw]',
-          duration: 31,
-          delay: -12,
-          yOffset: [4, -16, 10, -8, 4],
-          rotate: [2, -2, 1, -3, 2],
-          opacity: 0.16,
-          scale: 1.1,
-        },
-      ],
-      []
-    );
-
-  return (
-      <div className="dragon-wallpaper pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.16),transparent_55%),linear-gradient(to_bottom,hsl(var(--background)/0.28),hsl(var(--background)/0.82))]" />
-
-        {dragons.map((dragon, index) => (
-          <motion.img
-            key={index}
-            src="/chinese-dragon.svg"
-            alt=""
-            className={cn('absolute left-[-40%] select-none drop-shadow-[0_10px_25px_hsl(var(--primary)/0.28)]', dragon.className)}
-            initial={{ x: '-20vw', y: 0, rotate: dragon.rotate[0], scale: dragon.scale }}
-            animate={{
-              x: ['-20vw', '120vw'],
-              y: dragon.yOffset,
-              rotate: dragon.rotate,
-            }}
-            transition={{
-              duration: dragon.duration,
-              delay: dragon.delay,
-              repeat: Infinity,
-              ease: 'linear',
-              times: [0, 0.25, 0.5, 0.75, 1],
-            }}
-            style={{ opacity: dragon.opacity }}
-          />
-        ))}
-
-        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,hsl(var(--background)/0.1),hsl(var(--background)/0.86))]" />
-      </div>
-    );
-};
 
 const HomeScreen = () => {
   const navigate = useNavigate();
@@ -233,8 +167,6 @@ const HomeScreen = () => {
 
   return (
     <div className="relative min-h-screen bg-background safe-area-top safe-area-bottom flex flex-col overflow-hidden">
-      <DragonWallpaper />
-
       {/* Header */}
       <motion.header
         className="relative z-10 px-6 pt-12 pb-8 text-center"
