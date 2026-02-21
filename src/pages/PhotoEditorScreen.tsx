@@ -84,6 +84,13 @@ interface EditorSnapshot {
   selectedFilter: string;
 }
 
+interface FreeCropSettings {
+  widthPercent: number;
+  heightPercent: number;
+  xPercent: number;
+  yPercent: number;
+}
+
 const filterPresets: FilterPreset[] = [
   { id: 'none', name: 'Original', adjustments: {} },
   { id: 'vivid', name: 'Vivid', adjustments: { saturation: 30, contrast: 15 } },
@@ -116,6 +123,13 @@ const defaultAdjustments: ImageAdjustments = {
   flipV: false,
 };
 
+const defaultFreeCropSettings: FreeCropSettings = {
+  widthPercent: 100,
+  heightPercent: 100,
+  xPercent: 0,
+  yPercent: 0,
+};
+
 type QuickTool = 'collage' | 'delete' | 'audio' | 'text' | 'more';
 
 const moreMenuTools: { id: Exclude<QuickTool, 'more'>; icon: React.ComponentType<any>; label: string }[] = [
@@ -137,6 +151,7 @@ const PhotoEditorScreen = () => {
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(defaultAdjustments);
   const [selectedFilter, setSelectedFilter] = useState<string>('none');
   const [selectedCropRatio, setSelectedCropRatio] = useState<string>('free');
+  const [freeCropSettings, setFreeCropSettings] = useState<FreeCropSettings>(defaultFreeCropSettings);
   const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([]);
   const [redoStack, setRedoStack] = useState<EditorSnapshot[]>([]);
   const [showBackgroundRemover, setShowBackgroundRemover] = useState(false);
@@ -363,6 +378,11 @@ const PhotoEditorScreen = () => {
           cropHeight = img.width / selectedRatio;
           cropY = (img.height - cropHeight) / 2;
         }
+      } else {
+        cropWidth = Math.max(1, img.width * (freeCropSettings.widthPercent / 100));
+        cropHeight = Math.max(1, img.height * (freeCropSettings.heightPercent / 100));
+        cropX = (img.width - cropWidth) * (freeCropSettings.xPercent / 100);
+        cropY = (img.height - cropHeight) * (freeCropSettings.yPercent / 100);
       }
 
       const canvas = document.createElement('canvas');
@@ -390,12 +410,13 @@ const PhotoEditorScreen = () => {
       saveState();
       setImageUrl(dataUrl);
       setActiveTab('adjust');
+      setFreeCropSettings(defaultFreeCropSettings);
       toast.success('Crop applied');
     } catch (error) {
       console.error('Crop error:', error);
       toast.error('Crop could not be applied');
     }
-  }, [imageUrl, selectedCropRatio, saveState]);
+  }, [freeCropSettings, imageUrl, selectedCropRatio, saveState]);
 
   const createEditedImageBlob = async (): Promise<Blob | null> => {
     if (!imageUrl) {
@@ -910,11 +931,97 @@ const PhotoEditorScreen = () => {
                     ))}
                   </div>
 
-                  <div className="mt-4 text-center">
-                    <p className="text-xs text-muted-foreground">
-                      Drag on the image to adjust crop area
-                    </p>
-                  </div>
+                  {selectedCropRatio === 'free' ? (
+                    <div className="space-y-4 mt-4">
+                      <p className="text-xs text-muted-foreground text-center">
+                        Adjust free crop area with sliders
+                      </p>
+
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Width</span>
+                            <span>{freeCropSettings.widthPercent}%</span>
+                          </div>
+                          <Slider
+                            value={[freeCropSettings.widthPercent]}
+                            min={10}
+                            max={100}
+                            step={1}
+                            onValueChange={([value]) =>
+                              setFreeCropSettings((prev) => ({
+                                ...prev,
+                                widthPercent: value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Height</span>
+                            <span>{freeCropSettings.heightPercent}%</span>
+                          </div>
+                          <Slider
+                            value={[freeCropSettings.heightPercent]}
+                            min={10}
+                            max={100}
+                            step={1}
+                            onValueChange={([value]) =>
+                              setFreeCropSettings((prev) => ({
+                                ...prev,
+                                heightPercent: value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Horizontal Position</span>
+                            <span>{freeCropSettings.xPercent}%</span>
+                          </div>
+                          <Slider
+                            value={[freeCropSettings.xPercent]}
+                            min={0}
+                            max={100}
+                            step={1}
+                            onValueChange={([value]) =>
+                              setFreeCropSettings((prev) => ({
+                                ...prev,
+                                xPercent: value,
+                              }))
+                            }
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Vertical Position</span>
+                            <span>{freeCropSettings.yPercent}%</span>
+                          </div>
+                          <Slider
+                            value={[freeCropSettings.yPercent]}
+                            min={0}
+                            max={100}
+                            step={1}
+                            onValueChange={([value]) =>
+                              setFreeCropSettings((prev) => ({
+                                ...prev,
+                                yPercent: value,
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 text-center">
+                      <p className="text-xs text-muted-foreground">
+                        Selected ratio will crop from center
+                      </p>
+                    </div>
+                  )}
 
                   <div className="flex gap-2 mt-4 justify-center">
                     <Button variant="outline" onClick={() => setActiveTab('adjust')}>
