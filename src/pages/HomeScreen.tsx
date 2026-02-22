@@ -166,14 +166,7 @@ const HomeScreen = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-white safe-area-top safe-area-bottom flex flex-col overflow-hidden">
-      <div
-        className="absolute inset-0 z-0 bg-no-repeat bg-center bg-contain"
-        style={{ backgroundImage: "url('/chinese-dragon.svg')" }}
-        aria-hidden
-      />
-      <div className="absolute inset-0 z-0 bg-white/35" aria-hidden />
-
+    <div className="relative min-h-screen bg-background safe-area-top safe-area-bottom flex flex-col overflow-hidden">
       {/* Header */}
       <motion.header
         className="relative z-10 px-6 pt-12 pb-8 text-center"
