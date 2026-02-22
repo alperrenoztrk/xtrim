@@ -167,6 +167,14 @@ const HomeScreen = () => {
 
   return (
     <div className="relative min-h-screen bg-background safe-area-top safe-area-bottom flex flex-col overflow-hidden">
+      {/* Light theme dragon background */}
+      <div className="dragon-wallpaper absolute inset-0 pointer-events-none">
+        <img
+          src="/images/dragon-bg.jpeg"
+          alt=""
+          className="w-full h-full object-cover opacity-20"
+        />
+      </div>
       {/* Header */}
       <motion.header
         className="relative z-10 px-6 pt-12 pb-8 text-center"
