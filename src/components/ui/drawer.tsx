@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
+import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -36,7 +37,9 @@ const DrawerContent = React.forwardRef<
       )}
       {...props}
     >
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+      <div className="mx-auto mt-3 mb-1 text-[#34C759]" aria-hidden="true">
+        <ChevronDown className="h-7 w-7" strokeWidth={2.75} />
+      </div>
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>
