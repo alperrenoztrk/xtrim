@@ -271,6 +271,7 @@ const TimelineClipItem = ({
 }) => {
   const duration = clip.endTime - clip.startTime;
   const width = Math.max(duration * pixelsPerSecond, 12);
+  const isVideo = media?.type === 'video';
   
   return (
     <div
