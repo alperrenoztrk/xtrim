@@ -34,6 +34,7 @@ import {
   SlidersHorizontal,
   Zap,
   Languages,
+  Captions,
   Maximize,
   Minimize,
 } from 'lucide-react';
@@ -49,6 +50,7 @@ import { VideoMergePanel } from '@/components/VideoMergePanel';
 import { VideoRotateCropPanel } from '@/components/VideoRotateCropPanel';
 import VideoAIGeneratePanel from '@/components/VideoAIGeneratePanel';
 import VideoTranslatePanel from '@/components/VideoTranslatePanel';
+import { AITranscriptPanel } from '@/components/AITranscriptPanel';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -146,6 +148,7 @@ const moreMenuItems = [
 const aiToolsMenuItems = [
   { id: 'ai-generate', icon: Wand2, label: 'AI Video Generate', isAI: true, isPro: true },
   { id: 'translate', icon: Languages, label: 'Video Translator', isAI: true, isPro: true },
+  { id: 'ai-transcript', icon: Captions, label: 'AI Transcript', isAI: true },
   { id: 'autocut', icon: Zap, label: 'AutoCut', isAI: true },
   { id: 'enhance', icon: Wand2, label: 'AI Enhance', isAI: true },
   { id: 'stabilize', icon: Sparkles, label: 'Stabilize', isAI: true },
@@ -432,6 +435,7 @@ const VideoEditorScreen = () => {
   const [mergeProgress, setMergeProgress] = useState<FFmpegProgress | null>(null);
   const [showAIGeneratePanel, setShowAIGeneratePanel] = useState(false);
   const [showTranslatePanel, setShowTranslatePanel] = useState(false);
+  const [showTranscriptPanel, setShowTranscriptPanel] = useState(false);
   const [showRotateCropPanel, setShowRotateCropPanel] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -450,6 +454,7 @@ const VideoEditorScreen = () => {
     setShowMergePanel(false);
     setShowAIGeneratePanel(false);
     setShowTranslatePanel(false);
+    setShowTranscriptPanel(false);
     setShowRotateCropPanel(false);
   };
 
@@ -494,7 +499,7 @@ const VideoEditorScreen = () => {
   // Read URL tool parameter; defer opening panels until timeline/media selection is ready.
   useEffect(() => {
     const tool = searchParams.get('tool');
-    if (tool === 'ai-generate' || tool === 'autocut' || tool === 'enhance' || tool === 'translate') {
+    if (tool === 'ai-generate' || tool === 'autocut' || tool === 'enhance' || tool === 'translate' || tool === 'ai-transcript') {
       setRequestedToolFromUrl(tool);
     }
   }, [searchParams]);
@@ -1160,6 +1165,9 @@ const VideoEditorScreen = () => {
       case 'translate':
         handleOpenTranslate();
         break;
+      case 'ai-transcript':
+        handleOpenTranscript();
+        break;
       default:
         break;
     }
@@ -1328,6 +1336,15 @@ const VideoEditorScreen = () => {
     setShowTranslatePanel(true);
   };
 
+  const handleOpenTranscript = () => {
+    if (!ensureVideoClipSelection()) {
+      return;
+    }
+
+    closeAllToolPanels();
+    setShowTranscriptPanel(true);
+  };
+
   // Handle Rotate/Crop Panel
   const handleOpenRotateCrop = () => {
     if (!selectedClipId || !project) {
@@ -1468,6 +1485,9 @@ const VideoEditorScreen = () => {
         break;
       case 'translate':
         handleOpenTranslate();
+        break;
+      case 'ai-transcript':
+        handleOpenTranscript();
         break;
       case 'autocut':
         handleOpenAutoCut();
@@ -2824,6 +2844,17 @@ const VideoEditorScreen = () => {
             isOpen={showAIGeneratePanel}
             onClose={() => setShowAIGeneratePanel(false)}
             onVideoGenerated={handleAIVideoGenerated}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showTranscriptPanel && selectedMedia?.type === 'video' && (
+          <AITranscriptPanel
+            isOpen={showTranscriptPanel}
+            onClose={() => setShowTranscriptPanel(false)}
+            videoUrl={resolvedSelectedMediaUri || selectedMedia?.uri}
+            videoName={selectedMedia?.name}
           />
         )}
       </AnimatePresence>
