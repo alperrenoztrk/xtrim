@@ -167,13 +167,17 @@ const HomeScreen = () => {
 
   return (
     <div className="relative min-h-screen bg-background safe-area-top safe-area-bottom flex flex-col overflow-hidden">
-      {/* Light theme dragon background */}
-      <div className="dragon-wallpaper absolute inset-0 pointer-events-none">
-        <img
-          src="/images/dragon-bg.jpeg"
-          alt=""
-          className="w-full h-full object-cover opacity-20"
+      {/* Animated dragon background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <video
+          src="/videos/dragon-bg.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover opacity-30"
         />
+        <div className="absolute inset-0 bg-background/60" />
       </div>
       {/* Header */}
       <motion.header
