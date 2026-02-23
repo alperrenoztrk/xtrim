@@ -175,9 +175,9 @@ const HomeScreen = () => {
           loop
           muted
           playsInline
-          className="w-full h-full object-cover opacity-10"
+          className="w-full h-full object-cover opacity-[0.85]"
         />
-        <div className="absolute inset-0 bg-background/40" />
+        <div className="absolute inset-0 bg-background/20" />
       </div>
       {/* Header */}
       <motion.header
