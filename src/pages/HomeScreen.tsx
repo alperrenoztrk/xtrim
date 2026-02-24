@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Video, Image, Settings, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -174,23 +174,18 @@ const HomeScreen = () => {
 
   return (
     <div className="relative min-h-screen bg-background safe-area-top safe-area-bottom flex flex-col overflow-hidden">
-      {/* Animated background videos with crossfade */}
+      {/* Instant background video switching */}
       <div className="absolute inset-0 pointer-events-none">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.video
-            key={`current-${currentVideoIndex}`}
-            src={bgVideos[currentVideoIndex]}
-            autoPlay
-            muted
-            playsInline
-            onEnded={switchVideo}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.85 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: 'easeInOut' }}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        </AnimatePresence>
+        <video
+          key={`current-${currentVideoIndex}`}
+          src={bgVideos[currentVideoIndex]}
+          autoPlay
+          muted
+          playsInline
+          preload="auto"
+          onEnded={switchVideo}
+          className="absolute inset-0 w-full h-full object-cover opacity-85"
+        />
         <div className="absolute inset-0 bg-background/10 dark:bg-background/20" />
       </div>
       {/* Header */}
