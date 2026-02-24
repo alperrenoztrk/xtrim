@@ -184,7 +184,7 @@ const HomeScreen = () => {
           playsInline
           preload="auto"
           onEnded={switchVideo}
-          className="absolute inset-0 w-full h-full object-cover opacity-85"
+          className="absolute inset-0 w-full h-full object-cover opacity-100"
         />
         <div className="absolute inset-0 bg-background/10 dark:bg-background/20" />
       </div>
