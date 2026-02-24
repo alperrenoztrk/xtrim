@@ -30,6 +30,8 @@ import {
   Share2,
   Maximize,
   Minimize,
+  ZoomIn,
+  ZoomOut,
   ChevronDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -174,6 +176,7 @@ const PhotoEditorScreen = () => {
   const [openCollageAfterSelection, setOpenCollageAfterSelection] = useState(false);
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
   const [cropInteraction, setCropInteraction] = useState<CropInteractionState | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
   
   // AI Tool states
   const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
@@ -325,6 +328,7 @@ const PhotoEditorScreen = () => {
     setSelectedFilter('none');
     setUndoStack([]);
     setRedoStack([]);
+    setZoomLevel(1);
 
     if (openCollageAfterSelection) {
       openCollageEditor(mergedImages);
@@ -337,6 +341,17 @@ const PhotoEditorScreen = () => {
   const handleToggleFullscreen = useCallback(() => {
     setIsFullscreen((prev) => !prev);
   }, []);
+
+  const handleZoomChange = useCallback((nextZoom: number) => {
+    setZoomLevel(Math.min(4, Math.max(1, nextZoom)));
+  }, []);
+
+  const handlePreviewWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    if (!imageUrl || activeTab === 'crop') return;
+    event.preventDefault();
+    const zoomDelta = event.deltaY > 0 ? -0.1 : 0.1;
+    handleZoomChange(zoomLevel + zoomDelta);
+  }, [activeTab, handleZoomChange, imageUrl, zoomLevel]);
 
   useEffect(() => {
     document.body.style.overflow = isFullscreen ? 'hidden' : '';
@@ -358,13 +373,14 @@ const PhotoEditorScreen = () => {
 
   const getImageStyle = (): React.CSSProperties => {
     const filters = getFilterString(adjustments);
+    const scaledFlipX = (adjustments.flipH ? -1 : 1) * zoomLevel;
+    const scaledFlipY = (adjustments.flipV ? -1 : 1) * zoomLevel;
 
     return {
       filter: filters,
       transform: `
         rotate(${adjustments.rotation}deg)
-        scaleX(${adjustments.flipH ? -1 : 1})
-        scaleY(${adjustments.flipV ? -1 : 1})
+        scale(${scaledFlipX}, ${scaledFlipY})
       `,
       transition: 'filter 0.2s, transform 0.3s',
     };
@@ -857,6 +873,7 @@ const PhotoEditorScreen = () => {
           'flex-1 relative bg-muted flex items-center justify-center overflow-hidden p-4',
           isFullscreen && 'fixed inset-0 z-50 bg-black p-2',
         )}
+        onWheel={handlePreviewWheel}
       >
         {imageUrl ? (
           <motion.div
@@ -920,18 +937,42 @@ const PhotoEditorScreen = () => {
         )}
 
         {imageUrl && (
-          <Button
-            variant="icon"
-            size="iconSm"
-            className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm hover:bg-black/70"
-            onClick={handleToggleFullscreen}
-          >
-            {isFullscreen ? (
-              <Minimize className="w-4 h-4 text-white" />
-            ) : (
-              <Maximize className="w-4 h-4 text-white" />
-            )}
-          </Button>
+          <>
+            <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-black/50 px-2 py-1 backdrop-blur-sm">
+              <Button
+                variant="icon"
+                size="iconSm"
+                className="bg-transparent hover:bg-black/40"
+                onClick={() => handleZoomChange(zoomLevel - 0.25)}
+                disabled={zoomLevel <= 1}
+              >
+                <ZoomOut className="w-4 h-4 text-white" />
+              </Button>
+              <span className="min-w-12 text-center text-xs font-medium text-white">{Math.round(zoomLevel * 100)}%</span>
+              <Button
+                variant="icon"
+                size="iconSm"
+                className="bg-transparent hover:bg-black/40"
+                onClick={() => handleZoomChange(zoomLevel + 0.25)}
+                disabled={zoomLevel >= 4}
+              >
+                <ZoomIn className="w-4 h-4 text-white" />
+              </Button>
+            </div>
+
+            <Button
+              variant="icon"
+              size="iconSm"
+              className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm hover:bg-black/70"
+              onClick={handleToggleFullscreen}
+            >
+              {isFullscreen ? (
+                <Minimize className="w-4 h-4 text-white" />
+              ) : (
+                <Maximize className="w-4 h-4 text-white" />
+              )}
+            </Button>
+          </>
         )}
 
         {/* AI Processing Overlay */}
