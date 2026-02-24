@@ -297,11 +297,11 @@ export const TextOverlayPanel = ({
 
   return (
     <motion.div
-      initial={{ y: '100%' }}
+      initial={false}
       animate={{ y: 0 }}
-      exit={{ y: '100%' }}
-      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-      className="border-t border-border bg-card z-20 max-h-[50vh] overflow-hidden flex flex-col"
+      exit={{ y: 0 }}
+      transition={{ duration: 0 }}
+      className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black z-20 max-h-[50vh] overflow-hidden flex flex-col"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
@@ -742,7 +742,7 @@ export const TextOverlayPanel = ({
               textOverlays.map((overlay) => (
                 <motion.div
                   key={overlay.id}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
                   className="p-3 rounded-lg bg-secondary"
                 >

@@ -226,10 +226,10 @@ const VideoTranslatePanel = ({
           {/* Panel */}
           <motion.div
             className="relative w-full max-w-lg bg-background rounded-t-3xl overflow-hidden"
-            initial={{ y: '100%' }}
+            initial={false}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
           >
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2">

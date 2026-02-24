@@ -71,11 +71,11 @@ export const VideoRotateCropPanel = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="absolute bottom-0 left-0 right-0 bg-card border-t border-border rounded-t-2xl z-20"
-          initial={{ y: '100%' }}
+          className="absolute bottom-0 left-0 right-0 bg-white border-t border-zinc-200 dark:border-zinc-800 dark:bg-black rounded-t-2xl z-20"
+          initial={false}
           animate={{ y: 0 }}
-          exit={{ y: '100%' }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          exit={{ y: 0 }}
+          transition={{ duration: 0 }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">

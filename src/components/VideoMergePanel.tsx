@@ -147,11 +147,11 @@ export const VideoMergePanel = ({
 
   return (
     <motion.div
-      initial={{ y: '100%' }}
+      initial={false}
       animate={{ y: 0 }}
-      exit={{ y: '100%' }}
-      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-      className="absolute bottom-20 left-0 right-0 bg-card border-t border-border z-20 max-h-[75vh] overflow-hidden flex flex-col"
+      exit={{ y: 0 }}
+      transition={{ duration: 0 }}
+      className="absolute bottom-20 left-0 right-0 bg-white border-t border-zinc-200 dark:border-zinc-800 dark:bg-black z-20 max-h-[75vh] overflow-hidden flex flex-col"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
