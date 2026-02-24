@@ -407,7 +407,11 @@ const VideoEditorScreen = () => {
     if (!timelineNode) return;
 
     const updateWidth = () => {
-      setTimelineViewportWidth(timelineNode.clientWidth);
+      const measuredWidth = timelineNode.clientWidth;
+      setTimelineViewportWidth((previousWidth) => {
+        if (measuredWidth > 0) return measuredWidth;
+        return previousWidth > 0 ? previousWidth : window.innerWidth;
+      });
     };
 
     const frame = requestAnimationFrame(updateWidth);
