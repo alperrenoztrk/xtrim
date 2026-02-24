@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig, Reorder } from 'framer-motion';
 import {
   Play,
   Pause,
@@ -303,7 +303,7 @@ const TimelineClipItem = ({
             className="w-full h-full object-cover opacity-80 pointer-events-none"
           />
         )}
-      </div>
+          </motion.div>
 
       {/* Gradient overlay - different color for photos */}
       <div className={cn(
@@ -1956,6 +1956,7 @@ const VideoEditorScreen = () => {
   const timelinePixelsPerSecond = (Math.max(timelineViewportWidth, 1) / Math.max(project.duration, 1)) * timelineZoom;
 
   return (
+    <MotionConfig reducedMotion="always" transition={{ duration: 0 }}>
     <div className="h-screen flex flex-col bg-white text-black dark:bg-black dark:text-white safe-area-top overflow-hidden">
       <input
         ref={fileInputRef}
@@ -2038,7 +2039,7 @@ const VideoEditorScreen = () => {
       <div
         ref={previewStageRef}
         className={cn(
-          'relative bg-zinc-100 dark:bg-black flex items-center justify-center overflow-hidden',
+          'relative bg-white dark:bg-black flex items-center justify-center overflow-hidden',
           !isFullscreen && !isFeaturePanelOpen ? 'h-1/2 min-h-0 flex-none' : 'flex-1'
         )}
         onClick={handleVideoTap}
@@ -2175,12 +2176,7 @@ const VideoEditorScreen = () => {
 
         {/* Fullscreen button - appears on tap at bottom right */}
         {project.timeline.length > 0 && selectedMedia && showVideoControls && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="absolute bottom-4 right-4"
-          >
+          <div className="absolute bottom-4 right-4">
             <Button
               variant="icon"
               size="iconSm"
@@ -2193,7 +2189,7 @@ const VideoEditorScreen = () => {
                 <Maximize className="w-4 h-4 text-white" />
               )}
             </Button>
-          </motion.div>
+          </div>
         )}
 
         {/* Video time display overlay */}
@@ -2233,9 +2229,8 @@ const VideoEditorScreen = () => {
 
       {/* Collapsible Timeline + Toolbar Panel */}
       {!isFullscreen && !isFeaturePanelOpen && (
-      <motion.div
+      <div
         className="h-1/2 min-h-0 flex flex-col overflow-hidden border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black"
-        animate={{ height: isPanelCollapsed ? 'auto' : 'auto' }}
       >
         {/* Tool selector */}
         <div className="flex items-center justify-around px-3 py-2 border-b border-zinc-200 bg-white/95 dark:border-zinc-800 dark:bg-black/95 overflow-x-auto scrollbar-hide">
@@ -2283,13 +2278,7 @@ const VideoEditorScreen = () => {
         {/* Timeline content - collapsible */}
         <AnimatePresence>
         {!isPanelCollapsed && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="flex-1 min-h-0 overflow-y-auto"
-          >
+          <motion.div className="flex-1 min-h-0 overflow-y-auto" transition={{ duration: 0 }}>
         {/* Timeline controls */}
         <div className="px-4 py-3 border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-900/40 space-y-3">
           <div className="flex items-center justify-between gap-3">
@@ -2517,9 +2506,10 @@ const VideoEditorScreen = () => {
       <AnimatePresence>
         {showTrimPanel && selectedClip && (
           <motion.div
-            initial={{ y: '100%' }}
+            initial={false}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
             className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
@@ -2579,9 +2569,10 @@ const VideoEditorScreen = () => {
       <AnimatePresence>
         {showSplitPanel && selectedClip && (
           <motion.div
-            initial={{ y: '100%' }}
+            initial={false}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
             className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
@@ -2616,7 +2607,7 @@ const VideoEditorScreen = () => {
                 Split at current moment
               </Button>
             </div>
-          </motion.div>
+      </div>
         )}
       </AnimatePresence>
 
@@ -2624,9 +2615,10 @@ const VideoEditorScreen = () => {
       <AnimatePresence>
         {showAudioPanel && (
           <motion.div
-            initial={{ y: '100%' }}
+            initial={false}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
             className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
@@ -2755,9 +2747,10 @@ const VideoEditorScreen = () => {
       <AnimatePresence>
         {showMoreMenu && (
           <motion.div
-            initial={{ y: '100%' }}
+            initial={false}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
             className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
@@ -2793,9 +2786,10 @@ const VideoEditorScreen = () => {
       <AnimatePresence>
         {showAIToolsMenu && (
           <motion.div
-            initial={{ y: '100%' }}
+            initial={false}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
             className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
@@ -2999,6 +2993,7 @@ const VideoEditorScreen = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </MotionConfig>
   );
 };
 
