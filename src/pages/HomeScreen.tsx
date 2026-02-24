@@ -208,15 +208,15 @@ const HomeScreen = () => {
                   variant={isMainTool ? 'gradient' : 'outline'}
                   size="lg"
                   className={cn(
-                    'w-full h-20 relative overflow-hidden backdrop-blur-md',
+                    'w-full h-20 relative overflow-hidden backdrop-blur-md border-white/10',
                     isMainTool
-                      ? 'border-primary/25 bg-slate-950/55 hover:bg-slate-900/65 shadow-lg shadow-black/35'
-                      : 'border-white/15 bg-slate-950/45 hover:bg-slate-900/55 shadow-md shadow-black/25'
+                      ? 'bg-white/10 hover:bg-white/20 shadow-lg shadow-black/20'
+                      : 'bg-black/30 hover:bg-black/40 border-white/10'
                   )}
                   onClick={() => handleToolClick(tool)}
                 >
                   {isMainTool && (
-                    <div className="absolute inset-0 animate-shimmer opacity-15" />
+                    <div className="absolute inset-0 animate-shimmer opacity-20" />
                   )}
                   <div className="relative z-10 flex items-center gap-4 w-full px-2 [&_svg]:h-6 [&_svg]:w-6">
                     <div className={cn(
