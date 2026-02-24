@@ -1027,7 +1027,8 @@ const PhotoEditorScreen = () => {
         ref={previewStageRef}
         data-photo-zoom-area="true"
         className={cn(
-          'flex-1 relative bg-muted flex items-center justify-center overflow-hidden p-4',
+          'relative bg-muted flex items-center justify-center overflow-hidden p-4',
+          imageUrl && !isFullscreen ? 'h-1/2 min-h-0 flex-none' : 'flex-1',
           isFullscreen && 'fixed inset-0 z-50 bg-black p-2',
         )}
         onWheel={handlePreviewWheel}
@@ -1186,6 +1187,7 @@ const PhotoEditorScreen = () => {
 
       {imageUrl && (
         <>
+          <div className="h-1/2 min-h-0 flex flex-col border-t border-border bg-card">
           {/* Tab selector */}
           <div className="flex border-b border-border bg-card overflow-x-auto scrollbar-hide">
               {[
@@ -1231,7 +1233,7 @@ const PhotoEditorScreen = () => {
           </div>
 
           {/* Controls panel */}
-          {!isControlsCollapsed && <div className="bg-card border-t border-border">
+          {!isControlsCollapsed && <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border">
             <AnimatePresence mode="wait">
               {activeTab === 'adjust' && (
                 <motion.div
@@ -1623,6 +1625,7 @@ const PhotoEditorScreen = () => {
 
           {/* Safe area bottom padding */}
           <div className="safe-area-bottom bg-card" />
+          </div>
         </>
       )}
 

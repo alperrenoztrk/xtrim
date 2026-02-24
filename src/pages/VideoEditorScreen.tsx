@@ -2036,7 +2036,10 @@ const VideoEditorScreen = () => {
       {/* Preview */}
       <div
         ref={previewStageRef}
-        className="flex-1 relative bg-zinc-100 dark:bg-black flex items-center justify-center overflow-hidden"
+        className={cn(
+          'relative bg-zinc-100 dark:bg-black flex items-center justify-center overflow-hidden',
+          !isFullscreen && !isFeaturePanelOpen ? 'h-1/2 min-h-0 flex-none' : 'flex-1'
+        )}
         onClick={handleVideoTap}
       >
         {selectedMedia ? (
@@ -2230,7 +2233,7 @@ const VideoEditorScreen = () => {
       {/* Collapsible Timeline + Toolbar Panel */}
       {!isFullscreen && !isFeaturePanelOpen && (
       <motion.div
-        className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black"
+        className="h-1/2 min-h-0 flex flex-col overflow-hidden border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black"
         animate={{ height: isPanelCollapsed ? 'auto' : 'auto' }}
       >
         {/* Tool selector */}
@@ -2300,7 +2303,7 @@ const VideoEditorScreen = () => {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="overflow-hidden"
+            className="flex-1 min-h-0 overflow-y-auto"
           >
         {/* Timeline controls */}
         <div className="px-4 py-3 border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-900/40 space-y-3">
