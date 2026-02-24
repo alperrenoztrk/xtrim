@@ -2440,6 +2440,53 @@ const VideoEditorScreen = () => {
           )}
         </div>
 
+        {/* Audio/Text lanes */}
+        {project.timeline.length > 0 && (
+          <div className="px-4 pb-3 space-y-2 border-t border-border bg-background/50">
+            <div className="grid grid-cols-[56px_1fr] gap-2 items-stretch">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-full flex-col gap-1 text-muted-foreground"
+                onClick={() => handleToolClick('audio')}
+                disabled={!hasVideoInTimeline}
+              >
+                <Music className="w-4 h-4" />
+                <span className="text-xxs">Audio</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start h-12 rounded-lg bg-card/80"
+                onClick={() => handleToolClick('audio')}
+                disabled={!hasVideoInTimeline}
+              >
+                + Add audio
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-[56px_1fr] gap-2 items-stretch">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-full flex-col gap-1 text-muted-foreground"
+                onClick={() => handleToolClick('text')}
+                disabled={!hasVideoInTimeline}
+              >
+                <Type className="w-4 h-4" />
+                <span className="text-xxs">Text</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start h-12 rounded-lg bg-card/80"
+                onClick={() => handleToolClick('text')}
+                disabled={!hasVideoInTimeline}
+              >
+                + Add text
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Add media button */}
         {project.timeline.length > 0 && (
           <div className="flex justify-center py-2 border-t border-border">
