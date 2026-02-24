@@ -301,7 +301,7 @@ export const TextOverlayPanel = ({
       animate={{ y: 0 }}
       exit={{ y: '100%' }}
       transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-      className="absolute bottom-20 left-0 right-0 bg-card border-t border-border z-20 max-h-[70vh] overflow-hidden flex flex-col"
+      className="border-t border-border bg-card z-20 max-h-[50vh] overflow-hidden flex flex-col"
     >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
