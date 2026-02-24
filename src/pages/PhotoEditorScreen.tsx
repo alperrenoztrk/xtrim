@@ -302,7 +302,12 @@ const PhotoEditorScreen = () => {
     }
 
     const imageUrls = files.map((file) => URL.createObjectURL(file));
-    const mergedImages = Array.from(new Set([...selectedImageUrls, ...imageUrls]));
+    const existingImages = selectedImageUrls.length > 0
+      ? selectedImageUrls
+      : imageUrl
+        ? [imageUrl]
+        : [];
+    const mergedImages = Array.from(new Set([...existingImages, ...imageUrls]));
 
     setSelectedImageUrls(mergedImages);
     setImageUrl(imageUrls[0]);
@@ -735,15 +740,20 @@ const PhotoEditorScreen = () => {
 
   const handleQuickToolClick = (toolId: QuickTool) => {
     setActiveQuickTool(toolId);
+    const collageSourceImages = selectedImageUrls.length > 0
+      ? selectedImageUrls
+      : imageUrl
+        ? [imageUrl]
+        : [];
 
     switch (toolId) {
       case 'collage':
-        if (selectedImageUrls.length < 2) {
+        if (collageSourceImages.length < 2) {
           setOpenCollageAfterSelection(true);
           fileInputRef.current?.click();
           toast.info('Select another photo to continue with collage.');
         } else {
-          openCollageEditor(selectedImageUrls);
+          openCollageEditor(collageSourceImages);
         }
         break;
       case 'delete':
