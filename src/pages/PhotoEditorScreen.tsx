@@ -195,6 +195,16 @@ const PhotoEditorScreen = () => {
         toast.success('Image uploaded', { description: 'AI-generated image is ready to edit.' });
       }
     }
+
+    if (source === 'collage') {
+      const collageImage = sessionStorage.getItem('photoEditorImportedImage');
+      if (collageImage) {
+        setImageUrl(collageImage);
+        setSelectedImageUrls([collageImage]);
+        sessionStorage.removeItem('photoEditorImportedImage');
+        toast.success('Collage applied', { description: 'Returned to photo editor with the new collage.' });
+      }
+    }
     
     if (tool === 'background') {
       setActiveTab('background');

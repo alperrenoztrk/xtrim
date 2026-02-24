@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -130,6 +130,7 @@ type EditorTab = 'layout' | 'style';
 
 const CollageMakerScreen = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeInputRef = useRef<string | null>(null);
@@ -141,6 +142,9 @@ const CollageMakerScreen = () => {
   const [borderWidth, setBorderWidth] = useState(4);
   const [borderRadius, setBorderRadius] = useState(8);
   const [activeTab, setActiveTab] = useState<EditorTab>('layout');
+
+  const source = searchParams.get('source');
+  const isFromPhotoEditor = source === 'photo-editor';
 
   useEffect(() => {
     const rawImages = sessionStorage.getItem('collageSeedImages');
@@ -341,58 +345,65 @@ const CollageMakerScreen = () => {
       img.src = url;
     });
 
+  const buildCollageDataUrl = async () => {
+    if (photos.length === 0) return null;
+
+    const size = 2048;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas context unavailable');
+
+    ctx.fillStyle = backgroundColor.color;
+    drawRoundedRectPath(ctx, 0, 0, size, size, borderRadius + borderWidth);
+    ctx.fill();
+
+    const loadedPhotos = await Promise.all(
+      photos.map(async (photo) => {
+        try {
+          const image = await loadImage(photo.url);
+          return { cellId: photo.cellId, photo, image };
+        } catch {
+          return { cellId: photo.cellId, photo, image: null };
+        }
+      })
+    );
+
+    loadedPhotos.forEach(({ cellId, photo, image }) => {
+      if (!image) return;
+
+      const bounds = getCellBounds(selectedLayout, cellId, size);
+      if (!bounds) return;
+
+      ctx.save();
+      drawRoundedRectPath(ctx, bounds.x, bounds.y, bounds.width, bounds.height, borderRadius);
+      ctx.clip();
+
+      const baseScale = Math.max(bounds.width / image.width, bounds.height / image.height);
+      const scale = baseScale * photo.zoom;
+      const drawWidth = image.width * scale;
+      const drawHeight = image.height * scale;
+
+      const maxShiftX = Math.max(0, (drawWidth - bounds.width) / 2);
+      const maxShiftY = Math.max(0, (drawHeight - bounds.height) / 2);
+
+      const x = bounds.x + (bounds.width - drawWidth) / 2 + (photo.offsetX / 50) * maxShiftX;
+      const y = bounds.y + (bounds.height - drawHeight) / 2 + (photo.offsetY / 50) * maxShiftY;
+
+      ctx.drawImage(image, x, y, drawWidth, drawHeight);
+      ctx.restore();
+    });
+
+    return canvas.toDataURL('image/png');
+  };
+
   const handleSaveCollage = async () => {
     if (photos.length === 0) return;
 
     try {
-      const size = 2048;
-      const canvas = document.createElement('canvas');
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas context unavailable');
-
-      ctx.fillStyle = backgroundColor.color;
-      drawRoundedRectPath(ctx, 0, 0, size, size, borderRadius + borderWidth);
-      ctx.fill();
-
-      const loadedPhotos = await Promise.all(
-        photos.map(async (photo) => {
-          try {
-            const image = await loadImage(photo.url);
-            return { cellId: photo.cellId, photo, image };
-          } catch {
-            return { cellId: photo.cellId, photo, image: null };
-          }
-        })
-      );
-
-      loadedPhotos.forEach(({ cellId, photo, image }) => {
-        if (!image) return;
-
-        const bounds = getCellBounds(selectedLayout, cellId, size);
-        if (!bounds) return;
-
-        ctx.save();
-        drawRoundedRectPath(ctx, bounds.x, bounds.y, bounds.width, bounds.height, borderRadius);
-        ctx.clip();
-
-        const baseScale = Math.max(bounds.width / image.width, bounds.height / image.height);
-        const scale = baseScale * photo.zoom;
-        const drawWidth = image.width * scale;
-        const drawHeight = image.height * scale;
-
-        const maxShiftX = Math.max(0, (drawWidth - bounds.width) / 2);
-        const maxShiftY = Math.max(0, (drawHeight - bounds.height) / 2);
-
-        const x = bounds.x + (bounds.width - drawWidth) / 2 + (photo.offsetX / 50) * maxShiftX;
-        const y = bounds.y + (bounds.height - drawHeight) / 2 + (photo.offsetY / 50) * maxShiftY;
-
-        ctx.drawImage(image, x, y, drawWidth, drawHeight);
-        ctx.restore();
-      });
-
-      const dataUrl = canvas.toDataURL('image/png');
+      const dataUrl = await buildCollageDataUrl();
+      if (!dataUrl) return;
       const link = document.createElement('a');
       link.href = dataUrl;
       link.download = `collage-${Date.now()}.png`;
@@ -409,6 +420,34 @@ const CollageMakerScreen = () => {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleApply = async () => {
+    if (photos.length === 0) return;
+
+    try {
+      const dataUrl = await buildCollageDataUrl();
+      if (!dataUrl) return;
+
+      sessionStorage.setItem('photoEditorImportedImage', dataUrl);
+      navigate('/photo-editor?source=collage');
+    } catch (error) {
+      console.error('Collage apply error:', error);
+      toast({
+        title: 'Uygulama başarısız',
+        description: 'Kolaj uygulanamadı. Lütfen tekrar deneyin.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleCancel = () => {
+    if (isFromPhotoEditor) {
+      navigate('/photo-editor');
+      return;
+    }
+
+    navigate(-1);
   };
 
   const getGridStyle = (): React.CSSProperties => {
@@ -446,7 +485,7 @@ const CollageMakerScreen = () => {
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border glass">
         <div className="flex items-center gap-3">
-          <Button variant="iconGhost" size="iconSm" onClick={() => navigate(-1)}>
+          <Button variant="iconGhost" size="iconSm" onClick={handleCancel}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
@@ -458,18 +497,36 @@ const CollageMakerScreen = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="iconGhost" size="iconSm" onClick={handleReset}>
-            <RotateCcw className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="gradient"
-            size="sm"
-            disabled={photos.length === 0}
-            onClick={handleSaveCollage}
-          >
-            <Download className="w-4 h-4" />
-            Save
-          </Button>
+          {isFromPhotoEditor ? (
+            <>
+              <Button variant="outline" size="sm" onClick={handleCancel}>
+                Cancel
+              </Button>
+              <Button
+                variant="gradient"
+                size="sm"
+                disabled={photos.length === 0}
+                onClick={handleApply}
+              >
+                Apply
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="iconGhost" size="iconSm" onClick={handleReset}>
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="gradient"
+                size="sm"
+                disabled={photos.length === 0}
+                onClick={handleSaveCollage}
+              >
+                <Download className="w-4 h-4" />
+                Save
+              </Button>
+            </>
+          )}
         </div>
       </header>
 
