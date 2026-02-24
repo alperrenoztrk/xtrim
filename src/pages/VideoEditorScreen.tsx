@@ -16,7 +16,6 @@ import {
   Download,
   Share2,
   Plus,
-  ChevronDown,
   MoreHorizontal,
   Copy,
   ZoomIn,
@@ -390,7 +389,7 @@ const VideoEditorScreen = () => {
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [isTimelineScrubbing, setIsTimelineScrubbing] = useState(false);
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const isPanelCollapsed = false;
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showVideoControls, setShowVideoControls] = useState(false);
   const videoControlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1878,8 +1877,6 @@ const VideoEditorScreen = () => {
         return;
       }
 
-      setIsPanelCollapsed(true);
-
       if (typeof previewStage.requestFullscreen === 'function') {
         try {
           await previewStage.requestFullscreen();
@@ -2277,22 +2274,6 @@ const VideoEditorScreen = () => {
             <MoreHorizontal className="w-5 h-5" />
             <span className="text-xxs">More</span>
           </Button>
-        </div>
-
-        {/* Drag Handle / Collapse Toggle */}
-        <div
-          className="flex items-center justify-center py-1.5 cursor-pointer select-none"
-          onClick={() => { setIsPanelCollapsed((v) => !v); if (isFullscreen) setIsFullscreen(false); }}
-        >
-          <div className="flex flex-col items-center gap-0.5">
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/40" />
-            <ChevronDown
-              className={cn(
-                'w-3 h-3 text-muted-foreground/60 mt-0.5 transition-transform duration-200',
-                isPanelCollapsed && 'rotate-180'
-              )}
-            />
-          </div>
         </div>
 
         {/* Timeline content - collapsible */}
