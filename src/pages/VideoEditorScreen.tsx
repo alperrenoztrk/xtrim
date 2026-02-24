@@ -2,7 +2,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
-  ArrowLeft,
   Play,
   Pause,
   Undo2,
@@ -1943,14 +1942,7 @@ const VideoEditorScreen = () => {
   const selectedClip = project.timeline.find((c) => c.id === selectedClipId);
   const selectedCropAspectRatio = parseCropAspectRatio(selectedClip?.cropRatio);
   const orderedTimeline = [...project.timeline].sort((a, b) => a.order - b.order);
-  const selectedClipIndex = orderedTimeline.findIndex((clip) => clip.id === selectedClipId);
-  const selectedClipOffset = selectedClipIndex >= 0
-    ? orderedTimeline
-        .slice(0, selectedClipIndex)
-        .reduce((sum, clip) => sum + (clip.endTime - clip.startTime), 0)
-    : 0;
-  const playheadTime = selectedClip ? selectedClipOffset + currentTime : currentTime;
-  const playheadLeftPercent = (Math.max(playheadTime, 0) / Math.max(project.duration, 1)) * 100;
+  const fixedTimelinePlayheadPercent = 50;
   const selectedMedia = selectedClip
     ? project.mediaItems.find((m) => m.id === selectedClip.mediaId)
     : null;
@@ -1963,7 +1955,7 @@ const VideoEditorScreen = () => {
   const timelinePixelsPerSecond = (Math.max(timelineViewportWidth, 1) / Math.max(project.duration, 1)) * timelineZoom;
 
   return (
-    <div className="h-screen flex flex-col bg-background safe-area-top overflow-hidden">
+    <div className="h-screen flex flex-col bg-white text-black dark:bg-black dark:text-white safe-area-top overflow-hidden">
       <input
         ref={fileInputRef}
         type="file"
@@ -1989,10 +1981,10 @@ const VideoEditorScreen = () => {
 
       {/* Header */}
       {!isFullscreen && !isFeaturePanelOpen && (
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border glass">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
         <div className="flex items-center gap-3">
-          <Button variant="iconGhost" size="iconSm" onClick={() => navigate('/home')}>
-            <ArrowLeft className="w-5 h-5" />
+          <Button variant="ghost" size="iconSm" onClick={() => navigate('/home')}>
+            <X className="w-5 h-5" />
           </Button>
           <div>
             <h1 className="text-sm font-semibold text-foreground">{project.name}</h1>
@@ -2044,7 +2036,7 @@ const VideoEditorScreen = () => {
       {/* Preview */}
       <div
         ref={previewStageRef}
-        className="flex-1 relative bg-black flex items-center justify-center overflow-hidden"
+        className="flex-1 relative bg-zinc-100 dark:bg-black flex items-center justify-center overflow-hidden"
         onClick={handleVideoTap}
       >
         {selectedMedia ? (
@@ -2238,11 +2230,11 @@ const VideoEditorScreen = () => {
       {/* Collapsible Timeline + Toolbar Panel */}
       {!isFullscreen && !isFeaturePanelOpen && (
       <motion.div
-        className="border-t border-border bg-card"
+        className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black"
         animate={{ height: isPanelCollapsed ? 'auto' : 'auto' }}
       >
         {/* Tool selector */}
-        <div className="flex items-center justify-around px-3 py-2 border-b border-border bg-card/95 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center justify-around px-3 py-2 border-b border-zinc-200 bg-white/95 dark:border-zinc-800 dark:bg-black/95 overflow-x-auto scrollbar-hide">
           {toolItems.slice(0, 5).map((tool) => (
             <Button
               key={tool.id}
@@ -2311,7 +2303,7 @@ const VideoEditorScreen = () => {
             className="overflow-hidden"
           >
         {/* Timeline controls */}
-        <div className="px-4 py-3 border-b border-border bg-muted/20 space-y-3">
+        <div className="px-4 py-3 border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-900/40 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span className="font-medium text-foreground tabular-nums">
@@ -2389,7 +2381,7 @@ const VideoEditorScreen = () => {
         </div>
 
         {/* Timeline ruler */}
-        <div className="relative px-4 pt-2 border-b border-border bg-background/70">
+        <div className="relative px-4 pt-2 border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-950/70">
           <div className="relative h-5 rounded-md bg-muted/30 overflow-hidden">
             {Array.from({ length: 6 }).map((_, index) => {
               const ratio = index / 5;
@@ -2414,7 +2406,7 @@ const VideoEditorScreen = () => {
         <div
           ref={timelineScrubRef}
           className={cn(
-            'relative h-24 px-4 overflow-x-auto scrollbar-hide bg-gradient-to-b from-background to-muted/20',
+            'relative h-24 px-4 overflow-x-auto scrollbar-hide bg-gradient-to-b from-zinc-100 to-zinc-200/70 dark:from-zinc-950 dark:to-zinc-900',
             selectedClipId && 'cursor-ew-resize'
           )}
           onPointerDown={handleTimelinePointerDown}
@@ -2425,12 +2417,12 @@ const VideoEditorScreen = () => {
           <div
             className="absolute top-0 bottom-0 w-px bg-primary pointer-events-none z-20"
             style={{
-              left: `${playheadLeftPercent}%`,
+              left: `${fixedTimelinePlayheadPercent}%`,
             }}
           />
           <div
             className="absolute top-0 h-3 w-3 -translate-x-1/2 rounded-full bg-primary border-2 border-background shadow pointer-events-none z-20"
-            style={{ left: `${playheadLeftPercent}%` }}
+            style={{ left: `${fixedTimelinePlayheadPercent}%` }}
           />
           {project.timeline.length > 0 ? (
             <Reorder.Group
@@ -2457,6 +2449,15 @@ const VideoEditorScreen = () => {
                     />
                   </Reorder.Item>
                 ))}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="ml-2 h-16 w-16 shrink-0 rounded-xl border border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800 flex items-center justify-center"
+                disabled={isMediaImporting}
+                aria-label="Add Media"
+              >
+                <Plus className="w-8 h-8" />
+              </button>
             </Reorder.Group>
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -2474,7 +2475,7 @@ const VideoEditorScreen = () => {
 
         {/* Audio/Text lanes */}
         {project.timeline.length > 0 && (
-          <div className="px-4 pb-3 space-y-2 border-t border-border bg-background/50">
+          <div className="px-4 pb-3 space-y-2 border-t border-zinc-200 bg-zinc-50/60 dark:border-zinc-800 dark:bg-zinc-950/60">
             <div className="grid grid-cols-[56px_1fr] gap-2 items-stretch">
               <Button
                 variant="ghost"
@@ -2516,20 +2517,6 @@ const VideoEditorScreen = () => {
                 + Add text
               </Button>
             </div>
-          </div>
-        )}
-
-        {/* Add media button */}
-        {project.timeline.length > 0 && (
-          <div className="flex justify-center py-2 border-t border-border">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isMediaImporting}
-            >
-              {isMediaImporting ? `Loading... %${mediaImportProgress}` : 'Add Media'}
-            </Button>
           </div>
         )}
           </motion.div>
