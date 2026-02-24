@@ -208,33 +208,28 @@ const HomeScreen = () => {
                   variant={isMainTool ? 'gradient' : 'outline'}
                   size="lg"
                   className={cn(
-                    'w-full h-20 relative overflow-hidden',
-                    isMainTool && 'bg-gradient-to-r',
-                    tool.gradient
+                    'w-full h-20 relative overflow-hidden backdrop-blur-md border-white/10',
+                    isMainTool
+                      ? 'bg-white/10 hover:bg-white/20 shadow-lg shadow-black/20'
+                      : 'bg-black/30 hover:bg-black/40 border-white/10'
                   )}
                   onClick={() => handleToolClick(tool)}
                 >
                   {isMainTool && (
-                    <div className="absolute inset-0 animate-shimmer opacity-30" />
+                    <div className="absolute inset-0 animate-shimmer opacity-20" />
                   )}
                   <div className="relative z-10 flex items-center gap-4 w-full px-2 [&_svg]:h-6 [&_svg]:w-6">
                     <div className={cn(
                       'w-12 h-12 shrink-0 rounded-xl flex items-center justify-center',
-                      isMainTool ? 'bg-white/20' : 'bg-primary/10'
+                      isMainTool ? 'bg-white/15' : 'bg-white/10'
                     )}>
-                      <Icon className={cn(isMainTool ? 'text-white' : 'text-primary')} />
+                      <Icon className="text-white" />
                     </div>
                     <div className="text-left flex-1 min-w-0">
-                      <span className={cn(
-                        'text-lg font-semibold block',
-                        isMainTool ? 'text-white' : 'text-foreground'
-                      )}>
+                      <span className="text-lg font-semibold block text-white drop-shadow-sm">
                         {tool.name}
                       </span>
-                      <span className={cn(
-                        'text-sm',
-                        isMainTool ? 'text-white/70' : 'text-muted-foreground'
-                      )}>
+                      <span className="text-sm text-white/60">
                         {tool.description}
                       </span>
                     </div>
