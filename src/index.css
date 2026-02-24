@@ -10,28 +10,28 @@
   :root {
     /* Dark theme by default - video editing app aesthetic */
     --background: 220 20% 6%;
-    --foreground: 0 0% 98%;
+    --foreground: 0 0% 100%;
 
     --card: 220 18% 10%;
-    --card-foreground: 0 0% 98%;
+    --card-foreground: 0 0% 100%;
 
     --popover: 220 18% 12%;
-    --popover-foreground: 0 0% 98%;
+    --popover-foreground: 0 0% 100%;
 
     --primary: 174 72% 50%;
-    --primary-foreground: 220 20% 6%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 220 15% 16%;
-    --secondary-foreground: 0 0% 90%;
+    --secondary-foreground: 0 0% 100%;
 
     --muted: 220 14% 14%;
-    --muted-foreground: 220 10% 55%;
+    --muted-foreground: 0 0% 100%;
 
     --accent: 280 70% 55%;
-    --accent-foreground: 0 0% 98%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 0 0% 100%;
 
     --border: 220 15% 18%;
     --input: 220 15% 18%;
@@ -49,39 +49,39 @@
     --xtrim-warning: 38 92% 50%;
 
     --sidebar-background: 220 20% 6%;
-    --sidebar-foreground: 0 0% 98%;
+    --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 174 72% 50%;
-    --sidebar-primary-foreground: 220 20% 6%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 15% 16%;
-    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 220 15% 18%;
     --sidebar-ring: 174 72% 50%;
   }
 
   .light {
     --background: 210 40% 98%;
-    --foreground: 220 22% 12%;
+    --foreground: 0 0% 0%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 22% 12%;
+    --card-foreground: 0 0% 0%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 22% 12%;
+    --popover-foreground: 0 0% 0%;
 
     --primary: 174 72% 40%;
-    --primary-foreground: 0 0% 98%;
+    --primary-foreground: 0 0% 0%;
 
     --secondary: 210 30% 92%;
-    --secondary-foreground: 220 22% 20%;
+    --secondary-foreground: 0 0% 0%;
 
     --muted: 210 30% 95%;
-    --muted-foreground: 220 12% 40%;
+    --muted-foreground: 0 0% 0%;
 
     --accent: 280 70% 50%;
-    --accent-foreground: 0 0% 98%;
+    --accent-foreground: 0 0% 0%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 0 0% 0%;
 
     --border: 210 25% 88%;
     --input: 210 25% 88%;
@@ -97,11 +97,11 @@
     --xtrim-warning: 38 92% 45%;
 
     --sidebar-background: 210 40% 98%;
-    --sidebar-foreground: 220 22% 12%;
+    --sidebar-foreground: 0 0% 0%;
     --sidebar-primary: 174 72% 40%;
-    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 210 30% 92%;
-    --sidebar-accent-foreground: 220 22% 12%;
+    --sidebar-accent-foreground: 0 0% 0%;
     --sidebar-border: 210 25% 88%;
     --sidebar-ring: 174 72% 40%;
   }
@@ -130,16 +130,7 @@
   h4,
   h5,
   h6 {
-    color: hsl(0 0% 100%);
-  }
-
-  .dark h1,
-  .dark h2,
-  .dark h3,
-  .dark h4,
-  .dark h5,
-  .dark h6 {
-    color: hsl(0 0% 0%);
+    color: hsl(var(--foreground));
   }
 
   /* Prevent Android long-press callout menu (Download / Share / Print) on media */
