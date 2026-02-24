@@ -208,10 +208,10 @@ const HomeScreen = () => {
                   variant={isMainTool ? 'gradient' : 'outline'}
                   size="lg"
                   className={cn(
-                    'w-full h-20 relative overflow-hidden backdrop-blur-md border-white/10',
+                    'w-full h-20 relative overflow-hidden backdrop-blur-md',
                     isMainTool
-                      ? 'bg-white/10 hover:bg-white/20 shadow-lg shadow-black/20'
-                      : 'bg-black/30 hover:bg-black/40 border-white/10'
+                      ? 'bg-white/10 dark:bg-white/10 hover:bg-white/20 shadow-lg shadow-black/20 border-black/10 dark:border-white/10'
+                      : 'bg-black/30 dark:bg-black/30 hover:bg-black/40 border-black/10 dark:border-white/10'
                   )}
                   onClick={() => handleToolClick(tool)}
                 >
@@ -221,15 +221,15 @@ const HomeScreen = () => {
                   <div className="relative z-10 flex items-center gap-4 w-full px-2 [&_svg]:h-6 [&_svg]:w-6">
                     <div className={cn(
                       'w-12 h-12 shrink-0 rounded-xl flex items-center justify-center',
-                      isMainTool ? 'bg-white/15' : 'bg-white/10'
+                      isMainTool ? 'bg-black/10 dark:bg-white/15' : 'bg-black/10 dark:bg-white/10'
                     )}>
-                      <Icon className="text-white" />
+                      <Icon className="text-foreground" />
                     </div>
                     <div className="text-left flex-1 min-w-0">
-                      <span className="text-lg font-semibold block text-white drop-shadow-sm">
+                      <span className="text-lg font-semibold block text-foreground drop-shadow-sm">
                         {tool.name}
                       </span>
-                      <span className="text-sm text-white/60">
+                      <span className="text-sm text-muted-foreground">
                         {tool.description}
                       </span>
                     </div>
