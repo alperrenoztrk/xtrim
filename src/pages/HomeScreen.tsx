@@ -186,8 +186,8 @@ const HomeScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h1 className="text-4xl font-bold xtrim-gradient-text mb-2">Xtrim</h1>
-        <p className="text-muted-foreground">Video & Photo Editor</p>
+        <h1 className="text-4xl font-bold mb-2 text-black dark:text-white">Xtrim</h1>
+        <p className="text-black/60 dark:text-white/60">Video & Photo Editor</p>
       </motion.header>
 
       {/* Main Tools */}
