@@ -195,7 +195,7 @@ const HomeScreen = () => {
           playsInline
           preload="auto"
           onEnded={switchVideo}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms]"
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] blur-[2px]"
           style={{ opacity: isCrossfading ? 0 : 1 }}
         />
         {nextVideoIndex !== null && (
@@ -207,7 +207,7 @@ const HomeScreen = () => {
             playsInline
             preload="auto"
             onEnded={switchVideo}
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms]"
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] blur-[2px]"
             style={{ opacity: isCrossfading ? 1 : 0 }}
           />
         )}
