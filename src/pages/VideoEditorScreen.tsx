@@ -2,7 +2,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import {
-  ArrowLeft,
   Play,
   Pause,
   Undo2,
@@ -14,11 +13,8 @@ import {
   Type,
   Layers,
   Sparkles,
-  Download,
-  Share2,
   Plus,
   ChevronDown,
-  MoreHorizontal,
   Copy,
   ZoomIn,
   ZoomOut,
@@ -26,6 +22,8 @@ import {
   SkipForward,
   X,
   Check,
+  Search,
+  Gem,
   Wand2,
   Palette,
   RotateCcw,
@@ -62,12 +60,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -102,35 +94,6 @@ interface TextOverlay {
   style: TextStyle;
   startTime: number;
   endTime: number;
-}
-
-const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string }[] = [
-  { id: 'trim', icon: Scissors, label: 'Trim' },
-  { id: 'split', icon: SplitBracketIcon, label: 'Split' },
-  { id: 'audio', icon: Volume2, label: 'Audio' },
-  { id: 'text', icon: Type, label: 'Text' },
-  { id: 'effects', icon: Wand2, label: 'AI Tools' },
-  { id: 'layers', icon: Layers, label: 'Layers' },
-];
-
-function SplitBracketIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <path d="M9 5h3v14H9" />
-      <path d="M15 5h-3v14h3" />
-    </svg>
-  );
 }
 
 const moreMenuItems = [
@@ -1931,11 +1894,6 @@ const VideoEditorScreen = () => {
     ? project.mediaItems.find((m) => m.id === selectedClip.mediaId)
     : null;
   const hasAnyClip = project.timeline.length > 0;
-  const hasVideoInTimeline = project.timeline.some((clip) => {
-    const media = project.mediaItems.find((item) => item.id === clip.mediaId);
-    return media?.type === 'video';
-  });
-
   const timelinePixelsPerSecond = (Math.max(timelineViewportWidth, 1) / Math.max(project.duration, 1)) * timelineZoom;
 
   return (
@@ -1965,54 +1923,35 @@ const VideoEditorScreen = () => {
 
       {/* Header */}
       {!isFullscreen && (
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border glass">
-        <div className="flex items-center gap-3">
+      <header className="flex items-center justify-between px-4 py-4 border-b border-border bg-[#0e0f13]">
+        <div className="flex items-center gap-2">
           <Button variant="iconGhost" size="iconSm" onClick={() => navigate('/home')}>
-            <ArrowLeft className="w-5 h-5" />
+            <X className="w-5 h-5" />
           </Button>
-          <div>
-            <h1 className="text-sm font-semibold text-foreground">{project.name}</h1>
-            <p className="text-xxs text-muted-foreground">
-              {MediaService.formatDuration(project.duration)}
-            </p>
-          </div>
+          <Button variant="iconGhost" size="iconSm">
+            <Search className="w-5 h-5" />
+          </Button>
         </div>
 
         <div className="flex items-center gap-2">
           <Button
-            variant="iconGhost"
-            size="iconSm"
-            onClick={handleUndo}
-            disabled={undoStack.length === 0}
+            variant="ghost"
+            size="sm"
+            className="h-10 w-10 rounded-xl bg-secondary/80 p-0"
+            title="Pro"
           >
-            <Undo2 className="w-4 h-4" />
+            <Gem className="w-4 h-4 text-cyan-400" />
+          </Button>
+          <Button variant="ghost" size="sm" className="h-10 rounded-xl bg-secondary/80 px-4 text-sm">
+            YZ UHD
+            <ChevronDown className="w-4 h-4 ml-1" />
           </Button>
           <Button
-            variant="iconGhost"
-            size="iconSm"
-            onClick={handleRedo}
-            disabled={redoStack.length === 0}
+            className="h-10 rounded-xl bg-cyan-400 px-5 text-black hover:bg-cyan-300"
+            onClick={() => navigate(`/export/${project.id}?mode=download`)}
           >
-            <Redo2 className="w-4 h-4" />
+            Dışa Aktar
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="gradient" size="sm">
-                <Download className="w-4 h-4" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuItem onClick={() => navigate(`/export/${project.id}?mode=share`)}>
-                <Share2 className="w-4 h-4 mr-2" />
-                Share
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/export/${project.id}?mode=download`)}>
-                <Download className="w-4 h-4 mr-2" />
-                Download
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </header>
       )}
@@ -2209,46 +2148,21 @@ const VideoEditorScreen = () => {
         className="border-t border-border bg-card"
         animate={{ height: isPanelCollapsed ? 'auto' : 'auto' }}
       >
-        {/* Tool selector */}
-        <div className="flex items-center justify-around px-3 py-2 border-b border-border bg-card/95 overflow-x-auto scrollbar-hide">
-          {toolItems.slice(0, 5).map((tool) => (
-            <Button
-              key={tool.id}
-              variant="ghost"
-              size="sm"
-              className={cn(
-                'flex-col gap-1 h-auto py-2 min-w-14',
-                activeTool === tool.id && 'text-primary'
-              )}
-              onClick={() => handleToolClick(tool.id)}
-              disabled={
-                ((tool.id === 'trim' || tool.id === 'split') && !selectedClipId) ||
-                ((tool.id === 'audio' || tool.id === 'text' || tool.id === 'effects') && !hasVideoInTimeline)
-              }
-            >
-              <tool.icon className="w-5 h-5" />
-              <span className="text-xxs">{tool.label}</span>
-            </Button>
-          ))}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              'flex-col gap-1 h-auto py-2 min-w-14',
-              (showMoreMenu || showAIToolsMenu) && 'text-primary'
-            )}
-            onClick={() => {
-              const nextOpenState = !showMoreMenu;
-              if (nextOpenState) {
-                closeAllToolPanels();
-                setShowMoreMenu(true);
-              } else {
-                setShowMoreMenu(false);
-              }
-            }}
-          >
-            <MoreHorizontal className="w-5 h-5" />
-            <span className="text-xxs">More</span>
+        <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-border bg-[#16181d]">
+          <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={handleToggleFullscreen}>
+            <Maximize className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={handlePlayPause}>
+            {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+          </Button>
+          <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={() => setShowMoreMenu((v) => !v)}>
+            <Layers className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={handleUndo} disabled={undoStack.length === 0}>
+            <Undo2 className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="sm" className="p-1 h-auto" onClick={handleRedo} disabled={redoStack.length === 0}>
+            <Redo2 className="w-5 h-5" />
           </Button>
         </div>
 
@@ -2279,7 +2193,7 @@ const VideoEditorScreen = () => {
             className="overflow-hidden"
           >
         {/* Timeline controls */}
-        <div className="px-4 py-3 border-b border-border bg-muted/20 space-y-3">
+        <div className="px-4 py-2 border-b border-border bg-[#16181d] space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span className="font-medium text-foreground tabular-nums">
@@ -2357,7 +2271,7 @@ const VideoEditorScreen = () => {
         </div>
 
         {/* Timeline ruler */}
-        <div className="relative px-4 pt-2 border-b border-border bg-background/70">
+        <div className="relative px-4 pt-1 border-b border-border bg-[#1a1d23]">
           <div className="relative h-5 rounded-md bg-muted/30 overflow-hidden">
             {Array.from({ length: 6 }).map((_, index) => {
               const ratio = index / 5;
@@ -2382,7 +2296,7 @@ const VideoEditorScreen = () => {
         <div
           ref={timelineScrubRef}
           className={cn(
-            'relative h-24 px-4 overflow-x-auto scrollbar-hide bg-gradient-to-b from-background to-muted/20',
+            'relative h-36 px-4 overflow-x-auto scrollbar-hide bg-[#1a1d23]',
             selectedClipId && 'cursor-ew-resize'
           )}
           onPointerDown={handleTimelinePointerDown}
@@ -2442,17 +2356,39 @@ const VideoEditorScreen = () => {
 
         {/* Add media button */}
         {project.timeline.length > 0 && (
-          <div className="flex justify-center py-2 border-t border-border">
+          <div className="flex justify-center py-2 border-t border-border bg-[#16181d]">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={isMediaImporting}
             >
-              {isMediaImporting ? `Loading... %${mediaImportProgress}` : 'Add Media'}
+              {isMediaImporting ? `Loading... %${mediaImportProgress}` : '+ Ekle'}
             </Button>
           </div>
         )}
+
+        <div className="grid grid-cols-6 gap-1 px-2 py-3 border-t border-border bg-[#0f1116]">
+          {[
+            { id: 'trim' as EditorTool, icon: Scissors, label: 'Düzenle' },
+            { id: 'audio' as EditorTool, icon: Music, label: 'Ses' },
+            { id: 'text' as EditorTool, icon: Type, label: 'Metin' },
+            { id: 'effects' as EditorTool, icon: Sparkles, label: 'Efektler' },
+            { id: 'layers' as EditorTool, icon: Layers, label: 'Bindirme' },
+            { id: 'split' as EditorTool, icon: Filter, label: 'Filtre' },
+          ].map((tool) => (
+            <Button
+              key={tool.label}
+              variant="ghost"
+              size="sm"
+              className={cn('h-auto flex-col gap-1 py-2 text-muted-foreground', activeTool === tool.id && 'text-foreground')}
+              onClick={() => handleToolClick(tool.id)}
+            >
+              <tool.icon className="w-5 h-5" />
+              <span className="text-xs">{tool.label}</span>
+            </Button>
+          ))}
+        </div>
           </motion.div>
         )}
         </AnimatePresence>
