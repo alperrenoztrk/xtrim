@@ -33,6 +33,8 @@ import {
   ZoomIn,
   ZoomOut,
   ChevronDown,
+  PenLine,
+  Undo2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,7 +63,7 @@ import { nativeExportService } from '@/services/NativeExportService';
 import samplePhoto from '@/assets/sample-photo.jpg';
 
 
-type EditorTab = 'adjust' | 'crop' | 'filters' | 'background' | 'ai' | 'more';
+type EditorTab = 'adjust' | 'crop' | 'draw' | 'filters' | 'background' | 'ai' | 'more';
 type AIToolType = 'enhance' | 'expand' | 'generate' | 'avatar' | 'poster' | null;
 
 interface ImageAdjustments {
@@ -84,6 +86,18 @@ interface EditorSnapshot {
   imageUrl: string | null;
   adjustments: ImageAdjustments;
   selectedFilter: string;
+  drawStrokes: DrawStroke[];
+}
+
+interface DrawPoint {
+  x: number;
+  y: number;
+}
+
+interface DrawStroke {
+  points: DrawPoint[];
+  color: string;
+  size: number;
 }
 
 interface FreeCropSettings {
@@ -177,6 +191,10 @@ const PhotoEditorScreen = () => {
   const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
   const [cropInteraction, setCropInteraction] = useState<CropInteractionState | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [drawStrokes, setDrawStrokes] = useState<DrawStroke[]>([]);
+  const [activeDrawStroke, setActiveDrawStroke] = useState<DrawStroke | null>(null);
+  const [drawColor, setDrawColor] = useState('#ef4444');
+  const [drawSize, setDrawSize] = useState(1.2);
   
   // AI Tool states
   const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
@@ -222,14 +240,17 @@ const PhotoEditorScreen = () => {
       imageUrl,
       adjustments: { ...adjustments },
       selectedFilter,
+      drawStrokes: drawStrokes.map((stroke) => ({ ...stroke, points: [...stroke.points] })),
     }),
-    [imageUrl, adjustments, selectedFilter]
+    [imageUrl, adjustments, selectedFilter, drawStrokes]
   );
 
   const restoreSnapshot = useCallback((snapshot: EditorSnapshot) => {
     setImageUrl(snapshot.imageUrl);
     setAdjustments(snapshot.adjustments);
     setSelectedFilter(snapshot.selectedFilter);
+    setDrawStrokes(snapshot.drawStrokes);
+    setActiveDrawStroke(null);
   }, []);
 
   const saveState = useCallback(() => {
@@ -329,6 +350,8 @@ const PhotoEditorScreen = () => {
     setUndoStack([]);
     setRedoStack([]);
     setZoomLevel(1);
+    setDrawStrokes([]);
+    setActiveDrawStroke(null);
 
     if (openCollageAfterSelection) {
       openCollageEditor(mergedImages);
@@ -387,6 +410,48 @@ const PhotoEditorScreen = () => {
   };
 
   const filterPreviewImage = imageUrl ?? samplePhoto;
+
+  const getRelativeDrawPoint = useCallback((clientX: number, clientY: number): DrawPoint | null => {
+    const bounds = previewImageRef.current?.getBoundingClientRect();
+    if (!bounds || !bounds.width || !bounds.height) return null;
+
+    const x = ((clientX - bounds.left) / bounds.width) * 100;
+    const y = ((clientY - bounds.top) / bounds.height) * 100;
+
+    if (x < 0 || x > 100 || y < 0 || y > 100) {
+      return null;
+    }
+
+    return { x, y };
+  }, []);
+
+  const beginDrawStroke = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (activeTab !== 'draw') return;
+    const startPoint = getRelativeDrawPoint(event.clientX, event.clientY);
+    if (!startPoint) return;
+
+    saveState();
+    event.preventDefault();
+
+    setActiveDrawStroke({ points: [startPoint], color: drawColor, size: drawSize });
+  }, [activeTab, drawColor, drawSize, getRelativeDrawPoint, saveState]);
+
+  const drawStroke = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (activeTab !== 'draw' || !activeDrawStroke) return;
+    const point = getRelativeDrawPoint(event.clientX, event.clientY);
+    if (!point) return;
+
+    setActiveDrawStroke((prev) => {
+      if (!prev) return prev;
+      return { ...prev, points: [...prev.points, point] };
+    });
+  }, [activeDrawStroke, activeTab, getRelativeDrawPoint]);
+
+  const finishDrawStroke = useCallback(() => {
+    if (!activeDrawStroke || activeDrawStroke.points.length === 0) return;
+    setDrawStrokes((prev) => [...prev, activeDrawStroke]);
+    setActiveDrawStroke(null);
+  }, [activeDrawStroke]);
 
   const handleApplyCrop = useCallback(async () => {
     if (!imageUrl) {
@@ -454,6 +519,8 @@ const PhotoEditorScreen = () => {
       const dataUrl = canvas.toDataURL('image/png');
       saveState();
       setImageUrl(dataUrl);
+      setDrawStrokes([]);
+      setActiveDrawStroke(null);
       setActiveTab('adjust');
       setFreeCropSettings(defaultFreeCropSettings);
       toast.success('Crop applied');
@@ -590,6 +657,39 @@ const PhotoEditorScreen = () => {
       ctx.rotate((rotation * Math.PI) / 180);
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
 
+      const allStrokes = activeDrawStroke ? [...drawStrokes, activeDrawStroke] : drawStrokes;
+      ctx.filter = 'none';
+      allStrokes.forEach((stroke) => {
+        if (stroke.points.length === 0) return;
+        const widthScale = Math.max(img.width, img.height) / 100;
+        ctx.beginPath();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size * widthScale;
+
+        stroke.points.forEach((point, index) => {
+          const drawX = (point.x / 100) * img.width - img.width / 2;
+          const drawY = (point.y / 100) * img.height - img.height / 2;
+          if (index === 0) {
+            ctx.moveTo(drawX, drawY);
+          } else {
+            ctx.lineTo(drawX, drawY);
+          }
+        });
+
+        if (stroke.points.length === 1) {
+          const point = stroke.points[0];
+          const drawX = (point.x / 100) * img.width - img.width / 2;
+          const drawY = (point.y / 100) * img.height - img.height / 2;
+          ctx.arc(drawX, drawY, (stroke.size * widthScale) / 2, 0, Math.PI * 2);
+          ctx.fillStyle = stroke.color;
+          ctx.fill();
+        } else {
+          ctx.stroke();
+        }
+      });
+
       const blob = await new Promise<Blob | null>((resolve) => {
         canvas.toBlob((result) => resolve(result), 'image/png');
       });
@@ -605,6 +705,19 @@ const PhotoEditorScreen = () => {
       toast.error('Image could not be saved');
       return null;
     }
+  };
+
+  const handleUndoDrawStroke = () => {
+    if (drawStrokes.length === 0) return;
+    saveState();
+    setDrawStrokes((prev) => prev.slice(0, -1));
+  };
+
+  const handleClearDrawings = () => {
+    if (drawStrokes.length === 0) return;
+    saveState();
+    setDrawStrokes([]);
+    setActiveDrawStroke(null);
   };
 
   const handleSaveToDevice = async (imageBlob: Blob) => {
@@ -760,6 +873,8 @@ const PhotoEditorScreen = () => {
     setActiveAITool(null);
     setAiPrompt('');
     setActiveQuickTool(null);
+    setDrawStrokes([]);
+    setActiveDrawStroke(null);
     setShowDeleteConfirm(false);
     toast.success('Photo removed from editor');
   };
@@ -895,6 +1010,35 @@ const PhotoEditorScreen = () => {
               style={getImageStyle()}
             />
 
+            {(activeTab === 'draw' || drawStrokes.length > 0 || activeDrawStroke) && (
+              <svg
+                className={cn(
+                  'absolute inset-0 rounded-lg',
+                  activeTab === 'draw' ? 'pointer-events-auto touch-none' : 'pointer-events-none'
+                )}
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                style={getImageStyle()}
+                onPointerDown={beginDrawStroke}
+                onPointerMove={drawStroke}
+                onPointerUp={finishDrawStroke}
+                onPointerLeave={finishDrawStroke}
+                onClick={(event) => event.stopPropagation()}
+              >
+                {[...drawStrokes, ...(activeDrawStroke ? [activeDrawStroke] : [])].map((stroke, index) => (
+                  <polyline
+                    key={`${index}-${stroke.points.length}`}
+                    points={stroke.points.map((point) => `${point.x},${point.y}`).join(' ')}
+                    fill="none"
+                    stroke={stroke.color}
+                    strokeWidth={stroke.size}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                ))}
+              </svg>
+            )}
+
             {isFreeCropEditing && (
               <div className="absolute inset-0 rounded-lg">
                 <div
@@ -1002,9 +1146,10 @@ const PhotoEditorScreen = () => {
         <>
           {/* Tab selector */}
           <div className="flex border-b border-border bg-card overflow-x-auto scrollbar-hide">
-            {[
+              {[
               { id: 'adjust', label: 'Adjust', icon: Sun },
               { id: 'crop', label: 'Crop', icon: Crop },
+              { id: 'draw', label: 'Draw', icon: PenLine },
               { id: 'filters', label: 'Filters', icon: Palette },
               { id: 'background', label: 'Background', icon: Eraser },
               { id: 'ai', label: 'AI Tools', icon: Sparkles },
@@ -1161,6 +1306,61 @@ const PhotoEditorScreen = () => {
                     <Button variant="gradient" onClick={handleApplyCrop}>
                       <Check className="w-4 h-4" />
                       Apply Crop
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'draw' && (
+                <motion.div
+                  key="draw"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="p-4 space-y-4"
+                >
+                  <p className="text-xs text-muted-foreground text-center">
+                    Fotoğraf üzerine parmağınla/farenle çiz.
+                  </p>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Brush Size</span>
+                      <span>{drawSize.toFixed(1)}</span>
+                    </div>
+                    <Slider
+                      value={[drawSize]}
+                      min={0.5}
+                      max={4}
+                      step={0.1}
+                      onValueChange={([value]) => setDrawSize(value)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2">
+                    {['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#ffffff', '#111827'].map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        className={cn(
+                          'w-7 h-7 rounded-full border-2 transition-all',
+                          drawColor === color ? 'border-primary scale-110' : 'border-border'
+                        )}
+                        style={{ backgroundColor: color }}
+                        onClick={() => setDrawColor(color)}
+                        aria-label={`Set color ${color}`}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 justify-center">
+                    <Button variant="outline" onClick={handleUndoDrawStroke} disabled={drawStrokes.length === 0}>
+                      <Undo2 className="w-4 h-4" />
+                      Undo Draw
+                    </Button>
+                    <Button variant="outline" onClick={handleClearDrawings} disabled={drawStrokes.length === 0}>
+                      <Trash2 className="w-4 h-4" />
+                      Clear
                     </Button>
                   </div>
                 </motion.div>
