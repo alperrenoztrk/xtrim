@@ -449,6 +449,24 @@ const VideoEditorScreen = () => {
   const [showRotateCropPanel, setShowRotateCropPanel] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const isFeaturePanelOpen =
+    showTrimPanel ||
+    showSplitPanel ||
+    showAudioPanel ||
+    showTextPanel ||
+    showMoreMenu ||
+    showAIToolsMenu ||
+    showAutoCutPanel ||
+    showEnhancePanel ||
+    showStabilizePanel ||
+    showSpeedPanel ||
+    showColorPanel ||
+    showMergePanel ||
+    showAIGeneratePanel ||
+    showTranslatePanel ||
+    showTranscriptPanel ||
+    showRotateCropPanel;
+
   const closeAllToolPanels = () => {
     setShowTrimPanel(false);
     setShowSplitPanel(false);
@@ -1970,7 +1988,7 @@ const VideoEditorScreen = () => {
       />
 
       {/* Header */}
-      {!isFullscreen && (
+      {!isFullscreen && !isFeaturePanelOpen && (
       <header className="flex items-center justify-between px-4 py-3 border-b border-border glass">
         <div className="flex items-center gap-3">
           <Button variant="iconGhost" size="iconSm" onClick={() => navigate('/home')}>
@@ -2218,7 +2236,7 @@ const VideoEditorScreen = () => {
       </div>
 
       {/* Collapsible Timeline + Toolbar Panel */}
-      {!isFullscreen && (
+      {!isFullscreen && !isFeaturePanelOpen && (
       <motion.div
         className="border-t border-border bg-card"
         animate={{ height: isPanelCollapsed ? 'auto' : 'auto' }}
@@ -2527,7 +2545,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-40"
+            className="fixed inset-0 bg-background p-4 pt-6 z-40 overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Trim Clip</h3>
@@ -2589,7 +2607,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-40"
+            className="fixed inset-0 bg-background p-4 pt-6 z-40 overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Split Clip</h3>
@@ -2634,7 +2652,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-40 max-h-60 overflow-y-auto"
+            className="fixed inset-0 bg-background p-4 pt-6 z-40 overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Audio</h3>
@@ -2765,7 +2783,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-40"
+            className="fixed inset-0 bg-background p-4 pt-6 z-40 overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">More Options</h3>
@@ -2803,7 +2821,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="absolute bottom-0 left-0 right-0 bg-card border-t border-border p-4 z-40"
+            className="fixed inset-0 bg-background p-4 pt-6 z-40 overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">AI Tools</h3>
