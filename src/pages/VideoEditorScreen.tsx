@@ -35,6 +35,7 @@ import {
   Captions,
   Maximize,
   Minimize,
+  Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AutoCutPanel } from '@/components/AutoCutPanel';
@@ -436,6 +437,7 @@ const VideoEditorScreen = () => {
   const [customAudioName, setCustomAudioName] = useState('');
   const [isSearchingAudio, setIsSearchingAudio] = useState(false);
   const [showTextPanel, setShowTextPanel] = useState(false);
+  const [showPreviewPanel, setShowPreviewPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAIToolsMenu, setShowAIToolsMenu] = useState(false);
   const [showAutoCutPanel, setShowAutoCutPanel] = useState(false);
@@ -474,6 +476,7 @@ const VideoEditorScreen = () => {
     setShowSplitPanel(false);
     setShowAudioPanel(false);
     setShowTextPanel(false);
+    setShowPreviewPanel(false);
     setShowMoreMenu(false);
     setShowAIToolsMenu(false);
     setShowAutoCutPanel(false);
@@ -1981,7 +1984,7 @@ const VideoEditorScreen = () => {
       />
 
       {/* Header */}
-      {!isFullscreen && !isFeaturePanelOpen && (
+      {!isFullscreen && (
       <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="iconSm" onClick={() => navigate('/home')}>
@@ -2039,7 +2042,7 @@ const VideoEditorScreen = () => {
         ref={previewStageRef}
         className={cn(
           'relative bg-white dark:bg-black flex items-center justify-center overflow-hidden',
-          !isFullscreen && !isFeaturePanelOpen ? 'h-1/2 min-h-0 flex-none' : 'flex-1'
+          !isFullscreen ? 'h-1/2 min-h-0 flex-none' : 'flex-1'
         )}
         onClick={handleVideoTap}
       >
@@ -2240,6 +2243,23 @@ const VideoEditorScreen = () => {
       >
         {/* Tool selector */}
         <div className="flex items-center justify-around px-3 py-2 border-b border-zinc-200 bg-white/95 dark:border-zinc-800 dark:bg-black/95 overflow-x-auto scrollbar-hide">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn('flex-col gap-1 h-auto py-2 min-w-14', showPreviewPanel && 'text-primary')}
+            onClick={() => {
+              const nextOpenState = !showPreviewPanel;
+              if (nextOpenState) {
+                closeAllToolPanels();
+                setShowPreviewPanel(true);
+              } else {
+                setShowPreviewPanel(false);
+              }
+            }}
+          >
+            <Eye className="w-5 h-5" />
+            <span className="text-xxs">Preview</span>
+          </Button>
           {toolItems.slice(0, 5).map((tool) => (
             <Button
               key={tool.id}
@@ -2292,82 +2312,94 @@ const VideoEditorScreen = () => {
             className="flex-1 min-h-0 overflow-y-auto"
           >
         {/* Timeline controls */}
-        <div className="px-4 py-3 border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-900/40 space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground tabular-nums">
-                {MediaService.formatDuration(currentTime)}
-              </span>
-              <span>/</span>
-              <span className="tabular-nums">{MediaService.formatDuration(project.duration)}</span>
-            </div>
+        <AnimatePresence>
+          {showPreviewPanel && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="px-4 py-3 border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-900/40 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground tabular-nums">
+                      {MediaService.formatDuration(currentTime)}
+                    </span>
+                    <span>/</span>
+                    <span className="tabular-nums">{MediaService.formatDuration(project.duration)}</span>
+                  </div>
 
-            <div className="flex items-center gap-1.5">
-              <Button
-                variant="iconGhost"
-                size="iconSm"
-                onClick={handlePlayPause}
-                title={isPlaying ? 'Durdur' : 'Oynat'}
-              >
-                {isPlaying ? (
-                  <Pause className="w-4 h-4" />
-                ) : (
-                  <Play className="w-4 h-4" />
-                )}
-              </Button>
-              <Button
-                variant="iconGhost"
-                size="iconSm"
-                onClick={() => handleSeek(0)}
-                title="Başa git"
-              >
-                <SkipBack className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="iconGhost"
-                size="iconSm"
-                onClick={() => setTimelineZoom((z) => Math.max(0.25, z - 0.25))}
-              >
-                <ZoomOut className="w-4 h-4" />
-              </Button>
-              <span className="text-xs text-muted-foreground w-12 text-center tabular-nums">
-                {Math.round(timelineZoom * 100)}%
-              </span>
-              <Button
-                variant="iconGhost"
-                size="iconSm"
-                onClick={() => setTimelineZoom((z) => Math.min(2, z + 0.25))}
-              >
-                <ZoomIn className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setTimelineZoom(1)}
-                className="h-8 px-2 text-[11px]"
-              >
-                Fit
-              </Button>
-              <Button
-                variant="iconGhost"
-                size="iconSm"
-                onClick={() => handleSeek(Math.max(project.duration, 0))}
-                title="Sona git"
-              >
-                <SkipForward className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="iconGhost"
+                      size="iconSm"
+                      onClick={handlePlayPause}
+                      title={isPlaying ? 'Durdur' : 'Oynat'}
+                    >
+                      {isPlaying ? (
+                        <Pause className="w-4 h-4" />
+                      ) : (
+                        <Play className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="iconGhost"
+                      size="iconSm"
+                      onClick={() => handleSeek(0)}
+                      title="Başa git"
+                    >
+                      <SkipBack className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="iconGhost"
+                      size="iconSm"
+                      onClick={() => setTimelineZoom((z) => Math.max(0.25, z - 0.25))}
+                    >
+                      <ZoomOut className="w-4 h-4" />
+                    </Button>
+                    <span className="text-xs text-muted-foreground w-12 text-center tabular-nums">
+                      {Math.round(timelineZoom * 100)}%
+                    </span>
+                    <Button
+                      variant="iconGhost"
+                      size="iconSm"
+                      onClick={() => setTimelineZoom((z) => Math.min(2, z + 0.25))}
+                    >
+                      <ZoomIn className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setTimelineZoom(1)}
+                      className="h-8 px-2 text-[11px]"
+                    >
+                      Fit
+                    </Button>
+                    <Button
+                      variant="iconGhost"
+                      size="iconSm"
+                      onClick={() => handleSeek(Math.max(project.duration, 0))}
+                      title="Sona git"
+                    >
+                      <SkipForward className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
 
-          <Slider
-            value={[currentTime]}
-            max={selectedClip ? (selectedClip.endTime - selectedClip.startTime) : Math.max(project.duration, 1)}
-            step={0.1}
-            onValueChange={([value]) => handleSeek(value)}
-            onValueCommit={([value]) => handleSeek(value)}
-            className="w-full"
-          />
-        </div>
+                <Slider
+                  value={[currentTime]}
+                  max={selectedClip ? (selectedClip.endTime - selectedClip.startTime) : Math.max(project.duration, 1)}
+                  step={0.1}
+                  onValueChange={([value]) => handleSeek(value)}
+                  onValueCommit={([value]) => handleSeek(value)}
+                  className="w-full"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Timeline ruler */}
         <div className="relative px-4 pt-2 border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-950/70">
