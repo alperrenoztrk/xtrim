@@ -63,8 +63,8 @@ import { nativeExportService } from '@/services/NativeExportService';
 import samplePhoto from '@/assets/sample-photo.jpg';
 
 
-type EditorTab = 'adjust' | 'crop' | 'draw' | 'filters' | 'background' | 'ai' | 'more';
-type AIToolType = 'enhance' | 'expand' | 'generate' | 'avatar' | 'poster' | null;
+type EditorTab = 'adjust' | 'crop' | 'draw' | 'filters' | 'ai' | 'more';
+type AIToolType = 'enhance' | 'expand' | 'generate' | 'avatar' | 'poster' | 'background' | null;
 
 interface ImageAdjustments {
   brightness: number;
@@ -227,9 +227,7 @@ const PhotoEditorScreen = () => {
       }
     }
     
-    if (tool === 'background') {
-      setActiveTab('background');
-    } else if (tool === 'enhance' || tool === 'expand' || tool === 'generate' || tool === 'avatar' || tool === 'poster') {
+    if (tool === 'background' || tool === 'enhance' || tool === 'expand' || tool === 'generate' || tool === 'avatar' || tool === 'poster') {
       setActiveTab('ai');
       setActiveAITool(tool as AIToolType);
     }
@@ -930,6 +928,7 @@ const PhotoEditorScreen = () => {
   ];
 
   const aiTools = [
+    { id: 'background', name: 'Remove Background', icon: Eraser, description: 'Automatically remove image background' },
     { id: 'enhance', name: 'Enhance Quality', icon: Sparkles, description: 'Improve photo quality' },
     { id: 'expand', name: 'Expand', icon: Expand, description: 'Expand photo with AI' },
     { id: 'generate', name: 'Image from Text', icon: Type, description: 'Create image from description' },
@@ -1151,7 +1150,6 @@ const PhotoEditorScreen = () => {
               { id: 'crop', label: 'Crop', icon: Crop },
               { id: 'draw', label: 'Draw', icon: PenLine },
               { id: 'filters', label: 'Filters', icon: Palette },
-              { id: 'background', label: 'Background', icon: Eraser },
               { id: 'ai', label: 'AI Tools', icon: Sparkles },
               { id: 'more', label: 'More', icon: MoreHorizontal },
             ].map((tab) => (
@@ -1415,35 +1413,6 @@ const PhotoEditorScreen = () => {
                 </motion.div>
               )}
 
-              {activeTab === 'background' && (
-                <motion.div
-                  key="background"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="p-4"
-                >
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                      <Eraser className="w-8 h-8 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">Remove Background</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Automatically remove your photo background with AI
-                      </p>
-                    </div>
-                    <Button
-                      variant="gradient"
-                      onClick={() => setShowBackgroundRemover(true)}
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      Start with AI
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-
               {activeTab === 'ai' && (
                 <motion.div
                   key="ai"
@@ -1522,24 +1491,35 @@ const PhotoEditorScreen = () => {
                         </div>
                       )}
 
-                      <Button
-                        variant="gradient"
-                        className="w-full"
-                        onClick={processAITool}
-                        disabled={isAIProcessing}
-                      >
-                        {isAIProcessing ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-4 h-4" />
-                            {activeAITool === 'generate' ? 'Create' : 'Apply'}
-                          </>
-                        )}
-                      </Button>
+                      {activeAITool === 'background' ? (
+                        <Button
+                          variant="gradient"
+                          className="w-full"
+                          onClick={() => setShowBackgroundRemover(true)}
+                        >
+                          <Sparkles className="w-4 h-4" />
+                          Start with AI
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="gradient"
+                          className="w-full"
+                          onClick={processAITool}
+                          disabled={isAIProcessing}
+                        >
+                          {isAIProcessing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4" />
+                              {activeAITool === 'generate' ? 'Create' : 'Apply'}
+                            </>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </motion.div>
