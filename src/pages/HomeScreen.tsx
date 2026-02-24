@@ -60,10 +60,21 @@ const HomeScreen = () => {
   const [menuType, setMenuType] = useState<'video' | 'photo'>('video');
   const [textToImageOpen, setTextToImageOpen] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [nextVideoIndex, setNextVideoIndex] = useState<number | null>(null);
+  const [isCrossfading, setIsCrossfading] = useState(false);
 
   const switchVideo = useCallback(() => {
-    setCurrentVideoIndex((prevIndex) => (prevIndex + 1) % bgVideos.length);
-  }, []);
+    const next = (currentVideoIndex + 1) % bgVideos.length;
+    setNextVideoIndex(next);
+    setIsCrossfading(true);
+    
+    // After crossfade completes, swap current and clear next
+    setTimeout(() => {
+      setCurrentVideoIndex(next);
+      setNextVideoIndex(null);
+      setIsCrossfading(false);
+    }, 1500);
+  }, [currentVideoIndex]);
 
   const handleToolClick = (tool: Tool) => {
     if (tool.id === 'video' || tool.id === 'photo') {
@@ -184,8 +195,22 @@ const HomeScreen = () => {
           playsInline
           preload="auto"
           onEnded={switchVideo}
-          className="absolute inset-0 w-full h-full object-cover opacity-100"
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms]"
+          style={{ opacity: isCrossfading ? 0 : 1 }}
         />
+        {nextVideoIndex !== null && (
+          <video
+            key={`next-${nextVideoIndex}`}
+            src={bgVideos[nextVideoIndex]}
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+            onEnded={switchVideo}
+            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms]"
+            style={{ opacity: isCrossfading ? 1 : 0 }}
+          />
+        )}
         <div className="absolute inset-0 bg-background/10 dark:bg-background/20" />
       </div>
       {/* Header */}
