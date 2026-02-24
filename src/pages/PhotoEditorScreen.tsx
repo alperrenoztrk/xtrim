@@ -983,6 +983,7 @@ const PhotoEditorScreen = () => {
       {/* Image preview */}
       <div
         ref={previewStageRef}
+        data-photo-zoom-area="true"
         className={cn(
           'flex-1 relative bg-muted flex items-center justify-center overflow-hidden p-4',
           isFullscreen && 'fixed inset-0 z-50 bg-black p-2',
