@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Video, Image, Settings, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -52,11 +52,30 @@ const tools: Tool[] = [
   },
 ];
 
+const bgVideos = ['/videos/dragon-bg.mp4', '/videos/dragon-bg-2.mp4'];
+
 const HomeScreen = () => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuType, setMenuType] = useState<'video' | 'photo'>('video');
   const [textToImageOpen, setTextToImageOpen] = useState(false);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(() => Math.floor(Math.random() * bgVideos.length));
+  const [nextVideoIndex, setNextVideoIndex] = useState<number | null>(null);
+
+  const switchVideo = useCallback(() => {
+    const next = (currentVideoIndex + 1) % bgVideos.length;
+    setNextVideoIndex(next);
+    // After transition, commit the switch
+    setTimeout(() => {
+      setCurrentVideoIndex(next);
+      setNextVideoIndex(null);
+    }, 1500);
+  }, [currentVideoIndex]);
+
+  useEffect(() => {
+    const interval = setInterval(switchVideo, 15000 + Math.random() * 10000);
+    return () => clearInterval(interval);
+  }, [switchVideo]);
 
   const handleToolClick = (tool: Tool) => {
     if (tool.id === 'video' || tool.id === 'photo') {
@@ -167,16 +186,33 @@ const HomeScreen = () => {
 
   return (
     <div className="relative min-h-screen bg-background safe-area-top safe-area-bottom flex flex-col overflow-hidden">
-      {/* Animated dragon background */}
+      {/* Animated background videos with crossfade */}
       <div className="absolute inset-0 pointer-events-none">
         <video
-          src="/videos/dragon-bg.mp4"
+          key={`current-${currentVideoIndex}`}
+          src={bgVideos[currentVideoIndex]}
           autoPlay
           loop
           muted
           playsInline
-          className="w-full h-full object-cover opacity-[0.85]"
+          className="absolute inset-0 w-full h-full object-cover opacity-[0.85]"
         />
+        <AnimatePresence>
+          {nextVideoIndex !== null && (
+            <motion.video
+              key={`next-${nextVideoIndex}`}
+              src={bgVideos[nextVideoIndex]}
+              autoPlay
+              loop
+              muted
+              playsInline
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.85 }}
+              transition={{ duration: 1.5 }}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          )}
+        </AnimatePresence>
         <div className="absolute inset-0 bg-background/10 dark:bg-background/20" />
       </div>
       {/* Header */}
