@@ -52,7 +52,7 @@ const tools: Tool[] = [
   },
 ];
 
-const bgVideos = ['/videos/dragon-bg.mp4', '/videos/dragon-bg-2.mp4', '/videos/dragon-bg-3.mp4'];
+const bgVideos = ['/videos/dragon-bg.mp4', '/videos/dragon-bg-2.mp4', '/videos/dragon-bg-3.mp4', '/videos/dragon-bg-4.mp4'];
 
 const HomeScreen = () => {
   const navigate = useNavigate();
