@@ -87,6 +87,7 @@ interface EditorSnapshot {
   adjustments: ImageAdjustments;
   selectedFilter: string;
   drawStrokes: DrawStroke[];
+  cornerRadius: number;
 }
 
 interface DrawPoint {
@@ -173,6 +174,7 @@ const PhotoEditorScreen = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewStageRef = useRef<HTMLDivElement>(null);
   const previewImageRef = useRef<HTMLImageElement>(null);
+  const cornerRadiusInteractionRef = useRef(false);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [selectedImageUrls, setSelectedImageUrls] = useState<string[]>([]);
@@ -195,6 +197,7 @@ const PhotoEditorScreen = () => {
   const [activeDrawStroke, setActiveDrawStroke] = useState<DrawStroke | null>(null);
   const [drawColor, setDrawColor] = useState('#ef4444');
   const [drawSize, setDrawSize] = useState(1.2);
+  const [cornerRadius, setCornerRadius] = useState(0);
   
   // AI Tool states
   const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
@@ -241,8 +244,9 @@ const PhotoEditorScreen = () => {
       adjustments: { ...adjustments },
       selectedFilter,
       drawStrokes: drawStrokes.map((stroke) => ({ ...stroke, points: [...stroke.points] })),
+      cornerRadius,
     }),
-    [imageUrl, adjustments, selectedFilter, drawStrokes]
+    [imageUrl, adjustments, selectedFilter, drawStrokes, cornerRadius]
   );
 
   const restoreSnapshot = useCallback((snapshot: EditorSnapshot) => {
@@ -250,6 +254,7 @@ const PhotoEditorScreen = () => {
     setAdjustments(snapshot.adjustments);
     setSelectedFilter(snapshot.selectedFilter);
     setDrawStrokes(snapshot.drawStrokes);
+    setCornerRadius(snapshot.cornerRadius ?? 0);
     setActiveDrawStroke(null);
   }, []);
 
@@ -352,6 +357,7 @@ const PhotoEditorScreen = () => {
     setZoomLevel(1);
     setDrawStrokes([]);
     setActiveDrawStroke(null);
+    setCornerRadius(0);
 
     if (openCollageAfterSelection) {
       openCollageEditor(mergedImages);
@@ -405,6 +411,7 @@ const PhotoEditorScreen = () => {
         rotate(${adjustments.rotation}deg)
         scale(${scaledFlipX}, ${scaledFlipY})
       `,
+      borderRadius: `${cornerRadius}px`,
       transition: 'filter 0.2s, transform 0.3s',
     };
   };
@@ -689,6 +696,41 @@ const PhotoEditorScreen = () => {
           ctx.stroke();
         }
       });
+
+      if (cornerRadius > 0) {
+        const safeRadius = Math.min(cornerRadius, canvas.width / 2, canvas.height / 2);
+        const roundedCanvas = document.createElement('canvas');
+        roundedCanvas.width = canvas.width;
+        roundedCanvas.height = canvas.height;
+        const roundedCtx = roundedCanvas.getContext('2d');
+
+        if (!roundedCtx) {
+          throw new Error('Rounded canvas could not be created');
+        }
+
+        roundedCtx.beginPath();
+        roundedCtx.moveTo(safeRadius, 0);
+        roundedCtx.lineTo(roundedCanvas.width - safeRadius, 0);
+        roundedCtx.quadraticCurveTo(roundedCanvas.width, 0, roundedCanvas.width, safeRadius);
+        roundedCtx.lineTo(roundedCanvas.width, roundedCanvas.height - safeRadius);
+        roundedCtx.quadraticCurveTo(
+          roundedCanvas.width,
+          roundedCanvas.height,
+          roundedCanvas.width - safeRadius,
+          roundedCanvas.height
+        );
+        roundedCtx.lineTo(safeRadius, roundedCanvas.height);
+        roundedCtx.quadraticCurveTo(0, roundedCanvas.height, 0, roundedCanvas.height - safeRadius);
+        roundedCtx.lineTo(0, safeRadius);
+        roundedCtx.quadraticCurveTo(0, 0, safeRadius, 0);
+        roundedCtx.closePath();
+        roundedCtx.clip();
+        roundedCtx.drawImage(canvas, 0, 0);
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(roundedCanvas, 0, 0);
+      }
 
       const blob = await new Promise<Blob | null>((resolve) => {
         canvas.toBlob((result) => resolve(result), 'image/png');
@@ -1006,14 +1048,14 @@ const PhotoEditorScreen = () => {
               ref={previewImageRef}
               src={imageUrl}
               alt="Editing"
-              className="max-h-full max-w-full object-contain rounded-lg"
+              className="max-h-full max-w-full object-contain"
               style={getImageStyle()}
             />
 
             {(activeTab === 'draw' || drawStrokes.length > 0 || activeDrawStroke) && (
               <svg
                 className={cn(
-                  'absolute inset-0 rounded-lg',
+                  'absolute inset-0',
                   activeTab === 'draw' ? 'pointer-events-auto touch-none' : 'pointer-events-none'
                 )}
                 viewBox="0 0 100 100"
@@ -1040,7 +1082,7 @@ const PhotoEditorScreen = () => {
             )}
 
             {isFreeCropEditing && (
-              <div className="absolute inset-0 rounded-lg">
+              <div className="absolute inset-0" style={{ borderRadius: `${cornerRadius}px` }}>
                 <div
                   className="absolute border-2 border-primary bg-primary/15 rounded-sm cursor-move touch-none"
                   style={{
@@ -1569,6 +1611,29 @@ const PhotoEditorScreen = () => {
                         <span className="text-sm font-medium text-left">{tool.label}</span>
                       </button>
                     ))}
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-border bg-background p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Kenar Yuvarlama</span>
+                      <span className="text-xs text-muted-foreground">{cornerRadius}px</span>
+                    </div>
+                    <Slider
+                      value={[cornerRadius]}
+                      min={0}
+                      max={80}
+                      step={1}
+                      onValueChange={([value]) => {
+                        if (!cornerRadiusInteractionRef.current) {
+                          saveState();
+                          cornerRadiusInteractionRef.current = true;
+                        }
+                        setCornerRadius(value ?? 0);
+                      }}
+                      onValueCommit={() => {
+                        cornerRadiusInteractionRef.current = false;
+                      }}
+                    />
                   </div>
                 </motion.div>
               )}
