@@ -125,10 +125,10 @@ export const AITranscriptPanel = ({ isOpen, onClose, videoUrl, videoName }: AITr
 
           <motion.div
             className="relative w-full max-w-lg bg-background rounded-t-3xl overflow-hidden"
-            initial={{ y: '100%' }}
+            initial={false}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
           >
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full" />

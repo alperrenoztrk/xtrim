@@ -1036,8 +1036,9 @@ const PhotoEditorScreen = () => {
         {imageUrl ? (
           <motion.div
             key={imageUrl}
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={false}
             animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0 }}
             className={cn('relative inline-block', isFreeCropEditing ? 'cursor-default' : isFullscreen ? 'cursor-zoom-out' : 'cursor-zoom-in')}
             onClick={() => {
               if (!isFreeCropEditing) {
@@ -1167,16 +1168,18 @@ const PhotoEditorScreen = () => {
           {isAIProcessing && (
             <motion.div
               className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-4"
-              initial={{ opacity: 0 }}
+              initial={false}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              exit={{ opacity: 1 }}
+              transition={{ duration: 0 }}
             >
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
               <div className="w-48 h-2 bg-secondary rounded-full overflow-hidden">
                 <motion.div
                   className="h-full bg-gradient-to-r from-primary to-accent"
-                  initial={{ width: 0 }}
+                  initial={false}
                   animate={{ width: `${aiProgress}%` }}
+                  transition={{ duration: 0 }}
                 />
               </div>
               <p className="text-white text-sm">AI processing... %{aiProgress}</p>
@@ -1187,9 +1190,9 @@ const PhotoEditorScreen = () => {
 
       {imageUrl && (
         <>
-          <div className="h-1/2 min-h-0 flex flex-col border-t border-border bg-card">
+          <div className="h-1/2 min-h-0 flex flex-col border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
           {/* Tab selector */}
-          <div className="flex border-b border-border bg-card overflow-x-auto scrollbar-hide">
+          <div className="flex border-b border-zinc-200 bg-white overflow-x-auto scrollbar-hide dark:border-zinc-800 dark:bg-black">
               {[
               { id: 'adjust', label: 'Adjust', icon: Sun },
               { id: 'crop', label: 'Crop', icon: Crop },
@@ -1218,7 +1221,7 @@ const PhotoEditorScreen = () => {
           </div>
 
           <div
-            className="flex items-center justify-center py-1.5 cursor-pointer select-none border-b border-border bg-card"
+            className="flex items-center justify-center py-1.5 cursor-pointer select-none border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black"
             onClick={() => setIsControlsCollapsed((prev) => !prev)}
           >
             <div className="flex flex-col items-center gap-0.5">
@@ -1233,14 +1236,15 @@ const PhotoEditorScreen = () => {
           </div>
 
           {/* Controls panel */}
-          {!isControlsCollapsed && <div className="flex-1 min-h-0 overflow-y-auto bg-card border-t border-border">
+          {!isControlsCollapsed && <div className="flex-1 min-h-0 overflow-y-auto bg-white border-t border-zinc-200 dark:border-zinc-800 dark:bg-black">
             <AnimatePresence mode="wait">
               {activeTab === 'adjust' && (
                 <motion.div
                   key="adjust"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0 }}
                   className="p-4 space-y-4"
                 >
                   {/* Transform buttons */}
@@ -1304,9 +1308,10 @@ const PhotoEditorScreen = () => {
               {activeTab === 'crop' && (
                 <motion.div
                   key="crop"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0 }}
                   className="p-4"
                 >
                   {/* Crop ratio buttons */}
@@ -1357,9 +1362,10 @@ const PhotoEditorScreen = () => {
               {activeTab === 'draw' && (
                 <motion.div
                   key="draw"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0 }}
                   className="p-4 space-y-4"
                 >
                   <p className="text-xs text-muted-foreground text-center">
@@ -1412,9 +1418,10 @@ const PhotoEditorScreen = () => {
               {activeTab === 'filters' && (
                 <motion.div
                   key="filters"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0 }}
                   className="p-4"
                 >
                   <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
@@ -1461,9 +1468,10 @@ const PhotoEditorScreen = () => {
               {activeTab === 'ai' && (
                 <motion.div
                   key="ai"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0 }}
                   className="p-4 space-y-4"
                 >
                   {!activeAITool ? (
@@ -1573,9 +1581,10 @@ const PhotoEditorScreen = () => {
               {activeTab === 'more' && (
                 <motion.div
                   key="more"
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={false}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  exit={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0 }}
                   className="p-4"
                 >
                   <div className="grid grid-cols-2 gap-3">
@@ -1624,7 +1633,7 @@ const PhotoEditorScreen = () => {
           </div>}
 
           {/* Safe area bottom padding */}
-          <div className="safe-area-bottom bg-card" />
+          <div className="safe-area-bottom bg-white dark:bg-black" />
           </div>
         </>
       )}

@@ -99,10 +99,11 @@ export const VideoSpeedPanel = ({
 
   return (
     <motion.div
-      initial={{ y: '100%' }}
+      initial={false}
       animate={{ y: 0 }}
-      exit={{ y: '100%' }}
-      className="absolute bottom-20 left-0 right-0 bg-card border-t border-border p-4 z-10 max-h-[70vh] overflow-hidden flex flex-col"
+      transition={{ duration: 0 }}
+      exit={{ y: 0 }}
+      className="absolute bottom-20 left-0 right-0 bg-white border-t border-zinc-200 dark:border-zinc-800 dark:bg-black p-4 z-10 max-h-[70vh] overflow-hidden flex flex-col"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">

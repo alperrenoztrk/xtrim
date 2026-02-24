@@ -2038,7 +2038,7 @@ const VideoEditorScreen = () => {
       <div
         ref={previewStageRef}
         className={cn(
-          'relative bg-zinc-100 dark:bg-black flex items-center justify-center overflow-hidden',
+          'relative bg-white dark:bg-black flex items-center justify-center overflow-hidden',
           !isFullscreen && !isFeaturePanelOpen ? 'h-1/2 min-h-0 flex-none' : 'flex-1'
         )}
         onClick={handleVideoTap}
@@ -2176,9 +2176,10 @@ const VideoEditorScreen = () => {
         {/* Fullscreen button - appears on tap at bottom right */}
         {project.timeline.length > 0 && selectedMedia && showVideoControls && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={false}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            exit={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0 }}
             className="absolute bottom-4 right-4"
           >
             <Button
@@ -2284,10 +2285,10 @@ const VideoEditorScreen = () => {
         <AnimatePresence>
         {!isPanelCollapsed && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
+            initial={false}
             animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            exit={{ height: 'auto', opacity: 1 }}
+            transition={{ duration: 0 }}
             className="flex-1 min-h-0 overflow-y-auto"
           >
         {/* Timeline controls */}
@@ -2517,10 +2518,11 @@ const VideoEditorScreen = () => {
       <AnimatePresence>
         {showTrimPanel && selectedClip && (
           <motion.div
-            initial={{ y: '100%' }}
+            initial={false}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
+            className="border-t border-zinc-200 bg-white p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto dark:border-zinc-800 dark:bg-black"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Trim Clip</h3>
@@ -2579,10 +2581,11 @@ const VideoEditorScreen = () => {
       <AnimatePresence>
         {showSplitPanel && selectedClip && (
           <motion.div
-            initial={{ y: '100%' }}
+            initial={false}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
+            className="border-t border-zinc-200 bg-white p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto dark:border-zinc-800 dark:bg-black"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Split Clip</h3>
@@ -2624,10 +2627,11 @@ const VideoEditorScreen = () => {
       <AnimatePresence>
         {showAudioPanel && (
           <motion.div
-            initial={{ y: '100%' }}
+            initial={false}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
+            className="border-t border-zinc-200 bg-white p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto dark:border-zinc-800 dark:bg-black"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Audio</h3>
@@ -2755,10 +2759,11 @@ const VideoEditorScreen = () => {
       <AnimatePresence>
         {showMoreMenu && (
           <motion.div
-            initial={{ y: '100%' }}
+            initial={false}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
+            className="border-t border-zinc-200 bg-white p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto dark:border-zinc-800 dark:bg-black"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">More Options</h3>
@@ -2793,10 +2798,11 @@ const VideoEditorScreen = () => {
       <AnimatePresence>
         {showAIToolsMenu && (
           <motion.div
-            initial={{ y: '100%' }}
+            initial={false}
             animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
+            className="border-t border-zinc-200 bg-white p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto dark:border-zinc-800 dark:bg-black"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">AI Tools</h3>
