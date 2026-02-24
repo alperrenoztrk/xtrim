@@ -591,15 +591,12 @@ const VideoEditorScreen = () => {
       let clipsToAppend = newClips;
       let mediaItemsToAppend = [...newMediaItems];
 
-      const allClips = [...project.timeline, ...newClips.map((clip, index) => ({ ...clip, order: project.timeline.length + index }))];
-      const allMedia = [...project.mediaItems, ...newMediaItems];
-
-      if (allClips.length > 1) {
-        const clipsTotalDuration = allClips.reduce((acc, clip) => acc + (clip.endTime - clip.startTime), 0);
+      if (newClips.length > 1) {
+        const clipsTotalDuration = newClips.reduce((acc, clip) => acc + (clip.endTime - clip.startTime), 0);
         const mergeProject: Project = {
           ...project,
-          mediaItems: allMedia,
-          timeline: allClips.map((clip, index) => ({
+          mediaItems: [...project.mediaItems, ...newMediaItems],
+          timeline: newClips.map((clip, index) => ({
             ...clip,
             order: index,
           })),
@@ -621,55 +618,38 @@ const VideoEditorScreen = () => {
             (p) => setMergeProgress(p)
           );
 
-          const firstVideo = allMedia.find((item) => item.type === 'video') ?? allMedia[0];
+          const firstImportedVideo = newMediaItems.find((item) => item.type === 'video') ?? newMediaItems[0];
           const mergedMediaId = uuidv4();
           const mergedMedia: MediaItem = {
             id: mergedMediaId,
             type: 'video',
             uri: URL.createObjectURL(mergedBlob),
-            name: `Merged Video (${allClips.length} clips)`,
+            name: `Merged Video (${newClips.length} clips)`,
             duration: clipsTotalDuration,
-            thumbnail: firstVideo?.thumbnail,
-            width: firstVideo?.width,
-            height: firstVideo?.height,
+            thumbnail: firstImportedVideo?.thumbnail,
+            width: firstImportedVideo?.width,
+            height: firstImportedVideo?.height,
             size: mergedBlob.size,
             createdAt: new Date(),
           };
 
-          // Replace entire timeline with single merged clip
-          const mergedTimeline: TimelineClip[] = [
+          mediaItemsToAppend = [...newMediaItems, mergedMedia];
+          clipsToAppend = [
             {
               id: uuidv4(),
               mediaId: mergedMediaId,
               startTime: 0,
               endTime: clipsTotalDuration,
-              order: 0,
+              order: project.timeline.length,
             },
           ];
 
-          const mergedProject: Project = {
-            ...project,
-            mediaItems: [...allMedia, mergedMedia],
-            timeline: mergedTimeline,
-            duration: clipsTotalDuration,
-          };
-
-          saveProject(mergedProject);
-          setMergeProgress(null);
-          setIsMediaImporting(false);
-          setCurrentImportFileName(null);
-          setMediaImportProgress(0);
-
-          const parts = [];
-          if (videoCount > 0) parts.push(`${videoCount} video`);
-          if (photoCount > 0) parts.push(`${photoCount} photo`);
-          toast.success('Automatically merged', {
-            description: `${allClips.length} clips merged into a single video.`,
+          toast.success('Videos merged automatically', {
+            description: `${newClips.length} videos were merged and added as a single clip.`,
           });
-          return;
         } catch (error) {
           toast.warning('Automatic merge failed', {
-            description: 'Media added separately to the timeline.',
+            description: 'Videos were added separately to the timeline.',
           });
         } finally {
           setMergeProgress(null);
