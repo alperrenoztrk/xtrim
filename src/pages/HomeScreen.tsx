@@ -177,7 +177,7 @@ const HomeScreen = () => {
           playsInline
           className="w-full h-full object-cover opacity-[0.85]"
         />
-        <div className="absolute inset-0 bg-background/20" />
+        <div className="absolute inset-0 bg-background/10 dark:bg-background/20" />
       </div>
       {/* Header */}
       <motion.header
