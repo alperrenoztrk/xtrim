@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Video, Image, Settings, Sparkles } from 'lucide-react';
@@ -59,16 +59,11 @@ const HomeScreen = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuType, setMenuType] = useState<'video' | 'photo'>('video');
   const [textToImageOpen, setTextToImageOpen] = useState(false);
-  const [currentVideoIndex, setCurrentVideoIndex] = useState(() => Math.floor(Math.random() * bgVideos.length));
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
 
   const switchVideo = useCallback(() => {
     setCurrentVideoIndex((prevIndex) => (prevIndex + 1) % bgVideos.length);
   }, []);
-
-  useEffect(() => {
-    const interval = setInterval(switchVideo, 15000 + Math.random() * 10000);
-    return () => clearInterval(interval);
-  }, [switchVideo]);
 
   const handleToolClick = (tool: Tool) => {
     if (tool.id === 'video' || tool.id === 'photo') {
@@ -186,9 +181,9 @@ const HomeScreen = () => {
             key={`current-${currentVideoIndex}`}
             src={bgVideos[currentVideoIndex]}
             autoPlay
-            loop
             muted
             playsInline
+            onEnded={switchVideo}
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.85 }}
             exit={{ opacity: 0 }}
