@@ -124,6 +124,24 @@
     min-height: 100dvh;
   }
 
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: hsl(0 0% 100%);
+  }
+
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4,
+  .dark h5,
+  .dark h6 {
+    color: hsl(0 0% 0%);
+  }
+
   /* Prevent Android long-press callout menu (Download / Share / Print) on media */
   img,
   video,
