@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   RotateCcw,
@@ -979,7 +979,6 @@ const PhotoEditorScreen = () => {
   ];
 
   return (
-    <MotionConfig reducedMotion="always" transition={{ duration: 0 }}>
     <div className="h-screen flex flex-col bg-background safe-area-top">
       <input
         ref={fileInputRef}
@@ -1028,7 +1027,7 @@ const PhotoEditorScreen = () => {
         ref={previewStageRef}
         data-photo-zoom-area="true"
         className={cn(
-          'relative bg-white dark:bg-black flex items-center justify-center overflow-hidden p-4',
+          'relative bg-muted flex items-center justify-center overflow-hidden p-4',
           imageUrl && !isFullscreen ? 'h-1/2 min-h-0 flex-none' : 'flex-1',
           isFullscreen && 'fixed inset-0 z-50 bg-black p-2',
         )}
@@ -1676,7 +1675,6 @@ const PhotoEditorScreen = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-    </MotionConfig>
   );
 };
 
