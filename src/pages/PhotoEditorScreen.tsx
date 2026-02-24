@@ -430,7 +430,7 @@ const PhotoEditorScreen = () => {
     return { x, y };
   }, []);
 
-  const beginDrawStroke = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+  const beginDrawStroke = useCallback((event: React.PointerEvent<Element>) => {
     if (activeTab !== 'draw') return;
     const startPoint = getRelativeDrawPoint(event.clientX, event.clientY);
     if (!startPoint) return;
@@ -441,7 +441,7 @@ const PhotoEditorScreen = () => {
     setActiveDrawStroke({ points: [startPoint], color: drawColor, size: drawSize });
   }, [activeTab, drawColor, drawSize, getRelativeDrawPoint, saveState]);
 
-  const drawStroke = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+  const drawStroke = useCallback((event: React.PointerEvent<Element>) => {
     if (activeTab !== 'draw' || !activeDrawStroke) return;
     const point = getRelativeDrawPoint(event.clientX, event.clientY);
     if (!point) return;
