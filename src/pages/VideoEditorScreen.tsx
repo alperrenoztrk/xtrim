@@ -106,8 +106,6 @@ interface TextOverlay {
 const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string }[] = [
   { id: 'trim', icon: Scissors, label: 'Trim' },
   { id: 'split', icon: SplitBracketIcon, label: 'Split' },
-  { id: 'audio', icon: Volume2, label: 'Audio' },
-  { id: 'text', icon: Type, label: 'Text' },
   { id: 'effects', icon: Wand2, label: 'AI Tools' },
   { id: 'layers', icon: Layers, label: 'Layers' },
 ];
@@ -2400,28 +2398,6 @@ const VideoEditorScreen = () => {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Timeline ruler */}
-        <div className="relative px-4 pt-2 border-b border-zinc-200 bg-zinc-50/70 dark:border-zinc-800 dark:bg-zinc-950/70">
-          <div className="relative h-5 rounded-md bg-muted/30 overflow-hidden">
-            {Array.from({ length: 6 }).map((_, index) => {
-              const ratio = index / 5;
-              const duration = Math.max(project.duration, 1) * ratio;
-
-              return (
-                <div
-                  key={`ruler-${index}`}
-                  className="absolute top-0 bottom-0 border-l border-border/70"
-                  style={{ left: `${ratio * 100}%` }}
-                >
-                  <span className="absolute -top-0.5 left-1 text-[10px] text-muted-foreground tabular-nums">
-                    {MediaService.formatDuration(duration)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Clips */}
         <div
