@@ -60,17 +60,10 @@ const HomeScreen = () => {
   const [menuType, setMenuType] = useState<'video' | 'photo'>('video');
   const [textToImageOpen, setTextToImageOpen] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(() => Math.floor(Math.random() * bgVideos.length));
-  const [nextVideoIndex, setNextVideoIndex] = useState<number | null>(null);
 
   const switchVideo = useCallback(() => {
-    const next = (currentVideoIndex + 1) % bgVideos.length;
-    setNextVideoIndex(next);
-    // After transition, commit the switch
-    setTimeout(() => {
-      setCurrentVideoIndex(next);
-      setNextVideoIndex(null);
-    }, 1500);
-  }, [currentVideoIndex]);
+    setCurrentVideoIndex((prevIndex) => (prevIndex + 1) % bgVideos.length);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(switchVideo, 15000 + Math.random() * 10000);
@@ -188,30 +181,20 @@ const HomeScreen = () => {
     <div className="relative min-h-screen bg-background safe-area-top safe-area-bottom flex flex-col overflow-hidden">
       {/* Animated background videos with crossfade */}
       <div className="absolute inset-0 pointer-events-none">
-        <video
-          key={`current-${currentVideoIndex}`}
-          src={bgVideos[currentVideoIndex]}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover opacity-[0.85]"
-        />
-        <AnimatePresence>
-          {nextVideoIndex !== null && (
-            <motion.video
-              key={`next-${nextVideoIndex}`}
-              src={bgVideos[nextVideoIndex]}
-              autoPlay
-              loop
-              muted
-              playsInline
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.85 }}
-              transition={{ duration: 1.5 }}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          )}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.video
+            key={`current-${currentVideoIndex}`}
+            src={bgVideos[currentVideoIndex]}
+            autoPlay
+            loop
+            muted
+            playsInline
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.85 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: 'easeInOut' }}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
         </AnimatePresence>
         <div className="absolute inset-0 bg-background/10 dark:bg-background/20" />
       </div>
