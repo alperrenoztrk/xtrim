@@ -18,6 +18,7 @@ import ExportScreen from "./pages/ExportScreen";
 import NotFound from "./pages/NotFound";
 import { applyTheme, getStoredTheme, subscribeToThemeChanges } from "./lib/theme";
 import AndroidBackButtonHandler from "./components/AndroidBackButtonHandler";
+import GlobalZoomGuard from "./components/GlobalZoomGuard";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <AndroidBackButtonHandler />
+          <GlobalZoomGuard />
           <Routes>
             <Route path="/" element={<SplashScreen />} />
             <Route path="/home" element={<HomeScreen />} />
