@@ -113,6 +113,16 @@ const toolItems: { id: EditorTool; icon: React.ComponentType<any>; label: string
   { id: 'layers', icon: Layers, label: 'Layers' },
 ];
 
+
+const parseCropAspectRatio = (cropRatio?: string) => {
+  if (!cropRatio || cropRatio === 'free') return null;
+
+  const [width, height] = cropRatio.split(':').map(Number);
+  if (!width || !height) return null;
+
+  return width / height;
+};
+
 function SplitBracketIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -1371,16 +1381,11 @@ const VideoEditorScreen = () => {
   };
 
   // Handle apply crop to clip
-  const handleApplyCrop = (cropRatio: string | null) => {
+  const handleApplyCrop = (cropRatio: string) => {
     if (!selectedClipId || !project) return;
 
     const updatedTimeline = project.timeline.map((clip) => {
       if (clip.id === selectedClipId) {
-        if (!cropRatio) {
-          const { cropRatio: _cropRatio, ...clipWithoutCrop } = clip;
-          return clipWithoutCrop;
-        }
-
         return { ...clip, cropRatio };
       }
       return clip;
@@ -1918,6 +1923,7 @@ const VideoEditorScreen = () => {
   }
 
   const selectedClip = project.timeline.find((c) => c.id === selectedClipId);
+  const selectedCropAspectRatio = parseCropAspectRatio(selectedClip?.cropRatio);
   const orderedTimeline = [...project.timeline].sort((a, b) => a.order - b.order);
   const selectedClipIndex = orderedTimeline.findIndex((clip) => clip.id === selectedClipId);
   const selectedClipOffset = selectedClipIndex >= 0
@@ -2026,22 +2032,30 @@ const VideoEditorScreen = () => {
         {selectedMedia ? (
           selectedMedia.type === 'video' ? (
             <div ref={previewContainerRef} className="relative max-h-full max-w-full w-full h-full flex items-center justify-center">
-              <video
-                ref={videoRef}
-                src={resolvedSelectedMediaUri || selectedMedia.uri}
-                className="max-h-full max-w-full object-contain transition-transform duration-200"
-                onContextMenu={(event) => event.preventDefault()}
-                style={{
-                  transform: `rotate(${selectedClip?.rotation || 0}deg) scaleX(${selectedClip?.flipH ? -1 : 1}) scaleY(${selectedClip?.flipV ? -1 : 1})`,
-                }}
-                onTimeUpdate={handleTimeUpdate}
-                onEnded={handleVideoEnded}
-                onError={() => setVideoError(true)}
-                onCanPlay={() => setVideoError(false)}
-                onPlaying={() => setVideoError(false)}
-                playsInline
-                preload="auto"
-              />
+              <div
+                className="relative flex items-center justify-center overflow-hidden max-h-full max-w-full w-full h-full"
+                style={selectedCropAspectRatio ? { aspectRatio: `${selectedCropAspectRatio}` } : undefined}
+              >
+                <video
+                  ref={videoRef}
+                  src={resolvedSelectedMediaUri || selectedMedia.uri}
+                  className={cn(
+                    'max-h-full max-w-full transition-transform duration-200',
+                    selectedClip?.cropRatio ? 'w-full h-full object-cover' : 'object-contain'
+                  )}
+                  onContextMenu={(event) => event.preventDefault()}
+                  style={{
+                    transform: `rotate(${selectedClip?.rotation || 0}deg) scaleX(${selectedClip?.flipH ? -1 : 1}) scaleY(${selectedClip?.flipV ? -1 : 1})`,
+                  }}
+                  onTimeUpdate={handleTimeUpdate}
+                  onEnded={handleVideoEnded}
+                  onError={() => setVideoError(true)}
+                  onCanPlay={() => setVideoError(false)}
+                  onPlaying={() => setVideoError(false)}
+                  playsInline
+                  preload="auto"
+                />
+              </div>
               {textOverlays.map((overlay) => {
                 const videoCurrentTime = videoRef.current?.currentTime || 0;
                 const isVisible = videoCurrentTime >= overlay.startTime && videoCurrentTime <= overlay.endTime;
