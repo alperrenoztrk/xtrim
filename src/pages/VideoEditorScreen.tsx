@@ -2545,7 +2545,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="fixed inset-0 bg-background p-4 pt-6 z-40 overflow-y-auto"
+            className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Trim Clip</h3>
@@ -2607,7 +2607,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="fixed inset-0 bg-background p-4 pt-6 z-40 overflow-y-auto"
+            className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Split Clip</h3>
@@ -2652,7 +2652,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="fixed inset-0 bg-background p-4 pt-6 z-40 overflow-y-auto"
+            className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">Audio</h3>
@@ -2783,7 +2783,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="fixed inset-0 bg-background p-4 pt-6 z-40 overflow-y-auto"
+            className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">More Options</h3>
@@ -2821,7 +2821,7 @@ const VideoEditorScreen = () => {
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
-            className="fixed inset-0 bg-background p-4 pt-6 z-40 overflow-y-auto"
+            className="border-t border-border bg-card p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-medium">AI Tools</h3>
