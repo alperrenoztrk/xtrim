@@ -2499,66 +2499,72 @@ const VideoEditorScreen = () => {
             className="absolute top-1 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-red-500 border-2 border-white shadow-lg pointer-events-none z-20 dark:border-black"
             style={{ left: `${fixedTimelinePlayheadOffsetPx}px` }}
           />
-          <div
-            ref={timelineScrubRef}
-            className={cn(
-              'px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x',
-              selectedClipId && 'cursor-ew-resize'
-            )}
-            onPointerDown={handleTimelinePointerDown}
-            onPointerMove={handleTimelinePointerMove}
-            onPointerUp={handleTimelinePointerUp}
-            onPointerCancel={handleTimelinePointerUp}
-            onScroll={handleTimelineScroll}
-          >
-          {project.timeline.length > 0 ? (
-            <Reorder.Group
-              axis="x"
-              values={orderedTimeline}
-              onReorder={handleReorderClips}
-              className="flex h-20 items-center py-3 w-max min-w-full"
+          <div className="relative">
+            <div
+              ref={timelineScrubRef}
+              className={cn(
+                'px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x',
+                selectedClipId && 'cursor-ew-resize'
+              )}
+              onPointerDown={handleTimelinePointerDown}
+              onPointerMove={handleTimelinePointerMove}
+              onPointerUp={handleTimelinePointerUp}
+              onPointerCancel={handleTimelinePointerUp}
+              onScroll={handleTimelineScroll}
             >
-              <div style={{ minWidth: timelinePadding, flexShrink: 0 }} />
-              {orderedTimeline.map((clip) => (
-                  <Reorder.Item 
-                    key={clip.id} 
-                    value={clip}
-                    whileDrag={{ scale: 1.05, zIndex: 50 }}
-                    className="cursor-grab active:cursor-grabbing"
-                    data-timeline-item="true"
-                  >
-                    <TimelineClipItem
-                      clip={clip}
-                      media={project.mediaItems.find((m) => m.id === clip.mediaId)}
-                      isSelected={clip.id === selectedClipId}
-                      onSelect={() => setSelectedClipId(clip.id)}
-                      pixelsPerSecond={timelinePixelsPerSecond}
-                    />
-                  </Reorder.Item>
-                ))}
+            {project.timeline.length > 0 ? (
+              <Reorder.Group
+                axis="x"
+                values={orderedTimeline}
+                onReorder={handleReorderClips}
+                className="flex h-20 items-center py-3 w-max min-w-full"
+              >
+                <div style={{ minWidth: timelinePadding, flexShrink: 0 }} />
+                {orderedTimeline.map((clip) => (
+                    <Reorder.Item 
+                      key={clip.id} 
+                      value={clip}
+                      whileDrag={{ scale: 1.05, zIndex: 50 }}
+                      className="cursor-grab active:cursor-grabbing"
+                      data-timeline-item="true"
+                    >
+                      <TimelineClipItem
+                        clip={clip}
+                        media={project.mediaItems.find((m) => m.id === clip.mediaId)}
+                        isSelected={clip.id === selectedClipId}
+                        onSelect={() => setSelectedClipId(clip.id)}
+                        pixelsPerSecond={timelinePixelsPerSecond}
+                      />
+                    </Reorder.Item>
+                  ))}
+                <div className="w-20 shrink-0" aria-hidden="true" />
+                <div style={{ minWidth: timelinePadding, flexShrink: 0 }} />
+              </Reorder.Group>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Plus className="w-4 h-4" />
+                  Add clip
+                </Button>
+              </div>
+            )}
+            </div>
+            {project.timeline.length > 0 && (
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="ml-2 h-14 w-14 shrink-0 rounded-xl border border-zinc-300 bg-white text-black hover:bg-zinc-100 dark:border-zinc-700 dark:bg-black dark:text-white dark:hover:bg-zinc-900 flex items-center justify-center"
+                className="absolute right-4 top-1/2 -translate-y-1/2 h-14 w-14 shrink-0 rounded-xl border border-zinc-300 bg-white text-black hover:bg-zinc-100 dark:border-zinc-700 dark:bg-black dark:text-white dark:hover:bg-zinc-900 flex items-center justify-center z-30"
                 disabled={isMediaImporting}
                 aria-label="Add Media"
               >
                 <Plus className="w-8 h-8" />
               </button>
-              <div style={{ minWidth: timelinePadding, flexShrink: 0 }} />
-            </Reorder.Group>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Plus className="w-4 h-4" />
-                Add clip
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
           </div>
         </div>
 
