@@ -2536,16 +2536,7 @@ const VideoEditorScreen = () => {
                     />
                   </Reorder.Item>
                 ))}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="ml-2 h-14 w-14 shrink-0 rounded-xl border border-zinc-300 bg-white text-black hover:bg-zinc-100 dark:border-zinc-700 dark:bg-black dark:text-white dark:hover:bg-zinc-900 flex items-center justify-center"
-                disabled={isMediaImporting}
-                aria-label="Add Media"
-              >
-                <Plus className="w-8 h-8" />
-              </button>
-              <div style={{ minWidth: timelinePadding, flexShrink: 0 }} />
+              <div style={{ minWidth: timelinePadding + 80, flexShrink: 0 }} />
             </Reorder.Group>
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -2560,6 +2551,17 @@ const VideoEditorScreen = () => {
             </div>
           )}
           </div>
+          {project.timeline.length > 0 && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute right-4 top-1/2 z-30 h-14 w-14 -translate-y-1/2 shrink-0 rounded-xl border border-zinc-300 bg-white text-black hover:bg-zinc-100 dark:border-zinc-700 dark:bg-black dark:text-white dark:hover:bg-zinc-900 flex items-center justify-center"
+              disabled={isMediaImporting}
+              aria-label="Add Media"
+            >
+              <Plus className="w-8 h-8" />
+            </button>
+          )}
         </div>
 
         {/* Audio/Text lanes */}
