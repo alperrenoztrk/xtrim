@@ -421,7 +421,7 @@ const ExportScreen = () => {
   useEffect(() => {
     if (!requestedMode || requestedAction) return;
 
-    toast.info('Videoda “ham dosyayı direkt paylaş” gibi FFmpeg’siz bir kısa yol bu ekranda tanımlı değil.');
+    toast.info('A non-FFmpeg shortcut like "share the raw file directly" is not defined on this screen.');
   }, [requestedMode, requestedAction]);
 
   if (!project) {

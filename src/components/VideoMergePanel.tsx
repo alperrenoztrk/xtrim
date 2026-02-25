@@ -382,7 +382,7 @@ export const VideoMergePanel = ({
               >
                 <Sparkles className="w-4 h-4" />
               </motion.div>
-              {mergeProgress ? `%${Math.round(mergeProgress.progress)} İşleniyor...` : 'İşleniyor...'}
+              {mergeProgress ? `${Math.round(mergeProgress.progress)}% Processing...` : 'Processing...'}
             </>
           ) : (
             <>

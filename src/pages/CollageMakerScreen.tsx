@@ -411,12 +411,12 @@ const CollageMakerScreen = () => {
       link.click();
       document.body.removeChild(link);
 
-      toast({ title: 'Collage indirildi', description: 'Görsel başarıyla cihazınıza kaydedildi.' });
+      toast({ title: 'Collage downloaded', description: 'Image was successfully saved to your device.' });
     } catch (error) {
       console.error('Collage save error:', error);
       toast({
-        title: 'Kaydetme başarısız',
-        description: 'Kolaj indirilemedi. Lütfen tekrar deneyin.',
+        title: 'Save failed',
+        description: 'Collage could not be downloaded. Please try again.',
         variant: 'destructive',
       });
     }
@@ -434,8 +434,8 @@ const CollageMakerScreen = () => {
     } catch (error) {
       console.error('Collage apply error:', error);
       toast({
-        title: 'Uygulama başarısız',
-        description: 'Kolaj uygulanamadı. Lütfen tekrar deneyin.',
+        title: 'Apply failed',
+        description: 'Collage could not be applied. Please try again.',
         variant: 'destructive',
       });
     }

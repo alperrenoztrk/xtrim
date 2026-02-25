@@ -78,7 +78,7 @@ class FFmpegService {
       onProgress?.({ stage: 'loading', progress: 10, message: 'FFmpeg ready' });
     } catch (error) {
       console.error('FFmpeg load error:', error);
-      throw new Error('FFmpeg yüklenemedi. İnternet bağlantınızı kontrol edip tekrar deneyin.');
+      throw new Error('FFmpeg could not be loaded. Check your internet connection and try again.');
     } finally {
       this.loading = false;
     }
