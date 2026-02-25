@@ -416,8 +416,7 @@ const PhotoEditorScreen = () => {
 
   const filterPreviewImage = imageUrl ?? samplePhoto;
 
-  const getRelativeDrawPoint = useCallback((clientX: number, clientY: number): DrawPoint | null => {
-    const bounds = previewImageRef.current?.getBoundingClientRect();
+  const getRelativeDrawPoint = useCallback((clientX: number, clientY: number, bounds: DOMRect): DrawPoint | null => {
     if (!bounds || !bounds.width || !bounds.height) return null;
 
     const x = ((clientX - bounds.left) / bounds.width) * 100;
@@ -430,20 +429,23 @@ const PhotoEditorScreen = () => {
     return { x, y };
   }, []);
 
-  const beginDrawStroke = useCallback((event: React.PointerEvent<Element>) => {
+  const beginDrawStroke = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
     if (activeTab !== 'draw') return;
-    const startPoint = getRelativeDrawPoint(event.clientX, event.clientY);
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const startPoint = getRelativeDrawPoint(event.clientX, event.clientY, bounds);
     if (!startPoint) return;
 
     saveState();
     event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
 
     setActiveDrawStroke({ points: [startPoint], color: drawColor, size: drawSize });
   }, [activeTab, drawColor, drawSize, getRelativeDrawPoint, saveState]);
 
-  const drawStroke = useCallback((event: React.PointerEvent<Element>) => {
+  const drawStroke = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
     if (activeTab !== 'draw' || !activeDrawStroke) return;
-    const point = getRelativeDrawPoint(event.clientX, event.clientY);
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const point = getRelativeDrawPoint(event.clientX, event.clientY, bounds);
     if (!point) return;
 
     setActiveDrawStroke((prev) => {
@@ -452,8 +454,13 @@ const PhotoEditorScreen = () => {
     });
   }, [activeDrawStroke, activeTab, getRelativeDrawPoint]);
 
-  const finishDrawStroke = useCallback(() => {
+  const finishDrawStroke = useCallback((event?: React.PointerEvent<SVGSVGElement>) => {
     if (!activeDrawStroke || activeDrawStroke.points.length === 0) return;
+
+    if (event?.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
     setDrawStrokes((prev) => [...prev, activeDrawStroke]);
     setActiveDrawStroke(null);
   }, [activeDrawStroke]);
