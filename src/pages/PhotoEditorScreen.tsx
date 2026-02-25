@@ -191,6 +191,7 @@ const drawBrushOptions: { id: DrawBrushType; label: string; icon: React.Componen
 const PhotoEditorScreen = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const projectName = searchParams.get('projectName')?.trim() || 'Photo Editor';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewStageRef = useRef<HTMLDivElement>(null);
   const previewImageRef = useRef<HTMLImageElement>(null);
@@ -1097,7 +1098,7 @@ const PhotoEditorScreen = () => {
           <Button variant="iconGhost" size="iconSm" onClick={handleBack}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-sm font-semibold text-foreground">Photo Editor</h1>
+          <h1 className="text-sm font-semibold text-foreground">{projectName}</h1>
         </div>
 
         <div className="flex items-center gap-2">

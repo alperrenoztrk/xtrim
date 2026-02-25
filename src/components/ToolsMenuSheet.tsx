@@ -45,12 +45,7 @@ const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect, onProjectOpen }: 
   }, [isOpen, type]);
 
   const handleNewProject = () => {
-    if (type === 'photo') {
-      // Photo editor doesn't use project system, go directly to editor
-      onToolSelect('new-project');
-    } else {
-      setShowNameDialog(true);
-    }
+    setShowNameDialog(true);
   };
 
   const handleCreateProject = (name: string) => {

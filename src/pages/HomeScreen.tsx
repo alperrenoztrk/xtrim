@@ -76,6 +76,17 @@ const HomeScreen = () => {
     }, 1500);
   }, [currentVideoIndex]);
 
+
+  const navigateToPhotoEditor = (projectName?: string) => {
+    if (!projectName?.trim()) {
+      navigate('/photo-editor');
+      return;
+    }
+
+    const params = new URLSearchParams({ projectName: projectName.trim() });
+    navigate(`/photo-editor?${params.toString()}`);
+  };
+
   const handleToolClick = (tool: Tool) => {
     if (tool.id === 'video' || tool.id === 'photo') {
       setMenuType(tool.id);
@@ -98,7 +109,7 @@ const HomeScreen = () => {
         ProjectService.saveProject(project);
         navigate(`/editor/${project.id}`);
       } else {
-        navigate('/photo-editor');
+        navigateToPhotoEditor(projectName);
       }
       return;
     }
@@ -110,7 +121,7 @@ const HomeScreen = () => {
         ProjectService.saveProject(project);
         navigate(`/editor/${project.id}`);
       } else {
-        navigate('/photo-editor');
+        navigateToPhotoEditor();
       }
     } else if (toolId === 'trim' || toolId === 'speed') {
       const project = ProjectService.createProject();
