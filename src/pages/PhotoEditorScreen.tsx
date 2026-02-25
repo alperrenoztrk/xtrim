@@ -32,7 +32,6 @@ import {
   Minimize,
   ZoomIn,
   ZoomOut,
-  ChevronDown,
   PenLine,
   Undo2,
 } from 'lucide-react';
@@ -190,7 +189,6 @@ const PhotoEditorScreen = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [openCollageAfterSelection, setOpenCollageAfterSelection] = useState(false);
-  const [isControlsCollapsed, setIsControlsCollapsed] = useState(false);
   const [cropInteraction, setCropInteraction] = useState<CropInteractionState | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [drawStrokes, setDrawStrokes] = useState<DrawStroke[]>([]);
@@ -1211,7 +1209,6 @@ const PhotoEditorScreen = () => {
                 )}
                 onClick={() => {
                   setActiveTab(tab.id as EditorTab);
-                  setIsControlsCollapsed(false);
                 }}
               >
                 <tab.icon className="w-4 h-4" />
@@ -1220,23 +1217,8 @@ const PhotoEditorScreen = () => {
             ))}
           </div>
 
-          <div
-            className="flex items-center justify-center py-1.5 cursor-pointer select-none border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black"
-            onClick={() => setIsControlsCollapsed((prev) => !prev)}
-          >
-            <div className="flex flex-col items-center gap-0.5">
-              <div className="w-10 h-1 rounded-full bg-muted-foreground/40" />
-              <ChevronDown
-                className={cn(
-                  'w-3 h-3 text-muted-foreground/60 mt-0.5 transition-transform duration-200',
-                  isControlsCollapsed && 'rotate-180'
-                )}
-              />
-            </div>
-          </div>
-
           {/* Controls panel */}
-          {!isControlsCollapsed && <div className="flex-1 min-h-0 overflow-y-auto bg-white border-t border-zinc-200 dark:border-zinc-800 dark:bg-black">
+          <div className="flex-1 min-h-0 overflow-y-auto bg-white border-t border-zinc-200 dark:border-zinc-800 dark:bg-black">
             <AnimatePresence mode="wait">
               {activeTab === 'adjust' && (
                 <motion.div
@@ -1630,7 +1612,7 @@ const PhotoEditorScreen = () => {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>}
+          </div>
 
           {/* Safe area bottom padding */}
           <div className="safe-area-bottom bg-white dark:bg-black" />
