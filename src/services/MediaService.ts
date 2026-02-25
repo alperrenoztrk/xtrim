@@ -77,15 +77,24 @@ export class MediaService {
 
     const type = isVideo ? 'video' : isAudio ? 'audio' : 'photo';
     const mediaId = uuidv4();
-    await MediaStorageService.saveMediaBlob(mediaId, file);
-
-    const persistedUri = `${this.persistedUriPrefix}${mediaId}`;
     const objectUri = URL.createObjectURL(file);
+    let mediaUri = `${this.persistedUriPrefix}${mediaId}`;
+    let shouldRevokeObjectUri = true;
+
+    try {
+      await MediaStorageService.saveMediaBlob(mediaId, file);
+    } catch (error) {
+      // iOS Safari can fail to persist larger blobs in IndexedDB. Keep the file available
+      // through an object URL so users can still edit within the current session.
+      console.warn('Failed to persist media blob, falling back to in-memory URL:', error);
+      mediaUri = objectUri;
+      shouldRevokeObjectUri = false;
+    }
 
     const mediaItem: MediaItem = {
       id: mediaId,
       type,
-      uri: persistedUri,
+      uri: mediaUri,
       name: file.name,
       size: file.size,
       createdAt: new Date(),
@@ -109,7 +118,9 @@ export class MediaService {
       }
     }
 
-    URL.revokeObjectURL(objectUri);
+    if (shouldRevokeObjectUri) {
+      URL.revokeObjectURL(objectUri);
+    }
 
     return mediaItem;
   }
