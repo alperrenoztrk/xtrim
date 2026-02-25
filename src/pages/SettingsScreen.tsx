@@ -17,10 +17,14 @@ import {
   Gauge,
   HardDrive,
   Save,
+  LogOut,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { applyTheme } from '@/lib/theme';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { AppSettings, ExportSettings } from '@/types';
 
 const themes = [
@@ -94,6 +98,10 @@ const SettingsScreen = () => {
   const normalizedPrCount = resolveCodexPrNumber();
   const appVersion = `1.${Math.floor(normalizedPrCount / 10)}.${normalizedPrCount % 10}`;
 
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+
   const [settings, setSettings] = useState<ExtendedSettings>(() => {
     const saved = localStorage.getItem('xtrim_settings');
     if (saved) {
@@ -108,6 +116,26 @@ const SettingsScreen = () => {
 
   const [showThemeSheet, setShowThemeSheet] = useState(false);
   const [showPrivacySheet, setShowPrivacySheet] = useState(false);
+
+  useEffect(() => {
+    applyTheme(settings.theme);
+  }, [settings.theme]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUserEmail(session.user.email ?? null);
+        setUserAvatar(session.user.user_metadata?.avatar_url ?? null);
+        setUserName(session.user.user_metadata?.full_name ?? session.user.user_metadata?.name ?? null);
+      }
+    });
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.success('Çıkış yapıldı');
+    navigate('/login', { replace: true });
+  };
 
   useEffect(() => {
     applyTheme(settings.theme);
@@ -144,6 +172,35 @@ const SettingsScreen = () => {
       </header>
 
       <div className="p-4 space-y-6 pb-20">
+        {/* Profile */}
+        <div className="space-y-1">
+          <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">Profile</h2>
+          <div className="rounded-xl bg-card border border-border overflow-hidden">
+            <div className="flex items-center gap-4 p-4">
+              {userAvatar ? (
+                <img src={userAvatar} alt="Avatar" className="w-12 h-12 rounded-full object-cover" />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
+                  <User className="w-6 h-6 text-muted-foreground" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                {userName && <p className="font-medium truncate">{userName}</p>}
+                <p className="text-sm text-muted-foreground truncate">{userEmail ?? 'Giriş yapılmamış'}</p>
+              </div>
+            </div>
+            <div className="border-t border-border">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 p-4 hover:bg-destructive/10 transition-colors text-destructive"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Çıkış Yap</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Appearance */}
         <div className="space-y-1">
           <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">Appearance</h2>
