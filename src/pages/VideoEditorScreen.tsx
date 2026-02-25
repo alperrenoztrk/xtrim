@@ -2414,7 +2414,7 @@ const VideoEditorScreen = () => {
         <div
           ref={timelineScrubRef}
           className={cn(
-            'relative px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x bg-zinc-800 border-y border-zinc-700/60',
+            'relative px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x bg-gradient-to-b from-emerald-950/95 to-green-950/95 border-y border-emerald-800/60',
             selectedClipId && 'cursor-ew-resize'
           )}
           onPointerDown={handleTimelinePointerDown}
@@ -2422,31 +2422,33 @@ const VideoEditorScreen = () => {
           onPointerUp={handleTimelinePointerUp}
           onPointerCancel={handleTimelinePointerUp}
         >
-          {/* Time markers */}
-          <div className="sticky top-0 z-10 flex h-7 min-w-max items-center gap-5 px-1 text-xs text-zinc-400 backdrop-blur-sm">
+          <div className="sticky top-0 z-10 flex h-9 min-w-max items-center gap-5 border-b border-emerald-800/55 bg-emerald-950/90 px-1 text-xs text-emerald-200/80 backdrop-blur-sm">
             {Array.from({ length: Math.max(4, Math.ceil(Math.max(project.duration, 1))) }).map((_, second) => (
               <span key={`timeline-second-${second}`} className="flex items-center gap-3 whitespace-nowrap tabular-nums">
                 <span>{`00:${second.toString().padStart(2, '0')}`}</span>
-                <span className="text-zinc-500">•</span>
+                <span className="text-emerald-300/45">•</span>
               </span>
             ))}
           </div>
-
-          {/* Playhead line - full height white line */}
           <div
-            className="absolute top-0 bottom-0 w-[2px] bg-white pointer-events-none z-20"
+            className="absolute top-9 bottom-0 left-4 w-[3px] rounded-full bg-white pointer-events-none z-20"
+          />
+          <div
+            className="absolute top-9 bottom-0 w-px bg-emerald-100 pointer-events-none z-20"
             style={{
               left: `${fixedTimelinePlayheadPercent}%`,
             }}
           />
-
-          {/* Clips row */}
+          <div
+            className="absolute top-[31px] h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-emerald-100 border border-emerald-950 shadow pointer-events-none z-20"
+            style={{ left: `${fixedTimelinePlayheadPercent}%` }}
+          />
           {project.timeline.length > 0 ? (
             <Reorder.Group
               axis="x"
               values={orderedTimeline}
               onReorder={handleReorderClips}
-              className="flex h-20 items-center py-2 w-max min-w-full"
+              className="flex h-20 items-center py-3 w-max min-w-full"
             >
               {orderedTimeline.map((clip) => (
                   <Reorder.Item 
@@ -2468,48 +2470,71 @@ const VideoEditorScreen = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="ml-2 h-14 w-14 shrink-0 rounded-xl bg-white text-zinc-900 hover:bg-zinc-100 flex items-center justify-center shadow-sm"
+                className="ml-2 h-14 w-14 shrink-0 rounded-xl border border-emerald-400/60 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 flex items-center justify-center"
                 disabled={isMediaImporting}
                 aria-label="Add Media"
               >
-                <Plus className="w-7 h-7 stroke-[2.5]" />
+                <Plus className="w-8 h-8" />
               </button>
             </Reorder.Group>
           ) : (
-            <div className="flex items-center justify-center h-20">
-              <button
-                type="button"
+            <div className="flex items-center justify-center h-full">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="h-14 w-14 shrink-0 rounded-xl bg-white text-zinc-900 hover:bg-zinc-100 flex items-center justify-center shadow-sm"
               >
-                <Plus className="w-7 h-7 stroke-[2.5]" />
-              </button>
+                <Plus className="w-4 h-4" />
+                Add clip
+              </Button>
             </div>
           )}
         </div>
 
         {/* Audio/Text lanes */}
         {project.timeline.length > 0 && (
-          <div className="bg-zinc-800 border-t border-zinc-700/40">
-            <button
-              type="button"
-              className="w-full flex items-center gap-2 px-4 h-11 text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/40 transition-colors border-b border-zinc-700/30 disabled:opacity-40"
-              onClick={() => handleToolClick('audio')}
-              disabled={!hasVideoInTimeline}
-            >
-              <Plus className="w-4 h-4" />
-              <span>Ses ekle</span>
-            </button>
+          <div className="px-4 pb-3 space-y-2 border-t border-emerald-800/60 bg-emerald-950/85">
+            <div className="grid grid-cols-[56px_1fr] gap-2 items-stretch">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-full flex-col gap-1 text-emerald-200/80 hover:text-emerald-50 hover:bg-emerald-900/60"
+                onClick={() => handleToolClick('audio')}
+                disabled={!hasVideoInTimeline}
+              >
+                <Music className="w-4 h-4" />
+                <span className="text-xxs">Ses</span>
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start h-12 rounded-none border border-emerald-800/60 bg-emerald-900/45 text-emerald-100/90 hover:bg-emerald-900/70"
+                onClick={() => handleToolClick('audio')}
+                disabled={!hasVideoInTimeline}
+              >
+                + Ses ekle
+              </Button>
+            </div>
 
-            <button
-              type="button"
-              className="w-full flex items-center gap-2 px-4 h-11 text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/40 transition-colors disabled:opacity-40"
-              onClick={() => handleToolClick('text')}
-              disabled={!hasVideoInTimeline}
-            >
-              <Plus className="w-4 h-4" />
-              <span>Metin ekle</span>
-            </button>
+            <div className="grid grid-cols-[56px_1fr] gap-2 items-stretch">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-full flex-col gap-1 text-emerald-200/80 hover:text-emerald-50 hover:bg-emerald-900/60"
+                onClick={() => handleToolClick('text')}
+                disabled={!hasVideoInTimeline}
+              >
+                <Type className="w-4 h-4" />
+                <span className="text-xxs">Metin</span>
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start h-12 rounded-none border border-emerald-800/60 bg-emerald-900/45 text-emerald-100/90 hover:bg-emerald-900/70"
+                onClick={() => handleToolClick('text')}
+                disabled={!hasVideoInTimeline}
+              >
+                + Metin ekle
+              </Button>
+            </div>
           </div>
         )}
           </motion.div>
