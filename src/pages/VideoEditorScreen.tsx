@@ -282,6 +282,7 @@ const TimelineClipItem = ({
   const duration = clip.endTime - clip.startTime;
   const width = Math.max(duration * pixelsPerSecond, 12);
   const isVideo = media?.type === 'video';
+  const thumbnailTiles = Math.max(1, Math.round(width / 70));
   
   return (
     <div
@@ -295,33 +296,38 @@ const TimelineClipItem = ({
     >
       {/* Thumbnail background */}
       <div className="absolute inset-0 bg-secondary">
-        {media?.thumbnail && (
-          <img
-            src={media.thumbnail}
-            alt=""
-            className="w-full h-full object-cover opacity-80 pointer-events-none"
-          />
+        {media?.thumbnail ? (
+          <div className="flex h-full w-full pointer-events-none">
+            {Array.from({ length: thumbnailTiles }).map((_, tileIdx) => (
+              <img
+                key={`${clip.id}-thumb-${tileIdx}`}
+                src={media.thumbnail}
+                alt=""
+                className="h-full flex-1 min-w-[56px] object-cover opacity-90"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="h-full w-full bg-muted" />
         )}
       </div>
 
-      {/* Gradient overlay - different color for photos */}
+      {/* Subtle tint for media type */}
       <div className={cn(
-        "absolute inset-0 pointer-events-none",
-        !isVideo 
-          ? "bg-gradient-to-r from-accent/30 to-primary/20" 
-          : "bg-gradient-to-r from-primary/20 to-accent/20"
+        'absolute inset-0 pointer-events-none',
+        !isVideo ? 'bg-gradient-to-r from-accent/35 to-primary/15' : 'bg-gradient-to-r from-primary/20 via-transparent to-accent/20'
       )} />
 
       {/* Media type indicator */}
       <div className="absolute top-1 left-1 pointer-events-none">
         {!isVideo ? (
-          <div className="w-4 h-4 rounded bg-accent/80 flex items-center justify-center">
+          <div className="w-4 h-4 rounded bg-accent/90 flex items-center justify-center">
             <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
             </svg>
           </div>
         ) : (
-          <div className="w-4 h-4 rounded bg-primary/80 flex items-center justify-center">
+          <div className="w-4 h-4 rounded bg-primary/85 flex items-center justify-center border border-white/20">
             <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
             </svg>
@@ -339,21 +345,21 @@ const TimelineClipItem = ({
       </div>
 
       {/* Duration label */}
-      <div className="absolute bottom-1 left-2 text-xxs font-medium text-white bg-black/50 px-1 rounded pointer-events-none">
+      <div className="absolute bottom-1 left-2 text-xxs font-medium text-white bg-black/60 px-1 rounded pointer-events-none">
         {MediaService.formatDuration(duration)}
       </div>
 
-      <div className="absolute bottom-1 right-2 max-w-[70%] text-xxs font-medium text-white/90 bg-black/50 px-1 rounded truncate pointer-events-none">
+      <div className="absolute bottom-1 right-2 max-w-[70%] text-xxs font-medium text-white/90 bg-black/60 px-1 rounded truncate pointer-events-none">
         {clip.name || media?.name || 'Clip'}
       </div>
 
       {/* Trim handles - only shown when selected */}
       {isSelected && !isDragging && (
         <>
-          <div className="absolute left-0 top-0 bottom-0 w-2 bg-primary cursor-ew-resize flex items-center justify-center">
+          <div className="absolute left-0 top-0 bottom-0 w-2 bg-white/95 cursor-ew-resize flex items-center justify-center">
             <div className="w-0.5 h-6 bg-white/50 rounded" />
           </div>
-          <div className="absolute right-0 top-0 bottom-0 w-2 bg-primary cursor-ew-resize flex items-center justify-center">
+          <div className="absolute right-0 top-0 bottom-0 w-2 bg-white/95 cursor-ew-resize flex items-center justify-center">
             <div className="w-0.5 h-6 bg-white/50 rounded" />
           </div>
         </>
@@ -2409,7 +2415,7 @@ const VideoEditorScreen = () => {
         <div
           ref={timelineScrubRef}
           className={cn(
-            'relative h-24 px-4 overflow-x-auto scrollbar-hide touch-pan-x bg-gradient-to-b from-zinc-100 to-zinc-200/70 dark:from-zinc-950 dark:to-zinc-900',
+            'relative px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x bg-gradient-to-b from-emerald-950/95 to-green-950/95 border-y border-emerald-800/60',
             selectedClipId && 'cursor-ew-resize'
           )}
           onPointerDown={handleTimelinePointerDown}
@@ -2417,14 +2423,25 @@ const VideoEditorScreen = () => {
           onPointerUp={handleTimelinePointerUp}
           onPointerCancel={handleTimelinePointerUp}
         >
+          <div className="sticky top-0 z-10 flex h-9 min-w-max items-center gap-5 border-b border-emerald-800/55 bg-emerald-950/90 px-1 text-xs text-emerald-200/80 backdrop-blur-sm">
+            {Array.from({ length: Math.max(4, Math.ceil(Math.max(project.duration, 1))) }).map((_, second) => (
+              <span key={`timeline-second-${second}`} className="flex items-center gap-3 whitespace-nowrap tabular-nums">
+                <span>{`00:${second.toString().padStart(2, '0')}`}</span>
+                <span className="text-emerald-300/45">•</span>
+              </span>
+            ))}
+          </div>
           <div
-            className="absolute top-0 bottom-0 w-px bg-primary pointer-events-none z-20"
+            className="absolute top-9 bottom-0 left-4 w-[3px] rounded-full bg-white pointer-events-none z-20"
+          />
+          <div
+            className="absolute top-9 bottom-0 w-px bg-emerald-100 pointer-events-none z-20"
             style={{
               left: `${fixedTimelinePlayheadPercent}%`,
             }}
           />
           <div
-            className="absolute top-0 h-3 w-3 -translate-x-1/2 rounded-full bg-primary border-2 border-background shadow pointer-events-none z-20"
+            className="absolute top-[31px] h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-emerald-100 border border-emerald-950 shadow pointer-events-none z-20"
             style={{ left: `${fixedTimelinePlayheadPercent}%` }}
           />
           {project.timeline.length > 0 ? (
@@ -2432,7 +2449,7 @@ const VideoEditorScreen = () => {
               axis="x"
               values={orderedTimeline}
               onReorder={handleReorderClips}
-              className="flex h-full items-center py-2 w-max min-w-full"
+              className="flex h-20 items-center py-3 w-max min-w-full"
             >
               {orderedTimeline.map((clip) => (
                   <Reorder.Item 
@@ -2454,7 +2471,7 @@ const VideoEditorScreen = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="ml-2 h-16 w-16 shrink-0 rounded-xl border border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800 flex items-center justify-center"
+                className="ml-2 h-14 w-14 shrink-0 rounded-xl border border-emerald-400/60 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 flex items-center justify-center"
                 disabled={isMediaImporting}
                 aria-label="Add Media"
               >
@@ -2477,25 +2494,25 @@ const VideoEditorScreen = () => {
 
         {/* Audio/Text lanes */}
         {project.timeline.length > 0 && (
-          <div className="px-4 pb-3 space-y-2 border-t border-zinc-200 bg-zinc-50/60 dark:border-zinc-800 dark:bg-zinc-950/60">
+          <div className="px-4 pb-3 space-y-2 border-t border-emerald-800/60 bg-emerald-950/85">
             <div className="grid grid-cols-[56px_1fr] gap-2 items-stretch">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-full flex-col gap-1 text-muted-foreground"
+                className="h-full flex-col gap-1 text-emerald-200/80 hover:text-emerald-50 hover:bg-emerald-900/60"
                 onClick={() => handleToolClick('audio')}
                 disabled={!hasVideoInTimeline}
               >
                 <Music className="w-4 h-4" />
-                <span className="text-xxs">Audio</span>
+                <span className="text-xxs">Ses</span>
               </Button>
               <Button
-                variant="outline"
-                className="justify-start h-12 rounded-lg bg-card/80"
+                variant="ghost"
+                className="justify-start h-12 rounded-none border border-emerald-800/60 bg-emerald-900/45 text-emerald-100/90 hover:bg-emerald-900/70"
                 onClick={() => handleToolClick('audio')}
                 disabled={!hasVideoInTimeline}
               >
-                + Add audio
+                + Ses ekle
               </Button>
             </div>
 
@@ -2503,20 +2520,20 @@ const VideoEditorScreen = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-full flex-col gap-1 text-muted-foreground"
+                className="h-full flex-col gap-1 text-emerald-200/80 hover:text-emerald-50 hover:bg-emerald-900/60"
                 onClick={() => handleToolClick('text')}
                 disabled={!hasVideoInTimeline}
               >
                 <Type className="w-4 h-4" />
-                <span className="text-xxs">Text</span>
+                <span className="text-xxs">Metin</span>
               </Button>
               <Button
-                variant="outline"
-                className="justify-start h-12 rounded-lg bg-card/80"
+                variant="ghost"
+                className="justify-start h-12 rounded-none border border-emerald-800/60 bg-emerald-900/45 text-emerald-100/90 hover:bg-emerald-900/70"
                 onClick={() => handleToolClick('text')}
                 disabled={!hasVideoInTimeline}
               >
-                + Add text
+                + Metin ekle
               </Button>
             </div>
           </div>
