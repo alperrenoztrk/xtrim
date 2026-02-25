@@ -34,6 +34,8 @@ import {
   ZoomOut,
   PenLine,
   Undo2,
+  Highlighter,
+  WandSparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -94,10 +96,14 @@ interface DrawPoint {
   y: number;
 }
 
+type DrawBrushType = 'precision' | 'marker' | 'neon';
+
 interface DrawStroke {
   points: DrawPoint[];
   color: string;
   size: number;
+  opacity: number;
+  brushType: DrawBrushType;
 }
 
 interface FreeCropSettings {
@@ -176,6 +182,12 @@ const moreMenuTools: { id: Exclude<QuickTool, 'more'>; icon: React.ComponentType
   { id: 'text', icon: Type, label: 'Text' },
 ];
 
+const drawBrushOptions: { id: DrawBrushType; label: string; icon: React.ComponentType<any>; description: string }[] = [
+  { id: 'precision', label: 'Precision', icon: PenLine, description: 'Sharp strokes for detailed retouching' },
+  { id: 'marker', label: 'Marker', icon: Highlighter, description: 'Thicker semi-transparent marker look' },
+  { id: 'neon', label: 'Neon', icon: WandSparkles, description: 'Glowing brush for highlights and effects' },
+];
+
 const PhotoEditorScreen = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -204,6 +216,8 @@ const PhotoEditorScreen = () => {
   const [activeDrawStroke, setActiveDrawStroke] = useState<DrawStroke | null>(null);
   const [drawColor, setDrawColor] = useState('#ef4444');
   const [drawSize, setDrawSize] = useState(1.2);
+  const [drawOpacity, setDrawOpacity] = useState(0.9);
+  const [drawBrushType, setDrawBrushType] = useState<DrawBrushType>('precision');
   const [cornerRadius, setCornerRadius] = useState(0);
   
   // AI Tool states
@@ -436,6 +450,18 @@ const PhotoEditorScreen = () => {
     return { x, y };
   }, []);
 
+  const getBrushStyle = useCallback((brushType: DrawBrushType) => {
+    if (brushType === 'marker') {
+      return { lineCap: 'round' as const, lineJoin: 'round' as const, blur: 0, sizeMultiplier: 1.4 };
+    }
+
+    if (brushType === 'neon') {
+      return { lineCap: 'round' as const, lineJoin: 'round' as const, blur: 8, sizeMultiplier: 1.1 };
+    }
+
+    return { lineCap: 'round' as const, lineJoin: 'round' as const, blur: 0, sizeMultiplier: 1 };
+  }, []);
+
   const beginDrawStroke = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
     if (activeTab !== 'draw') return;
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -446,8 +472,14 @@ const PhotoEditorScreen = () => {
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
 
-    setActiveDrawStroke({ points: [startPoint], color: drawColor, size: drawSize });
-  }, [activeTab, drawColor, drawSize, getRelativeDrawPoint, saveState]);
+    setActiveDrawStroke({
+      points: [startPoint],
+      color: drawColor,
+      size: drawSize,
+      opacity: drawOpacity,
+      brushType: drawBrushType,
+    });
+  }, [activeTab, drawColor, drawOpacity, drawBrushType, drawSize, getRelativeDrawPoint, saveState]);
 
   const drawStroke = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
     if (activeTab !== 'draw' || !activeDrawStroke) return;
@@ -723,11 +755,21 @@ const PhotoEditorScreen = () => {
       allStrokes.forEach((stroke) => {
         if (stroke.points.length === 0) return;
         const widthScale = Math.max(img.width, img.height) / 100;
+        const brushStyle = getBrushStyle(stroke.brushType);
         ctx.beginPath();
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        ctx.lineCap = brushStyle.lineCap;
+        ctx.lineJoin = brushStyle.lineJoin;
         ctx.strokeStyle = stroke.color;
-        ctx.lineWidth = stroke.size * widthScale;
+        ctx.globalAlpha = stroke.opacity;
+        ctx.lineWidth = stroke.size * brushStyle.sizeMultiplier * widthScale;
+
+        if (brushStyle.blur > 0) {
+          ctx.shadowColor = stroke.color;
+          ctx.shadowBlur = brushStyle.blur * widthScale * 0.15;
+        } else {
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+        }
 
         stroke.points.forEach((point, index) => {
           const drawX = (point.x / 100) * img.width - img.width / 2;
@@ -749,6 +791,10 @@ const PhotoEditorScreen = () => {
         } else {
           ctx.stroke();
         }
+
+        ctx.globalAlpha = 1;
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
       });
 
       if (cornerRadius > 0) {
@@ -1131,7 +1177,9 @@ const PhotoEditorScreen = () => {
                     points={stroke.points.map((point) => `${point.x},${point.y}`).join(' ')}
                     fill="none"
                     stroke={stroke.color}
-                    strokeWidth={stroke.size}
+                    strokeWidth={stroke.size * getBrushStyle(stroke.brushType).sizeMultiplier}
+                    strokeOpacity={stroke.opacity}
+                    style={stroke.brushType === 'neon' ? { filter: `drop-shadow(0 0 ${stroke.size * 2}px ${stroke.color})` } : undefined}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
@@ -1454,7 +1502,26 @@ const PhotoEditorScreen = () => {
                   className="p-4 space-y-4"
                 >
                   <p className="text-xs text-muted-foreground text-center">
-                    Draw on the photo with your finger/mouse.
+                    Draw on the photo with professional brush presets.
+                  </p>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {drawBrushOptions.map((brush) => (
+                      <Button
+                        key={brush.id}
+                        type="button"
+                        variant={drawBrushType === brush.id ? 'secondary' : 'outline'}
+                        className="h-auto py-2 px-2 flex flex-col gap-1"
+                        onClick={() => setDrawBrushType(brush.id)}
+                      >
+                        <brush.icon className="w-4 h-4" />
+                        <span className="text-[11px] font-medium leading-none">{brush.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+
+                  <p className="text-[11px] text-muted-foreground text-center">
+                    {drawBrushOptions.find((brush) => brush.id === drawBrushType)?.description}
                   </p>
 
                   <div className="space-y-2">
@@ -1468,6 +1535,20 @@ const PhotoEditorScreen = () => {
                       max={4}
                       step={0.1}
                       onValueChange={([value]) => setDrawSize(value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Opacity</span>
+                      <span>{Math.round(drawOpacity * 100)}%</span>
+                    </div>
+                    <Slider
+                      value={[drawOpacity]}
+                      min={0.1}
+                      max={1}
+                      step={0.05}
+                      onValueChange={([value]) => setDrawOpacity(value)}
                     />
                   </div>
 
