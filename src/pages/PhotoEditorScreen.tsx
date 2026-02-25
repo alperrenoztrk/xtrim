@@ -107,6 +107,13 @@ interface FreeCropSettings {
   yPercent: number;
 }
 
+interface CropPreviewBounds {
+  widthPercent: number;
+  heightPercent: number;
+  xPercent: number;
+  yPercent: number;
+}
+
 const filterPresets: FilterPreset[] = [
   { id: 'none', name: 'Original', adjustments: {} },
   { id: 'vivid', name: 'Vivid', adjustments: { saturation: 30, contrast: 15 } },
@@ -545,6 +552,48 @@ const PhotoEditorScreen = () => {
   const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
   const isFreeCropEditing = activeTab === 'crop' && selectedCropRatio === 'free' && Boolean(imageUrl);
+
+  const fixedCropPreviewBounds = useCallback((): CropPreviewBounds | null => {
+    if (activeTab !== 'crop' || selectedCropRatio === 'free') {
+      return null;
+    }
+
+    const selectedRatio = cropRatios.find((ratio) => ratio.id === selectedCropRatio)?.ratio;
+    const previewImage = previewImageRef.current;
+
+    if (!selectedRatio || !previewImage?.naturalWidth || !previewImage?.naturalHeight) {
+      return null;
+    }
+
+    const imageRatio = previewImage.naturalWidth / previewImage.naturalHeight;
+
+    if (imageRatio > selectedRatio) {
+      const widthPercent = (selectedRatio / imageRatio) * 100;
+      return {
+        widthPercent,
+        heightPercent: 100,
+        xPercent: (100 - widthPercent) / 2,
+        yPercent: 0,
+      };
+    }
+
+    const heightPercent = (imageRatio / selectedRatio) * 100;
+    return {
+      widthPercent: 100,
+      heightPercent,
+      xPercent: 0,
+      yPercent: (100 - heightPercent) / 2,
+    };
+  }, [activeTab, selectedCropRatio]);
+
+  const activeFixedCropPreview = fixedCropPreviewBounds();
+
+  const handleCancelCrop = useCallback(() => {
+    setSelectedCropRatio('free');
+    setFreeCropSettings(defaultFreeCropSettings);
+    setCropInteraction(null);
+    setActiveTab('adjust');
+  }, []);
 
   const beginFreeCropInteraction = useCallback(
     (
@@ -1090,6 +1139,41 @@ const PhotoEditorScreen = () => {
               </svg>
             )}
 
+            {activeFixedCropPreview && (
+              <div className="absolute inset-0 pointer-events-none" style={{ borderRadius: `${cornerRadius}px` }}>
+                <div className="absolute left-0 top-0 w-full bg-black/55" style={{ height: `${activeFixedCropPreview.yPercent}%` }} />
+                <div
+                  className="absolute left-0 bg-black/55"
+                  style={{
+                    top: `${activeFixedCropPreview.yPercent}%`,
+                    width: `${activeFixedCropPreview.xPercent}%`,
+                    height: `${activeFixedCropPreview.heightPercent}%`,
+                  }}
+                />
+                <div
+                  className="absolute right-0 bg-black/55"
+                  style={{
+                    top: `${activeFixedCropPreview.yPercent}%`,
+                    width: `${100 - (activeFixedCropPreview.xPercent + activeFixedCropPreview.widthPercent)}%`,
+                    height: `${activeFixedCropPreview.heightPercent}%`,
+                  }}
+                />
+                <div
+                  className="absolute left-0 bottom-0 w-full bg-black/55"
+                  style={{ height: `${100 - (activeFixedCropPreview.yPercent + activeFixedCropPreview.heightPercent)}%` }}
+                />
+                <div
+                  className="absolute border-2 border-primary rounded-sm"
+                  style={{
+                    left: `${activeFixedCropPreview.xPercent}%`,
+                    top: `${activeFixedCropPreview.yPercent}%`,
+                    width: `${activeFixedCropPreview.widthPercent}%`,
+                    height: `${activeFixedCropPreview.heightPercent}%`,
+                  }}
+                />
+              </div>
+            )}
+
             {isFreeCropEditing && (
               <div className="absolute inset-0" style={{ borderRadius: `${cornerRadius}px` }}>
                 <div
@@ -1348,7 +1432,7 @@ const PhotoEditorScreen = () => {
                   )}
 
                   <div className="flex gap-2 mt-4 justify-center">
-                    <Button variant="outline" onClick={() => setActiveTab('adjust')}>
+                    <Button variant="outline" onClick={handleCancelCrop}>
                       <X className="w-4 h-4" />
                       Cancel
                     </Button>
