@@ -510,8 +510,8 @@ const PhotoEditorScreen = () => {
       } else {
         cropWidth = Math.max(1, img.width * (freeCropSettings.widthPercent / 100));
         cropHeight = Math.max(1, img.height * (freeCropSettings.heightPercent / 100));
-        cropX = (img.width - cropWidth) * (freeCropSettings.xPercent / 100);
-        cropY = (img.height - cropHeight) * (freeCropSettings.yPercent / 100);
+        cropX = clamp(img.width * (freeCropSettings.xPercent / 100), 0, img.width - cropWidth);
+        cropY = clamp(img.height * (freeCropSettings.yPercent / 100), 0, img.height - cropHeight);
       }
 
       const canvas = document.createElement('canvas');
