@@ -1834,18 +1834,20 @@ const VideoEditorScreen = () => {
       .reduce((sum, clip) => sum + (clip.endTime - clip.startTime), 0);
 
     const selectedClipDuration = selectedTimelineClip.endTime - selectedTimelineClip.startTime;
-    const timelineTotalDuration = Math.max(project.duration, 1);
     const timelineNode = timelineScrubRef.current;
+    const viewportW = Math.max(timelineNode.clientWidth, 1);
+    const padding = Math.max(viewportW / 2, 16);
+    const pxPerSec = Math.max((viewportW / Math.max(project.duration, 1)) * timelineZoom, 0.001);
     const rect = timelineNode.getBoundingClientRect();
     const pointerXWithinViewport = Math.max(0, Math.min(clientX - rect.left, rect.width));
     const pointerXWithinTimeline = timelineNode.scrollLeft + pointerXWithinViewport;
-    const totalScrollableWidth = Math.max(timelineNode.scrollWidth, 1);
-    const ratio = Math.max(0, Math.min(pointerXWithinTimeline / totalScrollableWidth, 1));
-    const absoluteTime = ratio * timelineTotalDuration;
+    // Subtract the left padding to get position within clips area
+    const pixelsIntoClips = pointerXWithinTimeline - padding;
+    const absoluteTime = Math.max(0, pixelsIntoClips / pxPerSec);
     const relativeTime = absoluteTime - selectedClipOffset;
 
     handleSeek(Math.max(0, Math.min(relativeTime, selectedClipDuration)));
-  }, [handleSeek, project, selectedClipId]);
+  }, [handleSeek, project, selectedClipId, timelineZoom]);
 
   const handleTimelinePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!selectedClipId) return;
@@ -1957,7 +1959,8 @@ const VideoEditorScreen = () => {
   const selectedClip = project.timeline.find((c) => c.id === selectedClipId);
   const selectedCropAspectRatio = parseCropAspectRatio(selectedClip?.cropRatio);
   const orderedTimeline = [...project.timeline].sort((a, b) => a.order - b.order);
-  const fixedTimelinePlayheadOffsetPx = 16;
+  const fixedTimelinePlayheadOffsetPx = Math.max(timelineViewportWidth / 2, 16);
+  const timelinePadding = fixedTimelinePlayheadOffsetPx;
   const selectedMedia = selectedClip
     ? project.mediaItems.find((m) => m.id === selectedClip.mediaId)
     : null;
@@ -1981,16 +1984,15 @@ const VideoEditorScreen = () => {
       .reduce((sum, clip) => sum + (clip.endTime - clip.startTime), 0);
 
     const absoluteTime = selectedClipOffset + currentTime;
-    const timelineTotalDuration = Math.max(project.duration, 1);
-    const timelinePositionX = (absoluteTime / timelineTotalDuration) * timelineNode.scrollWidth;
+    const clipPixelPosition = absoluteTime * timelinePixelsPerSecond;
     const maxScrollLeft = Math.max(0, timelineNode.scrollWidth - timelineNode.clientWidth);
     const nextScrollLeft = Math.max(
       0,
-      Math.min(timelinePositionX - fixedTimelinePlayheadOffsetPx, maxScrollLeft)
+      Math.min(clipPixelPosition + timelinePadding - fixedTimelinePlayheadOffsetPx, maxScrollLeft)
     );
 
     timelineNode.scrollTo({ left: nextScrollLeft });
-  }, [currentTime, fixedTimelinePlayheadOffsetPx, orderedTimeline, project.duration, selectedClipId]);
+  }, [currentTime, fixedTimelinePlayheadOffsetPx, timelinePadding, timelinePixelsPerSecond, orderedTimeline, project.duration, selectedClipId]);
 
   return (
     <div className="h-screen flex flex-col bg-white text-black dark:bg-black dark:text-white safe-area-top overflow-hidden">
@@ -2448,20 +2450,22 @@ const VideoEditorScreen = () => {
           onPointerUp={handleTimelinePointerUp}
           onPointerCancel={handleTimelinePointerUp}
         >
-          <div className="sticky top-0 z-10 flex h-9 min-w-max items-center gap-5 border-b border-zinc-200 bg-white/95 px-1 text-xs text-zinc-600 backdrop-blur-sm dark:border-zinc-800 dark:bg-black/95 dark:text-zinc-300">
+          <div className="sticky top-0 z-10 flex h-9 min-w-max items-center gap-5 border-b border-zinc-200 bg-white/95 text-xs text-zinc-600 backdrop-blur-sm dark:border-zinc-800 dark:bg-black/95 dark:text-zinc-300">
+            <div style={{ minWidth: timelinePadding, flexShrink: 0 }} />
             {Array.from({ length: Math.max(4, Math.ceil(Math.max(project.duration, 1))) }).map((_, second) => (
               <span key={`timeline-second-${second}`} className="flex items-center gap-3 whitespace-nowrap tabular-nums">
                 <span>{`00:${second.toString().padStart(2, '0')}`}</span>
                 <span className="text-zinc-400/70 dark:text-zinc-500/80">•</span>
               </span>
             ))}
+            <div style={{ minWidth: timelinePadding, flexShrink: 0 }} />
           </div>
           <div
-            className="absolute top-9 bottom-0 w-px bg-black pointer-events-none z-20 dark:bg-white"
+            className="absolute top-9 bottom-0 w-0.5 bg-red-500 pointer-events-none z-20"
             style={{ left: `${fixedTimelinePlayheadOffsetPx}px` }}
           />
           <div
-            className="absolute top-[31px] h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-black border border-white shadow pointer-events-none z-20 dark:bg-white dark:border-black"
+            className="absolute top-[28px] h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-red-500 border-2 border-white shadow-lg pointer-events-none z-20 dark:border-black"
             style={{ left: `${fixedTimelinePlayheadOffsetPx}px` }}
           />
           {project.timeline.length > 0 ? (
@@ -2471,6 +2475,7 @@ const VideoEditorScreen = () => {
               onReorder={handleReorderClips}
               className="flex h-20 items-center py-3 w-max min-w-full"
             >
+              <div style={{ minWidth: timelinePadding, flexShrink: 0 }} />
               {orderedTimeline.map((clip) => (
                   <Reorder.Item 
                     key={clip.id} 
@@ -2497,6 +2502,7 @@ const VideoEditorScreen = () => {
               >
                 <Plus className="w-8 h-8" />
               </button>
+              <div style={{ minWidth: timelinePadding, flexShrink: 0 }} />
             </Reorder.Group>
           ) : (
             <div className="flex items-center justify-center h-full">
