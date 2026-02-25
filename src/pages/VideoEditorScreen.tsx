@@ -393,6 +393,7 @@ const VideoEditorScreen = () => {
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [timelineViewportWidth, setTimelineViewportWidth] = useState(0);
   const [isTimelineScrubbing, setIsTimelineScrubbing] = useState(false);
+  const isTimelineScrollSyncingRef = useRef(false);
   const isPanelCollapsed = false;
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showVideoControls, setShowVideoControls] = useState(false);
@@ -1819,6 +1820,47 @@ const VideoEditorScreen = () => {
     }
   };
 
+  const seekToTimelineAbsoluteTime = useCallback((absoluteTime: number) => {
+    if (!project) return;
+
+    const orderedTimeline = [...project.timeline].sort((a, b) => a.order - b.order);
+    if (!orderedTimeline.length) return;
+
+    const totalDuration = Math.max(project.duration, 0);
+    const targetAbsoluteTime = Math.max(0, Math.min(absoluteTime, totalDuration));
+
+    let elapsedDuration = 0;
+    let targetClip = orderedTimeline[0];
+    let targetRelativeTime = 0;
+
+    for (const clip of orderedTimeline) {
+      const clipDuration = Math.max(0, clip.endTime - clip.startTime);
+      const clipEnd = elapsedDuration + clipDuration;
+
+      if (targetAbsoluteTime <= clipEnd || clip === orderedTimeline[orderedTimeline.length - 1]) {
+        targetClip = clip;
+        targetRelativeTime = Math.max(0, Math.min(targetAbsoluteTime - elapsedDuration, clipDuration));
+        break;
+      }
+
+      elapsedDuration = clipEnd;
+    }
+
+    if (targetClip.id !== selectedClipId) {
+      setSelectedClipId(targetClip.id);
+    }
+
+    const video = videoRef.current;
+    if (video) {
+      video.currentTime = Math.max(
+        targetClip.startTime,
+        Math.min(targetClip.startTime + targetRelativeTime, targetClip.endTime)
+      );
+    }
+
+    setCurrentTime(targetRelativeTime);
+  }, [project, selectedClipId]);
+
   const handleTimelineScrub = useCallback((clientX: number) => {
     if (!timelineScrubRef.current || !project || !selectedClipId) return;
 
@@ -1872,6 +1914,17 @@ const VideoEditorScreen = () => {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
   };
+
+  const handleTimelineScroll = useCallback(() => {
+    if (!timelineScrubRef.current || !project || isTimelineScrollSyncingRef.current) return;
+
+    const timelineNode = timelineScrubRef.current;
+    const viewportW = Math.max(timelineNode.clientWidth, 1);
+    const pxPerSec = Math.max((viewportW / Math.max(project.duration, 1)) * timelineZoom, 0.001);
+
+    const absoluteTime = Math.max(0, timelineNode.scrollLeft / pxPerSec);
+    seekToTimelineAbsoluteTime(absoluteTime);
+  }, [project, seekToTimelineAbsoluteTime, timelineZoom]);
 
   const handleVideoTap = () => {
     setShowVideoControls(true);
@@ -1991,7 +2044,11 @@ const VideoEditorScreen = () => {
       Math.min(clipPixelPosition + timelinePadding - fixedTimelinePlayheadOffsetPx, maxScrollLeft)
     );
 
+    isTimelineScrollSyncingRef.current = true;
     timelineNode.scrollTo({ left: nextScrollLeft });
+    requestAnimationFrame(() => {
+      isTimelineScrollSyncingRef.current = false;
+    });
   }, [currentTime, fixedTimelinePlayheadOffsetPx, timelinePadding, timelinePixelsPerSecond, orderedTimeline, project.duration, selectedClipId]);
 
   return (
@@ -2452,6 +2509,7 @@ const VideoEditorScreen = () => {
             onPointerMove={handleTimelinePointerMove}
             onPointerUp={handleTimelinePointerUp}
             onPointerCancel={handleTimelinePointerUp}
+            onScroll={handleTimelineScroll}
           >
           {project.timeline.length > 0 ? (
             <Reorder.Group
