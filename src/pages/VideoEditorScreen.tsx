@@ -1957,7 +1957,7 @@ const VideoEditorScreen = () => {
   const selectedClip = project.timeline.find((c) => c.id === selectedClipId);
   const selectedCropAspectRatio = parseCropAspectRatio(selectedClip?.cropRatio);
   const orderedTimeline = [...project.timeline].sort((a, b) => a.order - b.order);
-  const fixedTimelinePlayheadPercent = 50;
+  const fixedTimelinePlayheadOffsetPx = 16;
   const selectedMedia = selectedClip
     ? project.mediaItems.find((m) => m.id === selectedClip.mediaId)
     : null;
@@ -1968,6 +1968,29 @@ const VideoEditorScreen = () => {
   });
 
   const timelinePixelsPerSecond = (Math.max(timelineViewportWidth, 1) / Math.max(project.duration, 1)) * timelineZoom;
+
+  useEffect(() => {
+    if (!timelineScrubRef.current || !selectedClipId) return;
+
+    const timelineNode = timelineScrubRef.current;
+    const selectedClipIndex = orderedTimeline.findIndex((clip) => clip.id === selectedClipId);
+    if (selectedClipIndex < 0) return;
+
+    const selectedClipOffset = orderedTimeline
+      .slice(0, selectedClipIndex)
+      .reduce((sum, clip) => sum + (clip.endTime - clip.startTime), 0);
+
+    const absoluteTime = selectedClipOffset + currentTime;
+    const timelineTotalDuration = Math.max(project.duration, 1);
+    const timelinePositionX = (absoluteTime / timelineTotalDuration) * timelineNode.scrollWidth;
+    const maxScrollLeft = Math.max(0, timelineNode.scrollWidth - timelineNode.clientWidth);
+    const nextScrollLeft = Math.max(
+      0,
+      Math.min(timelinePositionX - fixedTimelinePlayheadOffsetPx, maxScrollLeft)
+    );
+
+    timelineNode.scrollTo({ left: nextScrollLeft });
+  }, [currentTime, fixedTimelinePlayheadOffsetPx, orderedTimeline, project.duration, selectedClipId]);
 
   return (
     <div className="h-screen flex flex-col bg-white text-black dark:bg-black dark:text-white safe-area-top overflow-hidden">
@@ -2393,7 +2416,7 @@ const VideoEditorScreen = () => {
                       variant="iconGhost"
                       size="iconSm"
                       onClick={() => handleSeek(Math.max(project.duration, 0))}
-                      title="Sona git"
+                      title="Go to end"
                     >
                       <SkipForward className="w-4 h-4" />
                     </Button>
@@ -2417,7 +2440,7 @@ const VideoEditorScreen = () => {
         <div
           ref={timelineScrubRef}
           className={cn(
-            'relative px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x bg-gradient-to-b from-emerald-950/95 to-green-950/95 border-y border-emerald-800/60',
+            'relative px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x bg-white border-y border-zinc-200 dark:border-zinc-800 dark:bg-black',
             selectedClipId && 'cursor-ew-resize'
           )}
           onPointerDown={handleTimelinePointerDown}
@@ -2425,26 +2448,21 @@ const VideoEditorScreen = () => {
           onPointerUp={handleTimelinePointerUp}
           onPointerCancel={handleTimelinePointerUp}
         >
-          <div className="sticky top-0 z-10 flex h-9 min-w-max items-center gap-5 border-b border-emerald-800/55 bg-emerald-950/90 px-1 text-xs text-emerald-200/80 backdrop-blur-sm">
+          <div className="sticky top-0 z-10 flex h-9 min-w-max items-center gap-5 border-b border-zinc-200 bg-white/95 px-1 text-xs text-zinc-600 backdrop-blur-sm dark:border-zinc-800 dark:bg-black/95 dark:text-zinc-300">
             {Array.from({ length: Math.max(4, Math.ceil(Math.max(project.duration, 1))) }).map((_, second) => (
               <span key={`timeline-second-${second}`} className="flex items-center gap-3 whitespace-nowrap tabular-nums">
                 <span>{`00:${second.toString().padStart(2, '0')}`}</span>
-                <span className="text-emerald-300/45">•</span>
+                <span className="text-zinc-400/70 dark:text-zinc-500/80">•</span>
               </span>
             ))}
           </div>
           <div
-            className="absolute top-9 bottom-0 left-4 w-[3px] rounded-full bg-white pointer-events-none z-20"
+            className="absolute top-9 bottom-0 w-px bg-black pointer-events-none z-20 dark:bg-white"
+            style={{ left: `${fixedTimelinePlayheadOffsetPx}px` }}
           />
           <div
-            className="absolute top-9 bottom-0 w-px bg-emerald-100 pointer-events-none z-20"
-            style={{
-              left: `${fixedTimelinePlayheadPercent}%`,
-            }}
-          />
-          <div
-            className="absolute top-[31px] h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-emerald-100 border border-emerald-950 shadow pointer-events-none z-20"
-            style={{ left: `${fixedTimelinePlayheadPercent}%` }}
+            className="absolute top-[31px] h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-black border border-white shadow pointer-events-none z-20 dark:bg-white dark:border-black"
+            style={{ left: `${fixedTimelinePlayheadOffsetPx}px` }}
           />
           {project.timeline.length > 0 ? (
             <Reorder.Group
@@ -2473,7 +2491,7 @@ const VideoEditorScreen = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="ml-2 h-14 w-14 shrink-0 rounded-xl border border-emerald-400/60 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 flex items-center justify-center"
+                className="ml-2 h-14 w-14 shrink-0 rounded-xl border border-zinc-300 bg-white text-black hover:bg-zinc-100 dark:border-zinc-700 dark:bg-black dark:text-white dark:hover:bg-zinc-900 flex items-center justify-center"
                 disabled={isMediaImporting}
                 aria-label="Add Media"
               >
@@ -2496,25 +2514,25 @@ const VideoEditorScreen = () => {
 
         {/* Audio/Text lanes */}
         {project.timeline.length > 0 && (
-          <div className="px-4 pb-3 space-y-2 border-t border-emerald-800/60 bg-emerald-950/85">
+          <div className="px-4 pb-3 space-y-2 border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
             <div className="grid grid-cols-[56px_1fr] gap-2 items-stretch">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-full flex-col gap-1 text-emerald-200/80 hover:text-emerald-50 hover:bg-emerald-900/60"
+                className="h-full flex-col gap-1 text-zinc-600 hover:text-black hover:bg-zinc-100 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-zinc-900"
                 onClick={() => handleToolClick('audio')}
                 disabled={!hasVideoInTimeline}
               >
                 <Music className="w-4 h-4" />
-                <span className="text-xxs">Ses</span>
+                <span className="text-xxs">Audio</span>
               </Button>
               <Button
                 variant="ghost"
-                className="justify-start h-12 rounded-none border border-emerald-800/60 bg-emerald-900/45 text-emerald-100/90 hover:bg-emerald-900/70"
+                className="justify-start h-12 rounded-none border border-zinc-200 bg-white text-black hover:bg-zinc-100 dark:border-zinc-800 dark:bg-black dark:text-white dark:hover:bg-zinc-900"
                 onClick={() => handleToolClick('audio')}
                 disabled={!hasVideoInTimeline}
               >
-                + Ses ekle
+                + Add audio
               </Button>
             </div>
 
@@ -2522,20 +2540,20 @@ const VideoEditorScreen = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-full flex-col gap-1 text-emerald-200/80 hover:text-emerald-50 hover:bg-emerald-900/60"
+                className="h-full flex-col gap-1 text-zinc-600 hover:text-black hover:bg-zinc-100 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-zinc-900"
                 onClick={() => handleToolClick('text')}
                 disabled={!hasVideoInTimeline}
               >
                 <Type className="w-4 h-4" />
-                <span className="text-xxs">Metin</span>
+                <span className="text-xxs">Text</span>
               </Button>
               <Button
                 variant="ghost"
-                className="justify-start h-12 rounded-none border border-emerald-800/60 bg-emerald-900/45 text-emerald-100/90 hover:bg-emerald-900/70"
+                className="justify-start h-12 rounded-none border border-zinc-200 bg-white text-black hover:bg-zinc-100 dark:border-zinc-800 dark:bg-black dark:text-white dark:hover:bg-zinc-900"
                 onClick={() => handleToolClick('text')}
                 disabled={!hasVideoInTimeline}
               >
-                + Metin ekle
+                + Add text
               </Button>
             </div>
           </div>
