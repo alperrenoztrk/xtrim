@@ -139,16 +139,18 @@ const defaultAdjustments: ImageAdjustments = {
   flipV: false,
 };
 
+const DEFAULT_FREE_CROP_INSET_PERCENT = 4;
+
 const defaultFreeCropSettings: FreeCropSettings = {
-  widthPercent: 100,
-  heightPercent: 100,
-  xPercent: 0,
-  yPercent: 0,
+  widthPercent: 100 - DEFAULT_FREE_CROP_INSET_PERCENT * 2,
+  heightPercent: 100 - DEFAULT_FREE_CROP_INSET_PERCENT * 2,
+  xPercent: DEFAULT_FREE_CROP_INSET_PERCENT,
+  yPercent: DEFAULT_FREE_CROP_INSET_PERCENT,
 };
 
 const MIN_FREE_CROP_PERCENT = 10;
 
-type CropHandle = 'nw' | 'ne' | 'sw' | 'se';
+type CropHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
 interface CropInteractionState {
   mode: 'move' | 'resize';
@@ -1095,15 +1097,19 @@ const PhotoEditorScreen = () => {
                 >
                   {([
                     { id: 'nw', className: '-left-2 -top-2 cursor-nwse-resize' },
+                    { id: 'n', className: 'left-1/2 -translate-x-1/2 -top-2 cursor-ns-resize' },
                     { id: 'ne', className: '-right-2 -top-2 cursor-nesw-resize' },
-                    { id: 'sw', className: '-left-2 -bottom-2 cursor-nesw-resize' },
+                    { id: 'e', className: 'right-[-8px] top-1/2 -translate-y-1/2 cursor-ew-resize' },
                     { id: 'se', className: '-right-2 -bottom-2 cursor-nwse-resize' },
+                    { id: 's', className: 'left-1/2 -translate-x-1/2 -bottom-2 cursor-ns-resize' },
+                    { id: 'sw', className: '-left-2 -bottom-2 cursor-nesw-resize' },
+                    { id: 'w', className: 'left-[-8px] top-1/2 -translate-y-1/2 cursor-ew-resize' },
                   ] as { id: CropHandle; className: string }[]).map((handle) => (
                     <button
                       key={handle.id}
                       type="button"
                       className={cn(
-                        'absolute w-4 h-4 rounded-full bg-primary border-2 border-background',
+                        'absolute w-4 h-4 rounded-full bg-primary border-2 border-background shadow-sm',
                         handle.className
                       )}
                       onPointerDown={(event) => beginFreeCropInteraction(event, 'resize', handle.id)}
@@ -1317,7 +1323,7 @@ const PhotoEditorScreen = () => {
                       </p>
 
                       <p className="text-[11px] text-muted-foreground text-center">
-                        Use the inside area to move the box, and the corner handles to resize it.
+                        Use the inside area to move the box, and drag any corner or edge handle to resize it.
                       </p>
                     </div>
                   ) : (
