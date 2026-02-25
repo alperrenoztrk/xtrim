@@ -144,7 +144,6 @@ const moreMenuItems = [
   { id: 'merge', icon: Layers, label: 'Merge' },
   { id: 'speed', icon: SlidersHorizontal, label: 'Speed' },
   { id: 'filters', icon: Filter, label: 'Filters' },
-  { id: 'effects', icon: Wand2, label: 'AI Tools' },
   { id: 'crop', icon: Crop, label: 'Crop' },
   { id: 'rotate', icon: RotateCcw, label: 'Rotate' },
   { id: 'color', icon: Palette, label: 'Color' },
