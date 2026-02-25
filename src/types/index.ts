@@ -28,6 +28,7 @@ export interface TimelineClip {
   cropRatio?: string;
   originalDuration?: number;
   transition?: string;
+  animatedFilter?: 'none' | 'snow' | 'rain' | 'sparkles';
 }
 
 export interface AudioTrack {
@@ -93,6 +94,7 @@ export interface TemplateClip {
   duration: number;
   effect?: string;
   transition?: string;
+  animatedFilter?: 'none' | 'snow' | 'rain' | 'sparkles';
 }
 
 export interface TemplateTextOverlay {

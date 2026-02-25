@@ -45,6 +45,7 @@ import { VideoSpeedPanel } from '@/components/VideoSpeedPanel';
 import { VideoColorPanel } from '@/components/VideoColorPanel';
 import { TextOverlayPanel } from '@/components/TextOverlayPanel';
 import { DraggableTextOverlay } from '@/components/DraggableTextOverlay';
+import { AnimatedFilterOverlay, type AnimatedFilterType } from '@/components/AnimatedFilterOverlay';
 import { VideoMergePanel } from '@/components/VideoMergePanel';
 import { VideoRotateCropPanel } from '@/components/VideoRotateCropPanel';
 import VideoAIGeneratePanel from '@/components/VideoAIGeneratePanel';
@@ -1254,6 +1255,25 @@ const VideoEditorScreen = () => {
     setShowColorPanel(true);
   };
 
+  const handleApplyAnimatedFilter = (filter: AnimatedFilterType) => {
+    if (!selectedClipId || !project) return;
+
+    const updatedTimeline = project.timeline.map((clip) =>
+      clip.id === selectedClipId
+        ? {
+            ...clip,
+            animatedFilter: filter,
+          }
+        : clip
+    );
+
+    saveProject({
+      ...project,
+      timeline: updatedTimeline,
+      updatedAt: new Date(),
+    });
+  };
+
   // Handle Merge Panel
   const handleOpenMerge = () => {
     if (!project || project.timeline.length < 2) {
@@ -2165,6 +2185,7 @@ const VideoEditorScreen = () => {
                   playsInline
                   preload="auto"
                 />
+                <AnimatedFilterOverlay type={selectedClip?.animatedFilter ?? 'none'} />
               </div>
               {textOverlays.map((overlay) => {
                 const videoCurrentTime = videoRef.current?.currentTime || 0;
@@ -2209,6 +2230,7 @@ const VideoEditorScreen = () => {
                   transform: `rotate(${selectedClip?.rotation || 0}deg) scaleX(${selectedClip?.flipH ? -1 : 1}) scaleY(${selectedClip?.flipV ? -1 : 1})`,
                 }}
               />
+              <AnimatedFilterOverlay type={selectedClip?.animatedFilter ?? 'none'} />
               {textOverlays.map((overlay) => (
                 <DraggableTextOverlay
                   key={overlay.id}
@@ -2977,6 +2999,8 @@ const VideoEditorScreen = () => {
         {showColorPanel && selectedMedia?.type === 'video' && (
           <VideoColorPanel
             videoRef={videoRef}
+            currentAnimatedFilter={selectedClip?.animatedFilter ?? 'none'}
+            onApplyAnimatedFilter={handleApplyAnimatedFilter}
             onClose={() => setShowColorPanel(false)}
           />
         )}

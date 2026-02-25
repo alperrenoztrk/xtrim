@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
+import type { AnimatedFilterType } from '@/components/AnimatedFilterOverlay';
 
 interface ColorSettings {
   brightness: number;
@@ -110,17 +111,22 @@ const filterPresets: FilterPreset[] = [
 interface VideoColorPanelProps {
   videoRef: React.RefObject<HTMLVideoElement>;
   onClose: () => void;
+  currentAnimatedFilter?: AnimatedFilterType;
   onApplySettings?: (settings: ColorSettings, filterId: string) => void;
+  onApplyAnimatedFilter?: (filter: AnimatedFilterType) => void;
 }
 
 export const VideoColorPanel = ({
   videoRef,
   onClose,
-  onApplySettings
+  currentAnimatedFilter = 'none',
+  onApplySettings,
+  onApplyAnimatedFilter
 }: VideoColorPanelProps) => {
   const [settings, setSettings] = useState<ColorSettings>(defaultSettings);
   const [activeFilter, setActiveFilter] = useState<string>('normal');
-  const [activeTab, setActiveTab] = useState<'filters' | 'adjust'>('filters');
+  const [activeTab, setActiveTab] = useState<'filters' | 'adjust' | 'animated'>('filters');
+  const [animatedFilter, setAnimatedFilter] = useState<AnimatedFilterType>(currentAnimatedFilter);
 
   // Apply CSS filter to video for live preview
   const applyFiltersToVideo = useCallback(() => {
@@ -156,6 +162,10 @@ export const VideoColorPanel = ({
     video.style.filter = filters.length > 0 ? filters.join(' ') : 'none';
   }, [settings, videoRef]);
 
+
+  useEffect(() => {
+    setAnimatedFilter(currentAnimatedFilter);
+  }, [currentAnimatedFilter]);
   useEffect(() => {
     applyFiltersToVideo();
   }, [applyFiltersToVideo]);
@@ -190,6 +200,7 @@ export const VideoColorPanel = ({
     if (onApplySettings) {
       onApplySettings(settings, activeFilter);
     }
+    onApplyAnimatedFilter?.(animatedFilter);
     toast.success('Color settings applied');
     onClose();
   };
@@ -240,6 +251,15 @@ export const VideoColorPanel = ({
           <Sun className="w-4 h-4 mr-2" />
           Settings
         </Button>
+        <Button
+          variant={activeTab === 'animated' ? 'secondary' : 'ghost'}
+          size="sm"
+          className="flex-1"
+          onClick={() => setActiveTab('animated')}
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          Animated
+        </Button>
       </div>
 
       {/* Content */}
@@ -259,6 +279,30 @@ export const VideoColorPanel = ({
               >
                 <div className={`w-12 h-12 rounded-lg ${preset.gradient} shadow-sm`} />
                 <span className="text-[10px] text-center leading-tight">{preset.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {activeTab === 'animated' && (
+          <div className="space-y-2">
+            {[
+              { id: 'none' as const, name: 'None', desc: 'Disable animation' },
+              { id: 'snow' as const, name: 'Snow', desc: 'Snowfall overlay' },
+              { id: 'rain' as const, name: 'Rain', desc: 'Rainfall overlay' },
+              { id: 'sparkles' as const, name: 'Sparkle', desc: 'Twinkling particles' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                className={`w-full rounded-lg border px-3 py-2 text-left transition-all ${
+                  animatedFilter === item.id
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:bg-secondary'
+                }`}
+                onClick={() => setAnimatedFilter(item.id)}
+              >
+                <div className="text-sm font-medium">{item.name}</div>
+                <div className="text-xs text-muted-foreground">{item.desc}</div>
               </button>
             ))}
           </div>

@@ -57,6 +57,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import BackgroundRemover from '@/components/BackgroundRemover';
+import { AnimatedFilterOverlay, type AnimatedFilterType } from '@/components/AnimatedFilterOverlay';
 import { AIToolsService } from '@/services/AIToolsService';
 import { nativeExportService } from '@/services/NativeExportService';
 import samplePhoto from '@/assets/sample-photo.jpg';
@@ -85,8 +86,15 @@ interface EditorSnapshot {
   imageUrl: string | null;
   adjustments: ImageAdjustments;
   selectedFilter: string;
+  animatedFilter: AnimatedFilterType;
   drawStrokes: DrawStroke[];
   cornerRadius: number;
+}
+
+interface AnimatedFilterPreset {
+  id: AnimatedFilterType;
+  name: string;
+  description: string;
 }
 
 interface DrawPoint {
@@ -125,6 +133,13 @@ const filterPresets: FilterPreset[] = [
   { id: 'vintage', name: 'Vintage', adjustments: { saturation: -30, temperature: 20, contrast: -10 } },
   { id: 'chrome', name: 'Chrome', adjustments: { saturation: 20, contrast: 25, brightness: 5 } },
   { id: 'mono', name: 'Mono', adjustments: { saturation: -100 } },
+];
+
+const animatedFilterPresets: AnimatedFilterPreset[] = [
+  { id: 'none', name: 'None', description: 'No animation' },
+  { id: 'snow', name: 'Snow', description: 'Snowfall effect' },
+  { id: 'rain', name: 'Rain', description: 'Rainfall effect' },
+  { id: 'sparkles', name: 'Sparkle', description: 'Twinkling lights' },
 ];
 
 const cropRatios = [
@@ -189,6 +204,7 @@ const PhotoEditorScreen = () => {
   const [activeTab, setActiveTab] = useState<EditorTab>('adjust');
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(defaultAdjustments);
   const [selectedFilter, setSelectedFilter] = useState<string>('none');
+  const [animatedFilter, setAnimatedFilter] = useState<AnimatedFilterType>('none');
   const [selectedCropRatio, setSelectedCropRatio] = useState<string>('free');
   const [freeCropSettings, setFreeCropSettings] = useState<FreeCropSettings>(defaultFreeCropSettings);
   const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([]);
@@ -248,16 +264,18 @@ const PhotoEditorScreen = () => {
       imageUrl,
       adjustments: { ...adjustments },
       selectedFilter,
+      animatedFilter,
       drawStrokes: drawStrokes.map((stroke) => ({ ...stroke, points: [...stroke.points] })),
       cornerRadius,
     }),
-    [imageUrl, adjustments, selectedFilter, drawStrokes, cornerRadius]
+    [imageUrl, adjustments, selectedFilter, animatedFilter, drawStrokes, cornerRadius]
   );
 
   const restoreSnapshot = useCallback((snapshot: EditorSnapshot) => {
     setImageUrl(snapshot.imageUrl);
     setAdjustments(snapshot.adjustments);
     setSelectedFilter(snapshot.selectedFilter);
+    setAnimatedFilter(snapshot.animatedFilter);
     setDrawStrokes(snapshot.drawStrokes);
     setCornerRadius(snapshot.cornerRadius ?? 0);
     setActiveDrawStroke(null);
@@ -326,6 +344,12 @@ const PhotoEditorScreen = () => {
     saveState();
     setAdjustments(defaultAdjustments);
     setSelectedFilter('none');
+    setAnimatedFilter('none');
+  };
+
+  const handleApplyAnimatedFilter = (filter: AnimatedFilterType) => {
+    saveState();
+    setAnimatedFilter(filter);
   };
 
   const openCollageEditor = useCallback((images: string[]) => {
@@ -357,6 +381,7 @@ const PhotoEditorScreen = () => {
     setImageUrl(imageUrls[0]);
     setAdjustments(defaultAdjustments);
     setSelectedFilter('none');
+    setAnimatedFilter('none');
     setUndoStack([]);
     setRedoStack([]);
     setZoomLevel(1);
@@ -1110,6 +1135,8 @@ const PhotoEditorScreen = () => {
               style={getImageStyle()}
             />
 
+            <AnimatedFilterOverlay type={animatedFilter} className="rounded-[inherit]" />
+
             {(activeTab === 'draw' || drawStrokes.length > 0 || activeDrawStroke) && (
               <svg
                 className={cn(
@@ -1546,6 +1573,29 @@ const PhotoEditorScreen = () => {
                         </span>
                       </motion.button>
                     ))}
+                  </div>
+
+
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs text-muted-foreground">Animated Filters</p>
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                      {animatedFilterPresets.map((filter) => (
+                        <motion.button
+                          key={filter.id}
+                          className={cn(
+                            'shrink-0 rounded-lg border px-3 py-2 text-left transition-all min-w-[112px]',
+                            animatedFilter === filter.id
+                              ? 'border-primary bg-primary/10'
+                              : 'border-border bg-background/70'
+                          )}
+                          onClick={() => handleApplyAnimatedFilter(filter.id)}
+                          whileTap={{ scale: 0.96 }}
+                        >
+                          <p className="text-xs font-semibold">{filter.name}</p>
+                          <p className="text-[10px] text-muted-foreground leading-tight">{filter.description}</p>
+                        </motion.button>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               )}
