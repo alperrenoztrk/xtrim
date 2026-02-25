@@ -1835,8 +1835,12 @@ const VideoEditorScreen = () => {
 
     const selectedClipDuration = selectedTimelineClip.endTime - selectedTimelineClip.startTime;
     const timelineTotalDuration = Math.max(project.duration, 1);
-    const rect = timelineScrubRef.current.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min((clientX - rect.left) / Math.max(rect.width, 1), 1));
+    const timelineNode = timelineScrubRef.current;
+    const rect = timelineNode.getBoundingClientRect();
+    const pointerXWithinViewport = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    const pointerXWithinTimeline = timelineNode.scrollLeft + pointerXWithinViewport;
+    const totalScrollableWidth = Math.max(timelineNode.scrollWidth, 1);
+    const ratio = Math.max(0, Math.min(pointerXWithinTimeline / totalScrollableWidth, 1));
     const absoluteTime = ratio * timelineTotalDuration;
     const relativeTime = absoluteTime - selectedClipOffset;
 
@@ -1845,8 +1849,7 @@ const VideoEditorScreen = () => {
 
   const handleTimelinePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!selectedClipId) return;
-    if (event.pointerType === 'touch') return;
-    if (event.button !== 0) return;
+    if (event.pointerType !== 'touch' && event.button !== 0) return;
 
     const target = event.target as HTMLElement;
     if (target.closest('[data-timeline-item="true"]')) return;
