@@ -2302,10 +2302,7 @@ const VideoEditorScreen = () => {
               key={tool.id}
               variant="ghost"
               size="sm"
-              className={cn(
-                'flex-col gap-1 h-auto py-2 min-w-14',
-                !showPreviewPanel && activeTool === tool.id && 'text-primary'
-              )}
+              className="flex-col gap-1 h-auto py-2 min-w-14"
               onClick={() => handleToolClick(tool.id)}
               disabled={
                 ((tool.id === 'trim' || tool.id === 'split') && !selectedClipId) ||
@@ -2319,10 +2316,7 @@ const VideoEditorScreen = () => {
           <Button
             variant="ghost"
             size="sm"
-            className={cn(
-              'flex-col gap-1 h-auto py-2 min-w-14',
-              (showMoreMenu || showAIToolsMenu) && 'text-primary'
-            )}
+            className="flex-col gap-1 h-auto py-2 min-w-14"
             onClick={() => {
               const nextOpenState = !showMoreMenu;
               if (nextOpenState) {
