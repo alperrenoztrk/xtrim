@@ -2448,20 +2448,12 @@ const VideoEditorScreen = () => {
           onPointerUp={handleTimelinePointerUp}
           onPointerCancel={handleTimelinePointerUp}
         >
-          <div className="sticky top-0 z-10 flex h-9 min-w-max items-center gap-5 border-b border-zinc-200 bg-white/95 px-1 text-xs text-zinc-600 backdrop-blur-sm dark:border-zinc-800 dark:bg-black/95 dark:text-zinc-300">
-            {Array.from({ length: Math.max(4, Math.ceil(Math.max(project.duration, 1))) }).map((_, second) => (
-              <span key={`timeline-second-${second}`} className="flex items-center gap-3 whitespace-nowrap tabular-nums">
-                <span>{`00:${second.toString().padStart(2, '0')}`}</span>
-                <span className="text-zinc-400/70 dark:text-zinc-500/80">•</span>
-              </span>
-            ))}
-          </div>
           <div
-            className="absolute top-9 bottom-0 w-px bg-black pointer-events-none z-20 dark:bg-white"
+            className="absolute top-0 bottom-0 w-px bg-black pointer-events-none z-20 dark:bg-white"
             style={{ left: `${fixedTimelinePlayheadOffsetPx}px` }}
           />
           <div
-            className="absolute top-[31px] h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-black border border-white shadow pointer-events-none z-20 dark:bg-white dark:border-black"
+            className="absolute top-2 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-black border border-white shadow pointer-events-none z-20 dark:bg-white dark:border-black"
             style={{ left: `${fixedTimelinePlayheadOffsetPx}px` }}
           />
           {project.timeline.length > 0 ? (
