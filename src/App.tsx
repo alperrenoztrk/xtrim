@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import SplashScreen from "./pages/SplashScreen";
 import HomeScreen from "./pages/HomeScreen";
+import LoginScreen from "./pages/LoginScreen";
 import TemplatesScreen from "./pages/TemplatesScreen";
 import VideoEditorScreen from "./pages/VideoEditorScreen";
 import AudioEditorScreen from "./pages/AudioEditorScreen";
@@ -38,6 +39,7 @@ const App = () => {
           <AndroidBackButtonHandler />
           <GlobalZoomGuard />
           <Routes>
+            <Route path="/login" element={<LoginScreen />} />
             <Route path="/" element={<SplashScreen />} />
             <Route path="/home" element={<HomeScreen />} />
             <Route path="/templates" element={<TemplatesScreen />} />
