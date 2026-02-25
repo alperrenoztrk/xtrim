@@ -2,15 +2,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Scissors } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const SplashScreen = () => {
   const [isVisible, setIsVisible] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setIsVisible(false);
-      setTimeout(() => navigate('/home', { replace: true }), 500);
+      setTimeout(() => navigate(session ? '/home' : '/login', { replace: true }), 500);
     }, 4500);
 
     return () => clearTimeout(timer);
