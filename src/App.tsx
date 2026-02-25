@@ -16,7 +16,6 @@ import CollageMakerScreen from "./pages/CollageMakerScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import ProjectsScreen from "./pages/ProjectsScreen";
 import ExportScreen from "./pages/ExportScreen";
-import ResetPasswordScreen from "./pages/ResetPasswordScreen";
 import NotFound from "./pages/NotFound";
 import { applyTheme, getStoredTheme, subscribeToThemeChanges } from "./lib/theme";
 import AndroidBackButtonHandler from "./components/AndroidBackButtonHandler";
@@ -44,7 +43,6 @@ const App = () => {
             <Routes>
               <Route path="/" element={<SplashScreen />} />
               <Route path="/login" element={<LoginScreen />} />
-              <Route path="/reset-password" element={<ResetPasswordScreen />} />
               <Route path="/home" element={<HomeScreen />} />
               <Route path="/templates" element={<TemplatesScreen />} />
               <Route path="/editor" element={<VideoEditorScreen />} />

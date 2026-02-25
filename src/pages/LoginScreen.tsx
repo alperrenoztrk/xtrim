@@ -42,27 +42,6 @@ const LoginScreen = () => {
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!email) {
-      toast.error('Lütfen e-posta adresinizi girin');
-      return;
-    }
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      if (error) throw error;
-      toast.success('Şifre sıfırlama bağlantısı gönderildi', {
-        description: 'E-posta kutunuzu kontrol edin.',
-      });
-    } catch (error: any) {
-      toast.error('İşlem başarısız', { description: error.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
@@ -150,15 +129,6 @@ const LoginScreen = () => {
               disabled={loading}
             />
           </div>
-          {!isSignUp && (
-            <button
-              type="button"
-              onClick={handleForgotPassword}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors text-right w-full"
-            >
-              Şifremi Unuttum
-            </button>
-          )}
           <Button type="submit" disabled={loading} className="w-full" size="lg">
             {loading
               ? (isSignUp ? 'Kayıt yapılıyor...' : 'Giriş yapılıyor...')

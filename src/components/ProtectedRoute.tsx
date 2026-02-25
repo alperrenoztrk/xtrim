@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
-const PUBLIC_ROUTES = ['/', '/login', '/reset-password'];
+const PUBLIC_ROUTES = ['/', '/login'];
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
