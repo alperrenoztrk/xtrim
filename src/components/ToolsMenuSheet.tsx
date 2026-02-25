@@ -36,11 +36,9 @@ const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect, onProjectOpen }: 
 
   useEffect(() => {
     if (isOpen) {
-      // Load projects when menu opens
-      const allProjects = ProjectService.getProjects();
-      // Filter projects based on type (video projects have timeline, photo projects don't)
-      // For now, show all projects in video menu
-      setProjects(type === 'video' ? allProjects : []);
+      ProjectService.getProjectsAsync().then((allProjects) => {
+        setProjects(type === 'video' ? allProjects : []);
+      });
     }
   }, [isOpen, type]);
 
