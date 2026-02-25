@@ -2244,11 +2244,12 @@ const VideoEditorScreen = () => {
           <Button
             variant="ghost"
             size="sm"
-            className={cn('flex-col gap-1 h-auto py-2 min-w-14', (!isFeaturePanelOpen || showPreviewPanel) && 'text-primary')}
+            className={cn('flex-col gap-1 h-auto py-2 min-w-14', showPreviewPanel && 'text-primary')}
             onClick={() => {
               const nextOpenState = !showPreviewPanel;
               if (nextOpenState) {
                 closeAllToolPanels();
+                setActiveTool(null);
                 setShowPreviewPanel(true);
               } else {
                 setShowPreviewPanel(false);
@@ -2265,7 +2266,7 @@ const VideoEditorScreen = () => {
               size="sm"
               className={cn(
                 'flex-col gap-1 h-auto py-2 min-w-14',
-                activeTool === tool.id && 'text-primary'
+                !showPreviewPanel && activeTool === tool.id && 'text-primary'
               )}
               onClick={() => handleToolClick(tool.id)}
               disabled={
