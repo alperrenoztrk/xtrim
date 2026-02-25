@@ -2496,10 +2496,6 @@ const VideoEditorScreen = () => {
             style={{ left: `${fixedTimelinePlayheadOffsetPx}px` }}
           />
           <div
-            className="absolute top-1 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-red-500 border-2 border-white shadow-lg pointer-events-none z-20 dark:border-black"
-            style={{ left: `${fixedTimelinePlayheadOffsetPx}px` }}
-          />
-          <div
             ref={timelineScrubRef}
             className={cn(
               'px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x',
