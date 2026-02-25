@@ -442,6 +442,7 @@ const VideoEditorScreen = () => {
   const [isSearchingAudio, setIsSearchingAudio] = useState(false);
   const [showTextPanel, setShowTextPanel] = useState(false);
   const [showPreviewPanel, setShowPreviewPanel] = useState(false);
+  const [showLayersPanel, setShowLayersPanel] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAIToolsMenu, setShowAIToolsMenu] = useState(false);
   const [showAutoCutPanel, setShowAutoCutPanel] = useState(false);
@@ -463,6 +464,7 @@ const VideoEditorScreen = () => {
     showAudioPanel ||
     showTextPanel ||
     showMoreMenu ||
+    showLayersPanel ||
     showAIToolsMenu ||
     showAutoCutPanel ||
     showEnhancePanel ||
@@ -481,6 +483,7 @@ const VideoEditorScreen = () => {
     setShowAudioPanel(false);
     setShowTextPanel(false);
     setShowPreviewPanel(false);
+    setShowLayersPanel(false);
     setShowMoreMenu(false);
     setShowAIToolsMenu(false);
     setShowAutoCutPanel(false);
@@ -1608,6 +1611,10 @@ const VideoEditorScreen = () => {
         closeAllToolPanels();
         setShowAIToolsMenu(true);
         break;
+      case 'layers':
+        closeAllToolPanels();
+        setShowLayersPanel(true);
+        break;
       default:
         break;
     }
@@ -2359,7 +2366,7 @@ const VideoEditorScreen = () => {
               key={tool.id}
               variant="ghost"
               size="sm"
-              className="flex-col gap-1 h-auto py-2 min-w-14"
+              className={cn('flex-col gap-1 h-auto py-2 min-w-14', activeTool === tool.id && 'text-primary')}
               onClick={() => handleToolClick(tool.id)}
               disabled={
                 ((tool.id === 'trim' || tool.id === 'split') && !selectedClipId) ||
@@ -2850,6 +2857,64 @@ const VideoEditorScreen = () => {
             onRemoveOverlay={handleRemoveTextOverlay}
             onToggleEditMode={handleToggleTextEditing}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Layers Panel */}
+      <AnimatePresence>
+        {showLayersPanel && (
+          <motion.div
+            initial={false}
+            animate={{ y: 0 }}
+            exit={{ y: 0 }}
+            transition={{ duration: 0 }}
+            className="border-t border-zinc-200 bg-white p-4 pt-6 z-30 max-h-[50vh] overflow-y-auto dark:border-zinc-800 dark:bg-black"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium">Layers</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowLayersPanel(false);
+                  setActiveTool((currentTool) => (currentTool === 'layers' ? null : currentTool));
+                }}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {orderedTimeline.length > 0 ? (
+              <Reorder.Group axis="y" values={orderedTimeline} onReorder={handleReorderClips} className="space-y-2">
+                {orderedTimeline.map((clip, index) => {
+                  const media = project.mediaItems.find((item) => item.id === clip.mediaId);
+                  return (
+                    <Reorder.Item
+                      key={clip.id}
+                      value={clip}
+                      whileDrag={{ scale: 1.01 }}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-800"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="text-xs text-muted-foreground w-8">#{index + 1}</div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{media?.name || `Clip ${index + 1}`}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {MediaService.formatDuration(clip.endTime - clip.startTime)}
+                          </p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => setSelectedClipId(clip.id)}>
+                        Select
+                      </Button>
+                    </Reorder.Item>
+                  );
+                })}
+              </Reorder.Group>
+            ) : (
+              <p className="text-sm text-muted-foreground">No clips found yet.</p>
+            )}
+          </motion.div>
         )}
       </AnimatePresence>
 
