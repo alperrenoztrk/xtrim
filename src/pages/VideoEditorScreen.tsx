@@ -2439,17 +2439,7 @@ const VideoEditorScreen = () => {
         </AnimatePresence>
 
         {/* Clips */}
-        <div
-          ref={timelineScrubRef}
-          className={cn(
-            'relative px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x bg-white border-y border-zinc-200 dark:border-zinc-800 dark:bg-black',
-            selectedClipId && 'cursor-ew-resize'
-          )}
-          onPointerDown={handleTimelinePointerDown}
-          onPointerMove={handleTimelinePointerMove}
-          onPointerUp={handleTimelinePointerUp}
-          onPointerCancel={handleTimelinePointerUp}
-        >
+        <div className="relative border-y border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
           <div
             className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none z-20"
             style={{ left: `${fixedTimelinePlayheadOffsetPx}px` }}
@@ -2458,6 +2448,17 @@ const VideoEditorScreen = () => {
             className="absolute top-1 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-red-500 border-2 border-white shadow-lg pointer-events-none z-20 dark:border-black"
             style={{ left: `${fixedTimelinePlayheadOffsetPx}px` }}
           />
+          <div
+            ref={timelineScrubRef}
+            className={cn(
+              'px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x',
+              selectedClipId && 'cursor-ew-resize'
+            )}
+            onPointerDown={handleTimelinePointerDown}
+            onPointerMove={handleTimelinePointerMove}
+            onPointerUp={handleTimelinePointerUp}
+            onPointerCancel={handleTimelinePointerUp}
+          >
           {project.timeline.length > 0 ? (
             <Reorder.Group
               axis="x"
@@ -2506,6 +2507,7 @@ const VideoEditorScreen = () => {
               </Button>
             </div>
           )}
+          </div>
         </div>
 
         {/* Audio/Text lanes */}
