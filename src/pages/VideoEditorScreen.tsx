@@ -827,8 +827,8 @@ const VideoEditorScreen = () => {
 
     const currentPlaybackTime = videoRef.current.currentTime;
     if (currentPlaybackTime <= selectedClip.startTime || currentPlaybackTime >= selectedClip.endTime) {
-      toast.error('Geçersiz bölme zamanı', {
-        description: 'Videoyu klibin içinde bir ana getirip tekrar deneyin.',
+      toast.error('Invalid split time', {
+        description: 'Move the playhead to a moment within the clip and try again.',
       });
       return;
     }
@@ -2357,7 +2357,7 @@ const VideoEditorScreen = () => {
                       variant="iconGhost"
                       size="iconSm"
                       onClick={() => handleSeek(0)}
-                      title="Başa git"
+                      title="Go to start"
                     >
                       <SkipBack className="w-4 h-4" />
                     </Button>

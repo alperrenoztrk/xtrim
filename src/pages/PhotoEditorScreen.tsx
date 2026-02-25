@@ -1313,11 +1313,11 @@ const PhotoEditorScreen = () => {
                   {selectedCropRatio === 'free' ? (
                     <div className="space-y-4 mt-4">
                       <p className="text-xs text-muted-foreground text-center">
-                        Free crop alanını resim üzerinde sürükleyerek ayarlayın
+                        Adjust the free crop area by dragging it on the image
                       </p>
 
                       <p className="text-[11px] text-muted-foreground text-center">
-                        Kutuyu taşımak için iç kısmı, yeniden boyutlandırmak için köşe noktalarını kullanın.
+                        Use the inside area to move the box, and the corner handles to resize it.
                       </p>
                     </div>
                   ) : (
@@ -1351,7 +1351,7 @@ const PhotoEditorScreen = () => {
                   className="p-4 space-y-4"
                 >
                   <p className="text-xs text-muted-foreground text-center">
-                    Fotoğraf üzerine parmağınla/farenle çiz.
+                    Draw on the photo with your finger/mouse.
                   </p>
 
                   <div className="space-y-2">

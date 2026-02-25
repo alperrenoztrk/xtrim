@@ -25,10 +25,10 @@ const videoStyles = [
 ];
 
 const durationOptions = [
-  { value: 3, label: '3 saniye' },
-  { value: 5, label: '5 saniye' },
-  { value: 10, label: '10 saniye' },
-  { value: 15, label: '15 saniye (Pro+)' },
+  { value: 3, label: '3 seconds' },
+  { value: 5, label: '5 seconds' },
+  { value: 10, label: '10 seconds' },
+  { value: 15, label: '15 seconds (Pro+)' },
 ];
 
 const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({

@@ -109,7 +109,7 @@ export class AIToolsService {
       let cutPoints: number[] = [];
       if (result.analysis) {
         // Try to extract timestamps from the analysis
-        const timestampRegex = /(\d+(?:\.\d+)?)\s*(?:s|seconds?|saniye)/gi;
+        const timestampRegex = /(\d+(?:\.\d+)?)\s*(?:s|seconds?)/gi;
         const matches = result.analysis.matchAll(timestampRegex);
         for (const match of matches) {
           cutPoints.push(parseFloat(match[1]));

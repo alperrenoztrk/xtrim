@@ -47,7 +47,7 @@ export const AITranscriptPanel = ({ isOpen, onClose, videoUrl, videoName }: AITr
 
   const handleGenerateTranscript = async () => {
     if (!videoUrl) {
-      toast.error('Önce videoyu projeye ekleyin');
+      toast.error('Add the video to the project first');
       return;
     }
 
@@ -66,16 +66,16 @@ export const AITranscriptPanel = ({ isOpen, onClose, videoUrl, videoName }: AITr
       }
 
       if (!data?.success) {
-        throw new Error(data?.error || 'Transkript oluşturulamadı');
+        throw new Error(data?.error || 'Transcript could not be created');
       }
 
       const lines = Array.isArray(data.transcript) ? data.transcript : [];
       setTranscriptLines(lines);
 
-      toast.success('Saniye bazlı transkript hazır');
+      toast.success('Second-by-second transcript is ready');
     } catch (error) {
       console.error('AI transcript error:', error);
-      toast.error(error instanceof Error ? error.message : 'Transkript oluşturulurken bir hata oluştu');
+      toast.error(error instanceof Error ? error.message : 'An error occurred while creating the transcript');
     } finally {
       setIsProcessing(false);
     }
@@ -83,7 +83,7 @@ export const AITranscriptPanel = ({ isOpen, onClose, videoUrl, videoName }: AITr
 
   const handleDownload = () => {
     if (!transcriptText) {
-      toast.error('İndirilecek transkript yok');
+      toast.error('No transcript available to download');
       return;
     }
 
@@ -98,7 +98,7 @@ export const AITranscriptPanel = ({ isOpen, onClose, videoUrl, videoName }: AITr
     anchor.click();
 
     URL.revokeObjectURL(objectUrl);
-    toast.success('Transkript indirildi');
+    toast.success('Transcript downloaded');
   };
 
   const handleClose = () => {
@@ -141,7 +141,7 @@ export const AITranscriptPanel = ({ isOpen, onClose, videoUrl, videoName }: AITr
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-foreground">AI Transcript</h2>
-                  <p className="text-xs text-muted-foreground">Videodaki konuşmaları saniye bazında metne çevirir</p>
+                  <p className="text-xs text-muted-foreground">Converts speech in the video into second-by-second text</p>
                 </div>
               </div>
               <Button variant="ghost" size="icon" onClick={handleClose}>
@@ -152,8 +152,8 @@ export const AITranscriptPanel = ({ isOpen, onClose, videoUrl, videoName }: AITr
             <div className="px-6 pb-6 space-y-4 max-h-[60vh] overflow-y-auto">
               <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 px-3 py-2">
                 <div>
-                  <Label className="text-sm">Boş saniyeleri ekle</Label>
-                  <p className="text-xs text-muted-foreground">Konuşma olmayan saniyeleri de yazıya dahil et</p>
+                  <Label className="text-sm">Include empty seconds</Label>
+                  <p className="text-xs text-muted-foreground">Include seconds without speech in the text</p>
                 </div>
                 <Switch
                   checked={includeEmptySeconds}
@@ -165,18 +165,18 @@ export const AITranscriptPanel = ({ isOpen, onClose, videoUrl, videoName }: AITr
               <div className="grid grid-cols-2 gap-3">
                 <Button onClick={handleGenerateTranscript} disabled={isProcessing} className="gap-2">
                   {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                  Oluştur
+                  Generate
                 </Button>
                 <Button variant="secondary" onClick={handleDownload} disabled={!transcriptText || isProcessing} className="gap-2">
                   <Download className="h-4 w-4" />
-                  İndir (.txt)
+                  Download (.txt)
                 </Button>
               </div>
 
               <div className="space-y-2">
-                <Label>Transkript</Label>
+                <Label>Transcript</Label>
                 <Textarea
-                  value={transcriptText || 'Henüz transkript oluşturulmadı.'}
+                  value={transcriptText || 'No transcript has been generated yet.'}
                   readOnly
                   className="min-h-[220px] font-mono text-xs"
                 />
