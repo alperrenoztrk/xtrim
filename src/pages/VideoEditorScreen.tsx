@@ -1840,6 +1840,11 @@ const VideoEditorScreen = () => {
 
   const handleTimelinePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!selectedClipId) return;
+    if (event.pointerType === 'touch') return;
+    if (event.button !== 0) return;
+
+    const target = event.target as HTMLElement;
+    if (target.closest('[data-timeline-item="true"]')) return;
 
     setIsTimelineScrubbing(true);
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -2403,7 +2408,7 @@ const VideoEditorScreen = () => {
         <div
           ref={timelineScrubRef}
           className={cn(
-            'relative h-24 px-4 overflow-x-auto scrollbar-hide bg-gradient-to-b from-zinc-100 to-zinc-200/70 dark:from-zinc-950 dark:to-zinc-900',
+            'relative h-24 px-4 overflow-x-auto scrollbar-hide touch-pan-x bg-gradient-to-b from-zinc-100 to-zinc-200/70 dark:from-zinc-950 dark:to-zinc-900',
             selectedClipId && 'cursor-ew-resize'
           )}
           onPointerDown={handleTimelinePointerDown}
@@ -2424,18 +2429,17 @@ const VideoEditorScreen = () => {
           {project.timeline.length > 0 ? (
             <Reorder.Group
               axis="x"
-              values={project.timeline}
+              values={orderedTimeline}
               onReorder={handleReorderClips}
               className="flex h-full items-center py-2 w-max min-w-full"
             >
-              {project.timeline
-                .sort((a, b) => a.order - b.order)
-                .map((clip) => (
+              {orderedTimeline.map((clip) => (
                   <Reorder.Item 
                     key={clip.id} 
                     value={clip}
                     whileDrag={{ scale: 1.05, zIndex: 50 }}
                     className="cursor-grab active:cursor-grabbing"
+                    data-timeline-item="true"
                   >
                     <TimelineClipItem
                       clip={clip}
