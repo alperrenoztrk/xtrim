@@ -137,7 +137,7 @@ const SettingsScreen = () => {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' });
     toast.success('Çıkış yapıldı');
     navigate('/login', { replace: true });
   };
