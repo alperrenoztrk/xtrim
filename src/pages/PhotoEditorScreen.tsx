@@ -1316,7 +1316,13 @@ const PhotoEditorScreen = () => {
                         key={ratio.id}
                         variant={selectedCropRatio === ratio.id ? 'secondary' : 'outline'}
                         size="sm"
-                        onClick={() => setSelectedCropRatio(ratio.id)}
+                        onClick={() => {
+                          setSelectedCropRatio(ratio.id);
+
+                          if (ratio.id === 'free') {
+                            setIsFullscreen(true);
+                          }
+                        }}
                       >
                         {ratio.name}
                       </Button>
