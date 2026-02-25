@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 import { applyTheme, getStoredTheme, subscribeToThemeChanges } from "./lib/theme";
 import AndroidBackButtonHandler from "./components/AndroidBackButtonHandler";
 import GlobalZoomGuard from "./components/GlobalZoomGuard";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -38,24 +39,26 @@ const App = () => {
         <BrowserRouter>
           <AndroidBackButtonHandler />
           <GlobalZoomGuard />
-          <Routes>
-            <Route path="/login" element={<LoginScreen />} />
-            <Route path="/" element={<SplashScreen />} />
-            <Route path="/home" element={<HomeScreen />} />
-            <Route path="/templates" element={<TemplatesScreen />} />
-            <Route path="/editor" element={<VideoEditorScreen />} />
-            <Route path="/editor/:projectId" element={<VideoEditorScreen />} />
-            <Route path="/export/:projectId" element={<ExportScreen />} />
-            <Route path="/settings" element={<SettingsScreen />} />
-            <Route path="/projects" element={<ProjectsScreen />} />
-            <Route path="/ai" element={<HomeScreen />} />
-            <Route path="/audio" element={<AudioEditorScreen />} />
-            <Route path="/audio/:projectId" element={<AudioEditorScreen />} />
-            <Route path="/photo-editor" element={<PhotoEditorScreen />} />
-            <Route path="/collage" element={<CollageMakerScreen />} />
-            <Route path="/photo-audio" element={<PhotoAudioScreen />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <ProtectedRoute>
+            <Routes>
+              <Route path="/" element={<SplashScreen />} />
+              <Route path="/login" element={<LoginScreen />} />
+              <Route path="/home" element={<HomeScreen />} />
+              <Route path="/templates" element={<TemplatesScreen />} />
+              <Route path="/editor" element={<VideoEditorScreen />} />
+              <Route path="/editor/:projectId" element={<VideoEditorScreen />} />
+              <Route path="/export/:projectId" element={<ExportScreen />} />
+              <Route path="/settings" element={<SettingsScreen />} />
+              <Route path="/projects" element={<ProjectsScreen />} />
+              <Route path="/ai" element={<HomeScreen />} />
+              <Route path="/audio" element={<AudioEditorScreen />} />
+              <Route path="/audio/:projectId" element={<AudioEditorScreen />} />
+              <Route path="/photo-editor" element={<PhotoEditorScreen />} />
+              <Route path="/collage" element={<CollageMakerScreen />} />
+              <Route path="/photo-audio" element={<PhotoAudioScreen />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ProtectedRoute>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
