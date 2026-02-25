@@ -979,7 +979,7 @@ const PhotoEditorScreen = () => {
   ];
 
   return (
-    <div className="h-screen flex flex-col bg-background safe-area-top">
+    <div className="h-screen flex flex-col bg-white text-black dark:bg-black dark:text-white safe-area-top overflow-hidden">
       <input
         ref={fileInputRef}
         type="file"
@@ -990,7 +990,7 @@ const PhotoEditorScreen = () => {
       />
 
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border glass">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
         <div className="flex items-center gap-3">
           <Button variant="iconGhost" size="iconSm" onClick={handleBack}>
             <ArrowLeft className="w-5 h-5" />
@@ -1027,7 +1027,7 @@ const PhotoEditorScreen = () => {
         ref={previewStageRef}
         data-photo-zoom-area="true"
         className={cn(
-          'relative bg-muted flex items-center justify-center overflow-hidden p-4',
+          'relative bg-white dark:bg-black flex items-center justify-center overflow-hidden p-4',
           imageUrl && !isFullscreen ? 'h-1/2 min-h-0 flex-none' : 'flex-1',
           isFullscreen && 'fixed inset-0 z-50 bg-black p-2',
         )}
