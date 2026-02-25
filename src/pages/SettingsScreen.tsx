@@ -98,21 +98,14 @@ const SettingsScreen = () => {
   const normalizedPrCount = resolveCodexPrNumber();
   const appVersion = `1.${Math.floor(normalizedPrCount / 10)}.${normalizedPrCount % 10}`;
 
+  const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
 
-  const [settings, setSettings] = useState<ExtendedSettings>(() => {
-    const saved = localStorage.getItem('xtrim_settings');
-    if (saved) {
-      try {
-        return { ...defaultSettings, ...JSON.parse(saved) };
-      } catch {
-        return defaultSettings;
-      }
-    }
-    return defaultSettings;
-  });
+  const getStorageKey = (uid: string | null) => uid ? `xtrim_settings_${uid}` : 'xtrim_settings';
+
+  const [settings, setSettings] = useState<ExtendedSettings>(defaultSettings);
 
   const [showThemeSheet, setShowThemeSheet] = useState(false);
   const [showPrivacySheet, setShowPrivacySheet] = useState(false);
@@ -124,9 +117,21 @@ const SettingsScreen = () => {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
+        const uid = session.user.id;
+        setUserId(uid);
         setUserEmail(session.user.email ?? null);
         setUserAvatar(session.user.user_metadata?.avatar_url ?? null);
         setUserName(session.user.user_metadata?.full_name ?? session.user.user_metadata?.name ?? null);
+
+        // Load user-specific settings
+        const saved = localStorage.getItem(getStorageKey(uid));
+        if (saved) {
+          try {
+            setSettings({ ...defaultSettings, ...JSON.parse(saved) });
+          } catch {
+            setSettings(defaultSettings);
+          }
+        }
       }
     });
   }, []);
@@ -137,14 +142,10 @@ const SettingsScreen = () => {
     navigate('/login', { replace: true });
   };
 
-  useEffect(() => {
-    applyTheme(settings.theme);
-  }, [settings.theme]);
-
   const updateSetting = <K extends keyof ExtendedSettings>(key: K, value: ExtendedSettings[K]) => {
     setSettings((prev) => {
       const newSettings = { ...prev, [key]: value };
-      localStorage.setItem('xtrim_settings', JSON.stringify(newSettings));
+      localStorage.setItem(getStorageKey(userId), JSON.stringify(newSettings));
       return newSettings;
     });
   };
@@ -153,7 +154,7 @@ const SettingsScreen = () => {
     setSettings((prev) => {
       const newExport = { ...prev.defaultExport, [key]: value };
       const newSettings = { ...prev, defaultExport: newExport };
-      localStorage.setItem('xtrim_settings', JSON.stringify(newSettings));
+      localStorage.setItem(getStorageKey(userId), JSON.stringify(newSettings));
       return newSettings;
     });
   };
