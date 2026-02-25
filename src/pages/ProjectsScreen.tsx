@@ -1,13 +1,19 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Plus, Video, MoreVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectService } from '@/services/ProjectService';
 import { MediaService } from '@/services/MediaService';
+import type { Project } from '@/types';
 
 const ProjectsScreen = () => {
   const navigate = useNavigate();
-  const projects = ProjectService.getProjects();
+  const [projects, setProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    ProjectService.getProjectsAsync().then(setProjects);
+  }, []);
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
