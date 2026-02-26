@@ -2591,47 +2591,41 @@ const VideoEditorScreen = () => {
 
         {/* Audio/Text lanes */}
         {project.timeline.length > 0 && (
-          <div className="px-4 pb-3 space-y-2 border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
-            <div className="grid grid-cols-[56px_1fr] gap-2 items-stretch">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-full flex-col gap-1 text-zinc-600 hover:text-black hover:bg-zinc-100 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-zinc-900"
-                onClick={() => handleToolClick('audio')}
-                disabled={!hasVideoInTimeline}
-              >
-                <Music className="w-4 h-4" />
-                <span className="text-xxs">Audio</span>
-              </Button>
-              <Button
-                variant="ghost"
-                className="justify-start h-12 rounded-none border border-zinc-200 bg-white text-black hover:bg-zinc-100 dark:border-zinc-800 dark:bg-black dark:text-white dark:hover:bg-zinc-900"
-                onClick={() => handleToolClick('audio')}
-                disabled={!hasVideoInTimeline}
-              >
-                + Add audio
-              </Button>
+          <div className="border-t border-zinc-200 bg-white pb-3 dark:border-zinc-800 dark:bg-black">
+            <div className="px-4 pt-2 pb-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+              Timeline tracks
             </div>
 
-            <div className="grid grid-cols-[56px_1fr] gap-2 items-stretch">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-full flex-col gap-1 text-zinc-600 hover:text-black hover:bg-zinc-100 dark:text-zinc-300 dark:hover:text-white dark:hover:bg-zinc-900"
-                onClick={() => handleToolClick('text')}
-                disabled={!hasVideoInTimeline}
-              >
-                <Type className="w-4 h-4" />
-                <span className="text-xxs">Text</span>
-              </Button>
-              <Button
-                variant="ghost"
-                className="justify-start h-12 rounded-none border border-zinc-200 bg-white text-black hover:bg-zinc-100 dark:border-zinc-800 dark:bg-black dark:text-white dark:hover:bg-zinc-900"
-                onClick={() => handleToolClick('text')}
-                disabled={!hasVideoInTimeline}
-              >
-                + Add text
-              </Button>
+            <div className="px-4 overflow-x-auto scrollbar-hide">
+              <div className="flex items-center w-max min-w-full gap-2">
+                <div style={{ minWidth: timelinePadding, flexShrink: 0 }} />
+                <Button
+                  variant="ghost"
+                  className="justify-start h-11 min-w-[220px] rounded-none border border-zinc-200 bg-white text-black hover:bg-zinc-100 dark:border-zinc-800 dark:bg-black dark:text-white dark:hover:bg-zinc-900"
+                  onClick={() => handleToolClick('audio')}
+                  disabled={!hasVideoInTimeline}
+                >
+                  <Music className="w-4 h-4" />
+                  + Add audio
+                </Button>
+                <div style={{ minWidth: timelinePadding + 80, flexShrink: 0 }} />
+              </div>
+            </div>
+
+            <div className="px-4 overflow-x-auto scrollbar-hide">
+              <div className="flex items-center w-max min-w-full gap-2">
+                <div style={{ minWidth: timelinePadding, flexShrink: 0 }} />
+                <Button
+                  variant="ghost"
+                  className="justify-start h-11 min-w-[220px] rounded-none border border-zinc-200 bg-white text-black hover:bg-zinc-100 dark:border-zinc-800 dark:bg-black dark:text-white dark:hover:bg-zinc-900"
+                  onClick={() => handleToolClick('text')}
+                  disabled={!hasVideoInTimeline}
+                >
+                  <Type className="w-4 h-4" />
+                  + Add text
+                </Button>
+                <div style={{ minWidth: timelinePadding + 80, flexShrink: 0 }} />
+              </div>
             </div>
           </div>
         )}
