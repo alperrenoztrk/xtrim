@@ -377,6 +377,7 @@ const VideoEditorScreen = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineScrubRef = useRef<HTMLDivElement>(null);
   const audioTrackElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const audioTrimPreviewElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   const [project, setProject] = useState<Project | null>(() => {
     if (projectId === 'new') {
@@ -441,6 +442,8 @@ const VideoEditorScreen = () => {
   const [showAudioPanel, setShowAudioPanel] = useState(false);
   const [customAudioName, setCustomAudioName] = useState('');
   const [isSearchingAudio, setIsSearchingAudio] = useState(false);
+  const [previewingAudioTrackId, setPreviewingAudioTrackId] = useState<string | null>(null);
+  const [audioTrimPreviewProgress, setAudioTrimPreviewProgress] = useState<Record<string, number>>({});
   const [showTextPanel, setShowTextPanel] = useState(false);
   const [showPreviewPanel, setShowPreviewPanel] = useState(false);
   const [showLayersPanel, setShowLayersPanel] = useState(false);
@@ -984,6 +987,8 @@ const VideoEditorScreen = () => {
   const handleRemoveAudioTrack = (trackId: string) => {
     if (!project) return;
 
+    stopAudioTrimPreview(trackId);
+
     const audioEl = audioTrackElementsRef.current.get(trackId);
     if (audioEl) {
       audioEl.pause();
@@ -1029,6 +1034,86 @@ const VideoEditorScreen = () => {
       }),
     });
   };
+
+  const stopAudioTrimPreview = useCallback((trackId?: string) => {
+    if (trackId) {
+      const previewAudio = audioTrimPreviewElementsRef.current.get(trackId);
+      if (previewAudio) {
+        previewAudio.pause();
+        previewAudio.currentTime = 0;
+        audioTrimPreviewElementsRef.current.delete(trackId);
+      }
+      setAudioTrimPreviewProgress((prev) => ({ ...prev, [trackId]: 0 }));
+      setPreviewingAudioTrackId((current) => (current === trackId ? null : current));
+      return;
+    }
+
+    for (const [id, previewAudio] of audioTrimPreviewElementsRef.current.entries()) {
+      previewAudio.pause();
+      previewAudio.currentTime = 0;
+      setAudioTrimPreviewProgress((prev) => ({ ...prev, [id]: 0 }));
+    }
+    audioTrimPreviewElementsRef.current.clear();
+    setPreviewingAudioTrackId(null);
+  }, []);
+
+  const handleToggleAudioTrimPreview = useCallback(
+    (track: AudioTrack) => {
+      const previewDuration = Math.max(0, track.trimEnd - track.trimStart);
+      if (previewDuration <= 0) {
+        return;
+      }
+
+      if (previewingAudioTrackId === track.id) {
+        stopAudioTrimPreview(track.id);
+        return;
+      }
+
+      stopAudioTrimPreview();
+
+      const previewAudio = new Audio(resolvedAudioTrackUris[track.id] || track.uri);
+      previewAudio.preload = 'auto';
+      previewAudio.currentTime = track.trimStart;
+      previewAudio.volume = Math.max(0, Math.min(track.volume, 1));
+
+      previewAudio.addEventListener('timeupdate', () => {
+        const relativeTime = Math.max(0, previewAudio.currentTime - track.trimStart);
+        const progress = Math.min(1, relativeTime / previewDuration);
+        setAudioTrimPreviewProgress((prev) => ({ ...prev, [track.id]: progress }));
+
+        if (previewAudio.currentTime >= track.trimEnd) {
+          stopAudioTrimPreview(track.id);
+        }
+      });
+
+      audioTrimPreviewElementsRef.current.set(track.id, previewAudio);
+      setPreviewingAudioTrackId(track.id);
+      setAudioTrimPreviewProgress((prev) => ({ ...prev, [track.id]: 0 }));
+
+      void previewAudio.play().catch(() => {
+        stopAudioTrimPreview(track.id);
+      });
+    },
+    [previewingAudioTrackId, resolvedAudioTrackUris, stopAudioTrimPreview]
+  );
+
+  const handleAudioTrimPreviewSeek = useCallback(
+    (track: AudioTrack, value: number) => {
+      const previewDuration = Math.max(0, track.trimEnd - track.trimStart);
+      if (previewDuration <= 0) {
+        return;
+      }
+
+      const clampedValue = Math.max(0, Math.min(value, previewDuration));
+      setAudioTrimPreviewProgress((prev) => ({ ...prev, [track.id]: clampedValue / previewDuration }));
+
+      const previewAudio = audioTrimPreviewElementsRef.current.get(track.id);
+      if (previewAudio) {
+        previewAudio.currentTime = track.trimStart + clampedValue;
+      }
+    },
+    []
+  );
 
   // Handle Text Overlay
   const handleOpenText = () => {
@@ -1775,12 +1860,13 @@ const VideoEditorScreen = () => {
   // Full cleanup on unmount.
   useEffect(() => {
     return () => {
+      stopAudioTrimPreview();
       for (const audioEl of audioTrackElementsRef.current.values()) {
         audioEl.pause();
       }
       audioTrackElementsRef.current.clear();
     };
-  }, []);
+  }, [stopAudioTrimPreview]);
 
   // Sync video time with timeline and enforce clip boundaries
   const handleTimeUpdate = () => {
@@ -2835,13 +2921,42 @@ const VideoEditorScreen = () => {
                       </span>
                     </div>
 
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-3 space-y-3">
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Music timeline</span>
+                        <span>Selected music segment</span>
                         <span>
                           {MediaService.formatDuration(track.trimStart)} - {MediaService.formatDuration(track.trimEnd)}
                         </span>
                       </div>
+
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          max={Math.max(0, track.trimEnd - 0.1)}
+                          step={0.1}
+                          value={track.trimStart.toFixed(1)}
+                          onChange={(e) => {
+                            const nextStart = Number(e.target.value);
+                            if (Number.isNaN(nextStart)) return;
+                            handleUpdateAudioTrim(track.id, [nextStart, track.trimEnd]);
+                          }}
+                        />
+                        <span className="text-xs text-muted-foreground">to</span>
+                        <Input
+                          type="number"
+                          min={track.trimStart + 0.1}
+                          max={track.sourceDuration ?? Math.max(track.trimEnd, track.trimStart + 0.1)}
+                          step={0.1}
+                          value={track.trimEnd.toFixed(1)}
+                          onChange={(e) => {
+                            const nextEnd = Number(e.target.value);
+                            if (Number.isNaN(nextEnd)) return;
+                            handleUpdateAudioTrim(track.id, [track.trimStart, nextEnd]);
+                          }}
+                        />
+                      </div>
+
                       <Slider
                         value={[track.trimStart, track.trimEnd]}
                         min={0}
@@ -2849,6 +2964,42 @@ const VideoEditorScreen = () => {
                         step={0.1}
                         onValueChange={(values) => handleUpdateAudioTrim(track.id, values)}
                       />
+
+                      <div className="rounded-md bg-background/70 border border-border p-2 space-y-2">
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Preview selected part</span>
+                          <span>{MediaService.formatDuration(Math.max(track.trimEnd - track.trimStart, 0))}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleAudioTrimPreview(track)}
+                            className="shrink-0"
+                          >
+                            {previewingAudioTrackId === track.id ? (
+                              <>
+                                <Pause className="w-4 h-4" />
+                                Stop
+                              </>
+                            ) : (
+                              <>
+                                <Play className="w-4 h-4" />
+                                Play
+                              </>
+                            )}
+                          </Button>
+                          <Slider
+                            value={[(audioTrimPreviewProgress[track.id] ?? 0) * Math.max(track.trimEnd - track.trimStart, 0)]}
+                            min={0}
+                            max={Math.max(track.trimEnd - track.trimStart, 0.1)}
+                            step={0.01}
+                            onValueChange={([value]) => handleAudioTrimPreviewSeek(track, value)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
