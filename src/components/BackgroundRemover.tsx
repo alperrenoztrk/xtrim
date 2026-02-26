@@ -86,7 +86,7 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     try {
       const canUseAI = await SubscriptionService.canUseFeature('ai');
       if (!canUseAI) {
-        throw new Error('AI kullanım kotanız doldu. Lütfen planınızı yükseltin ya da yarını bekleyin.');
+        throw new Error('Your AI usage quota has been reached. Please upgrade your plan or wait until tomorrow.');
       }
 
       const canvas = canvasRef.current;

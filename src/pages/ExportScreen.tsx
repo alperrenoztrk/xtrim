@@ -805,13 +805,13 @@ const ExportScreen = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">Watermark:</span>
-                  <span className="font-medium">{shouldAddWatermark ? 'Xtrim filigranı eklenecek' : 'Kaldırıldı (Pro+)'}</span>
+                  <span className="font-medium">{shouldAddWatermark ? 'Xtrim watermark will be added' : 'Removed (Pro+)'}</span>
                 </div>
               </div>
               <div className="flex justify-between pt-2 border-t border-primary/10">
                 <div className="flex items-center gap-2">
                   <HardDrive className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Tahmini Boyut:</span>
+                  <span className="text-sm text-muted-foreground">Estimated Size:</span>
                   <span className="text-sm font-bold text-primary">{estimatedSize}</span>
                 </div>
                 <div className="flex items-center gap-2">

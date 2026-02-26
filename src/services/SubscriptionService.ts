@@ -21,14 +21,14 @@ export const PLANS: PlanDetails[] = [
   {
     id: 'free',
     name: 'Free',
-    price: 'Ücretsiz',
+    price: 'Free',
     priceMonthly: 0,
     googlePlayProductId: '',
     features: [
-      'Temel video düzenleme',
-      'Günde 2 AI işlem',
-      '720p dışa aktarma',
-      'Watermark ile dışa aktarma',
+      'Basic video editing',
+      '2 AI tasks per day',
+      '720p export',
+      'Export with watermark',
     ],
     aiTasksPerDay: 2,
     maxResolution: '720p',
@@ -38,15 +38,15 @@ export const PLANS: PlanDetails[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price: '₺149.99/ay',
+    price: '₺149.99/month',
     priceMonthly: 149.99,
     googlePlayProductId: 'xtrim_pro_monthly',
     features: [
-      'Tüm düzenleme araçları',
-      'Günde 15 AI işlem',
-      '1080p Full HD dışa aktarma',
-      'Watermark yok',
-      'Öncelikli destek',
+      'All editing tools',
+      '15 AI tasks per day',
+      '1080p Full HD export',
+      'No watermark',
+      'Priority support',
     ],
     aiTasksPerDay: 15,
     maxResolution: '1080p',
@@ -56,16 +56,16 @@ export const PLANS: PlanDetails[] = [
   {
     id: 'premium',
     name: 'Premium',
-    price: '₺299.99/ay',
+    price: '₺299.99/month',
     priceMonthly: 299.99,
     googlePlayProductId: 'xtrim_premium_monthly',
     features: [
-      'Sınırsız AI işlem',
-      '4K Ultra HD dışa aktarma',
-      'AI Video Çeviri (altyazı)',
-      'Gelişmiş AI araçları',
-      'Öncelikli destek',
-      'Erken erişim özellikler',
+      'Unlimited AI tasks',
+      '4K Ultra HD export',
+      'AI Video Translation (subtitles)',
+      'Advanced AI tools',
+      'Priority support',
+      'Early access features',
     ],
     aiTasksPerDay: -1, // unlimited
     maxResolution: '4k',
@@ -75,16 +75,16 @@ export const PLANS: PlanDetails[] = [
   {
     id: 'ultra',
     name: 'Ultra',
-    price: '₺599.99/ay',
+    price: '₺599.99/month',
     priceMonthly: 599.99,
     googlePlayProductId: 'xtrim_ultra_monthly',
     features: [
-      'Premium\'daki her şey',
-      'AI Sesli Dublaj',
-      'Sınırsız 4K dışa aktarma',
-      'Profesyonel renk düzeltme',
-      'Toplu dışa aktarma',
-      'VIP destek',
+      'Everything in Premium',
+      'AI Voice Dubbing',
+      'Unlimited 4K export',
+      'Professional color correction',
+      'Batch export',
+      'VIP support',
     ],
     aiTasksPerDay: -1,
     maxResolution: '4k',
@@ -109,12 +109,12 @@ export class SubscriptionService {
 
   static async initializeBilling(): Promise<void> {
     if (!this.isNativeBillingSupported()) {
-      throw new Error('Google Play Billing yalnızca Android native ortamında destekleniyor.');
+      throw new Error('Google Play Billing is only supported in the native Android environment.');
     }
 
     const { available } = await PlayBilling.isAvailable();
     if (!available) {
-      throw new Error('Cihazda Google Play Billing kullanılamıyor.');
+      throw new Error('Google Play Billing is not available on this device.');
     }
 
     await PlayBilling.initialize();
@@ -130,7 +130,7 @@ export class SubscriptionService {
   static async purchasePlan(plan: SubscriptionPlan): Promise<{ purchase: BillingPurchase; activatedPlan: SubscriptionPlan }> {
     const planDetails = this.getPlanDetails(plan);
     if (planDetails.id === 'free' || !planDetails.googlePlayProductId) {
-      throw new Error('Bu plan Google Play üzerinden satın alınamaz.');
+      throw new Error('This plan cannot be purchased via Google Play.');
     }
 
     await this.initializeBilling();
@@ -140,11 +140,11 @@ export class SubscriptionService {
     });
 
     if (!purchase) {
-      throw new Error('Satın alma tamamlanamadı.');
+      throw new Error('Purchase could not be completed.');
     }
 
     if (purchase.purchaseState !== 'purchased') {
-      throw new Error('Satın alma beklemede. Ödeme onaylandığında planınız aktif olacaktır.');
+      throw new Error('Purchase is pending. Your plan will be activated once payment is confirmed.');
     }
 
     await this.activatePlan(plan, purchase.purchaseToken, purchase.orderId);

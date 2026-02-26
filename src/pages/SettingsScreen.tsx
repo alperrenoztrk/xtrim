@@ -139,7 +139,7 @@ const SettingsScreen = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut({ scope: 'local' });
-    toast.success('Çıkış yapıldı');
+    toast.success('Signed out');
     navigate('/login', { replace: true });
   };
 
@@ -188,7 +188,7 @@ const SettingsScreen = () => {
               )}
               <div className="flex-1 min-w-0">
                 {userName && <p className="font-medium truncate">{userName}</p>}
-                <p className="text-sm text-muted-foreground truncate">{userEmail ?? 'Giriş yapılmamış'}</p>
+                <p className="text-sm text-muted-foreground truncate">{userEmail ?? 'Not signed in'}</p>
               </div>
             </div>
             <div className="border-t border-border">
@@ -197,7 +197,7 @@ const SettingsScreen = () => {
                 className="w-full flex items-center gap-3 p-4 hover:bg-destructive/10 transition-colors text-destructive"
               >
                 <LogOut className="w-5 h-5" />
-                <span className="font-medium">Çıkış Yap</span>
+                <span className="font-medium">Sign Out</span>
               </button>
             </div>
           </div>
@@ -205,7 +205,7 @@ const SettingsScreen = () => {
 
         {/* Subscription */}
         <div className="space-y-1">
-          <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">Abonelik</h2>
+          <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">Subscription</h2>
           <div className="rounded-xl bg-card border border-border overflow-hidden">
             <button
               className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
@@ -216,8 +216,8 @@ const SettingsScreen = () => {
                   <Crown className="w-5 h-5 text-primary" />
                 </div>
                 <div className="text-left">
-                  <span className="block font-medium">Abonelik Planları</span>
-                  <span className="text-xs text-muted-foreground">Pro, Premium veya Ultra'ya yükselt</span>
+                  <span className="block font-medium">Subscription Plans</span>
+                  <span className="text-xs text-muted-foreground">Upgrade to Pro, Premium, or Ultra</span>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />

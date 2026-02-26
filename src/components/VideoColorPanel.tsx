@@ -352,7 +352,7 @@ export const VideoColorPanel = ({
             <span className="font-medium text-primary">
               {filterPresets.find(f => f.id === activeFilter)?.name}
             </span>
-            {' '}filtresi aktif
+            {' '}filter is active
           </p>
         </div>
       )}
