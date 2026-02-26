@@ -60,21 +60,10 @@ const HomeScreen = () => {
   const [menuType, setMenuType] = useState<'video' | 'photo'>('video');
   const [textToImageOpen, setTextToImageOpen] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [nextVideoIndex, setNextVideoIndex] = useState<number | null>(null);
-  const [isCrossfading, setIsCrossfading] = useState(false);
 
   const switchVideo = useCallback(() => {
-    const next = (currentVideoIndex + 1) % bgVideos.length;
-    setNextVideoIndex(next);
-    setIsCrossfading(true);
-    
-    // After crossfade completes, swap current and clear next
-    setTimeout(() => {
-      setCurrentVideoIndex(next);
-      setNextVideoIndex(null);
-      setIsCrossfading(false);
-    }, 1500);
-  }, [currentVideoIndex]);
+    setCurrentVideoIndex((prev) => (prev + 1) % bgVideos.length);
+  }, []);
 
 
   const navigateToPhotoEditor = (projectName?: string) => {
@@ -196,32 +185,18 @@ const HomeScreen = () => {
 
   return (
     <div className="relative min-h-screen bg-background safe-area-top safe-area-bottom flex flex-col overflow-hidden">
-      {/* Instant background video switching */}
+      {/* Lightweight background video switching */}
       <div className="absolute inset-0 pointer-events-none">
         <video
-          key={`current-${currentVideoIndex}`}
+          key={currentVideoIndex}
           src={bgVideos[currentVideoIndex]}
           autoPlay
           muted
           playsInline
-          preload="auto"
+          preload="metadata"
           onEnded={switchVideo}
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms]"
-          style={{ opacity: isCrossfading ? 0 : 1 }}
+          className="absolute inset-0 w-full h-full object-cover"
         />
-        {nextVideoIndex !== null && (
-          <video
-            key={`next-${nextVideoIndex}`}
-            src={bgVideos[nextVideoIndex]}
-            autoPlay
-            muted
-            playsInline
-            preload="auto"
-            onEnded={switchVideo}
-            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms]"
-            style={{ opacity: isCrossfading ? 1 : 0 }}
-          />
-        )}
         <div className="absolute inset-0 bg-background/10 dark:bg-background/20" />
       </div>
       {/* Header */}
