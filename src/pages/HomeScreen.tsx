@@ -206,8 +206,8 @@ const HomeScreen = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h1 className="text-4xl font-bold mb-2 text-black dark:text-white">Xtrim</h1>
-        <p className="text-black/60 dark:text-white/60">Video & Photo Editor</p>
+        <h1 className="text-4xl font-bold mb-2 text-white dark:text-black">Xtrim</h1>
+        <p className="text-white/80 dark:text-black/80">Video & Photo Editor</p>
       </motion.header>
 
       {/* Main Tools */}
@@ -246,7 +246,7 @@ const HomeScreen = () => {
                       <Icon className="text-foreground" />
                     </div>
                     <div className="text-left flex-1 min-w-0">
-                      <span className="text-lg font-semibold block text-foreground drop-shadow-sm">
+                      <span className="text-lg font-semibold block text-white dark:text-black drop-shadow-sm">
                         {tool.name}
                       </span>
                       <span className="text-sm text-muted-foreground">
