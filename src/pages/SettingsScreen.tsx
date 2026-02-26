@@ -19,6 +19,7 @@ import {
   Save,
   LogOut,
   User,
+  Crown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -199,6 +200,28 @@ const SettingsScreen = () => {
                 <span className="font-medium">Çıkış Yap</span>
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Subscription */}
+        <div className="space-y-1">
+          <h2 className="text-sm font-medium text-muted-foreground px-1 mb-2">Abonelik</h2>
+          <div className="rounded-xl bg-card border border-border overflow-hidden">
+            <button
+              className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+              onClick={() => navigate('/subscription')}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                  <Crown className="w-5 h-5 text-primary" />
+                </div>
+                <div className="text-left">
+                  <span className="block font-medium">Abonelik Planları</span>
+                  <span className="text-xs text-muted-foreground">Pro, Premium veya Ultra'ya yükselt</span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
           </div>
         </div>
 

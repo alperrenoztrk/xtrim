@@ -16,6 +16,7 @@ import CollageMakerScreen from "./pages/CollageMakerScreen";
 import SettingsScreen from "./pages/SettingsScreen";
 import ProjectsScreen from "./pages/ProjectsScreen";
 import ExportScreen from "./pages/ExportScreen";
+import SubscriptionScreen from "./pages/SubscriptionScreen";
 import NotFound from "./pages/NotFound";
 import { applyTheme, getStoredTheme, subscribeToThemeChanges } from "./lib/theme";
 import AndroidBackButtonHandler from "./components/AndroidBackButtonHandler";
@@ -56,6 +57,7 @@ const App = () => {
               <Route path="/photo-editor" element={<PhotoEditorScreen />} />
               <Route path="/collage" element={<CollageMakerScreen />} />
               <Route path="/photo-audio" element={<PhotoAudioScreen />} />
+              <Route path="/subscription" element={<SubscriptionScreen />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ProtectedRoute>
