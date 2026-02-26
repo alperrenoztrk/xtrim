@@ -6,15 +6,15 @@ const corsHeaders = {
 };
 
 function getAIConfig() {
-  const googleKey = Deno.env.get("GOOGLE_CLOUD_API_KEY");
+  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  if (googleKey) {
-    return { apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", apiKey: googleKey, stripPrefix: true };
+  if (geminiKey) {
+    return { apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", apiKey: geminiKey, stripPrefix: true };
   }
   if (lovableKey) {
     return { apiUrl: "https://ai.gateway.lovable.dev/v1/chat/completions", apiKey: lovableKey, stripPrefix: false };
   }
-  throw new Error("No AI API key configured (GOOGLE_CLOUD_API_KEY or LOVABLE_API_KEY)");
+  throw new Error("GEMINI_API_KEY is not configured");
 }
 
 function resolveModel(model: string, strip: boolean): string {
