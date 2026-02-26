@@ -107,12 +107,33 @@ const VideoTranslatePanel = ({
     setGeneratedAudioUrl(null);
 
     try {
-      // Step 1: Analyze and translate text
+      // Step 1: Upload video to storage so the AI can access it
+      updateProgress(5, 'Uploading video...');
+
+      let publicVideoUrl = videoUrl;
+
+      if (videoUrl.startsWith('blob:')) {
+        const response = await fetch(videoUrl);
+        const blob = await response.blob();
+        const fileName = `translate-${Date.now()}.mp4`;
+        const filePath = `temp-translations/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('media')
+          .upload(filePath, blob, { contentType: blob.type || 'video/mp4', upsert: true });
+
+        if (uploadError) throw new Error('Video upload failed: ' + uploadError.message);
+
+        const { data: urlData } = supabase.storage.from('media').getPublicUrl(filePath);
+        publicVideoUrl = urlData.publicUrl;
+      }
+
+      // Step 2: Analyze and translate text
       updateProgress(10, 'Analyzing video...');
       
       const { data: translateData, error: translateError } = await supabase.functions.invoke('video-translate', {
         body: {
-          videoUrl,
+          videoUrl: publicVideoUrl,
           sourceLanguage: sourceLanguage === 'auto' ? null : sourceLanguage,
           targetLanguage,
           options: {
