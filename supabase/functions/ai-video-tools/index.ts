@@ -5,20 +5,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function getAIConfig() {
-  const googleKey = Deno.env.get("GOOGLE_CLOUD_API_KEY");
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  if (googleKey) {
-    return { apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", apiKey: googleKey, stripPrefix: true };
-  }
-  if (lovableKey) {
-    return { apiUrl: "https://ai.gateway.lovable.dev/v1/chat/completions", apiKey: lovableKey, stripPrefix: false };
-  }
-  throw new Error("No AI API key configured (GOOGLE_CLOUD_API_KEY or LOVABLE_API_KEY)");
-}
-
-function resolveModel(model: string, strip: boolean): string {
-  return strip ? model.replace("google/", "") : model;
+function getGoogleApiKey(): string {
+  const key = Deno.env.get("GOOGLE_CLOUD_API_KEY");
+  if (key) return key;
+  throw new Error("GOOGLE_CLOUD_API_KEY is not configured");
 }
 
 interface AIToolRequest {
@@ -47,11 +37,11 @@ serve(async (req) => {
       );
     }
 
-    const config = getAIConfig();
-    console.log(`Processing AI tool: ${tool} (using ${config.stripPrefix ? 'Google Cloud' : 'Lovable'} API)`);
+    const apiKey = getGoogleApiKey();
+    console.log(`Processing AI tool: ${tool} (using Google Gemini native API)`);
 
     let prompt = "";
-    let inputData = imageBase64 || videoBase64;
+    const inputData = imageBase64 || videoBase64;
 
     switch (tool) {
       case 'autocut':
@@ -73,60 +63,62 @@ serve(async (req) => {
         throw new Error(`Unknown tool: ${tool}`);
     }
 
+    // Image processing tools use native Gemini image generation API
     if (tool === 'enhance' || tool === 'denoise' || tool === 'upscale') {
       if (!inputData) {
         throw new Error("Image data is required for this tool");
       }
 
-      // Image generation/editing is region-restricted on Google Cloud,
-      // so always use Lovable AI Gateway for these tools
-      const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-      const imageConfig = lovableKey
-        ? { apiUrl: "https://ai.gateway.lovable.dev/v1/chat/completions", apiKey: lovableKey, stripPrefix: false }
-        : config;
+      let imageData = inputData;
+      let mimeType = "image/png";
+      if (inputData.startsWith("data:")) {
+        const match = inputData.match(/^data:(image\/\w+);base64,(.+)$/);
+        if (match) {
+          mimeType = match[1];
+          imageData = match[2];
+        }
+      }
 
-      const response = await fetch(imageConfig.apiUrl, {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`;
+
+      const response = await fetch(url, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${imageConfig.apiKey}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: resolveModel("google/gemini-2.5-flash", imageConfig.stripPrefix),
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: prompt },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: inputData.startsWith("data:") ? inputData : `data:image/png;base64,${inputData}`
-                  }
-                }
-              ]
-            }
-          ],
-          modalities: ["image", "text"]
+          contents: [{
+            parts: [
+              { text: prompt },
+              { inlineData: { mimeType, data: imageData } }
+            ]
+          }],
+          generationConfig: {
+            responseModalities: ["TEXT", "IMAGE"],
+          },
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("AI API error:", response.status, errorText);
+        console.error("Gemini API error:", response.status, errorText);
         if (response.status === 429) {
           return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
             { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "API credits exhausted. Please add funds." }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-        throw new Error(`AI API error: ${response.status}`);
+        throw new Error(`Gemini API error: ${response.status}`);
       }
 
       const data = await response.json();
-      const generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      let generatedImage: string | null = null;
+      const candidate = data.candidates?.[0];
+      if (candidate?.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (part.inlineData) {
+            generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+            break;
+          }
+        }
+      }
+
       if (!generatedImage) throw new Error(`${tool} processing failed - no output generated`);
 
       return new Response(
@@ -135,14 +127,16 @@ serve(async (req) => {
       );
     }
 
-    const response = await fetch(config.apiUrl, {
+    // Text-based analysis tools use OpenAI-compatible endpoint
+    const openaiUrl = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
+    const response = await fetch(openaiUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: resolveModel("google/gemini-3-flash-preview", config.stripPrefix),
+        model: "gemini-2.5-flash",
         messages: [{
           role: "user",
           content: inputData ? [
