@@ -85,7 +85,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: resolveModel("google/gemini-2.5-flash-image-preview", config.stripPrefix),
+          model: resolveModel("google/gemini-2.5-flash", config.stripPrefix),
           messages: [
             {
               role: "user",
