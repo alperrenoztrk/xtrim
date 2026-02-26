@@ -1452,7 +1452,7 @@ const VideoEditorScreen = () => {
     const newMediaId = uuidv4();
     const newMedia: MediaItem = {
       id: newMediaId,
-      type: 'photo', // AI generates image frames
+      type: 'video',
       uri: videoUrl,
       name: `AI Generated - ${new Date().toLocaleTimeString()}`,
       duration: duration,

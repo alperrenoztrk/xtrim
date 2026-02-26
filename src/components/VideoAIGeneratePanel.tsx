@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Sparkles, Video, Wand2, Clock, Crown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,77 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generatedPreview, setGeneratedPreview] = useState<string | null>(null);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+
+  const cleanupGeneratedVideo = () => {
+    if (generatedVideoUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(generatedVideoUrl);
+    }
+    setGeneratedVideoUrl(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (generatedVideoUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(generatedVideoUrl);
+      }
+    };
+  }, [generatedVideoUrl]);
+
+  const buildVideoFromFrame = async (frameUrl: string, targetDuration: number) => {
+    const image = new Image();
+    image.src = frameUrl;
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error('Generated frame could not be loaded'));
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth || 1280;
+    canvas.height = image.naturalHeight || 720;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Video rendering context could not be created');
+    }
+
+    if (typeof MediaRecorder === 'undefined') {
+      throw new Error('Your browser does not support AI video output format');
+    }
+
+    const stream = canvas.captureStream(30);
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+      ? 'video/webm;codecs=vp9'
+      : 'video/webm';
+
+    const recorder = new MediaRecorder(stream, { mimeType });
+    const chunks: BlobPart[] = [];
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) chunks.push(event.data);
+    };
+
+    const recordingDone = new Promise<Blob>((resolve) => {
+      recorder.onstop = () => resolve(new Blob(chunks, { type: 'video/webm' }));
+    });
+
+    const startedAt = performance.now();
+    recorder.start();
+
+    const renderLoop = () => {
+      const elapsedSeconds = (performance.now() - startedAt) / 1000;
+      if (elapsedSeconds >= targetDuration) {
+        recorder.stop();
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      requestAnimationFrame(renderLoop);
+    };
+
+    renderLoop();
+    return recordingDone;
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -53,6 +124,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
     setIsGenerating(true);
     setProgress(0);
     setGeneratedPreview(null);
+    cleanupGeneratedVideo();
 
     try {
       // Simulate progress for UX
@@ -82,8 +154,11 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
       }
 
       if (data?.success && data?.frameUrl) {
+        const generatedVideoBlob = await buildVideoFromFrame(data.frameUrl, duration);
+        const generatedVideoBlobUrl = URL.createObjectURL(generatedVideoBlob);
         setProgress(100);
         setGeneratedPreview(data.frameUrl);
+        setGeneratedVideoUrl(generatedVideoBlobUrl);
         toast.success('Video created!');
       } else {
         throw new Error(data?.error || 'Video could not be created');
@@ -97,8 +172,8 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
   };
 
   const handleAddToTimeline = () => {
-    if (generatedPreview) {
-      onVideoGenerated(generatedPreview, duration);
+    if (generatedVideoUrl) {
+      onVideoGenerated(generatedVideoUrl, duration);
       toast.success('Video added to timeline');
       onClose();
     }
@@ -244,16 +319,23 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium">Generated Video Preview</Label>
             <div className="relative aspect-video rounded-xl overflow-hidden border border-border bg-black">
-              <img
-                src={generatedPreview}
-                alt="Generated video preview"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                <div className="p-4 bg-white/20 backdrop-blur-sm rounded-full">
-                  <Video className="w-8 h-8 text-white" />
-                </div>
-              </div>
+              {generatedVideoUrl ? (
+                <video
+                  src={generatedVideoUrl}
+                  className="w-full h-full object-cover"
+                  controls
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={generatedPreview}
+                  alt="Generated video preview"
+                  className="w-full h-full object-cover"
+                />
+              )}
               <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/60 rounded text-white text-xs">
                 {duration}s
               </div>
@@ -270,6 +352,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
                 className="flex-1"
                 onClick={() => {
                   setGeneratedPreview(null);
+                  cleanupGeneratedVideo();
                   setProgress(0);
                 }}
               >
