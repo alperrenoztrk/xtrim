@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { SubscriptionService } from '@/services/SubscriptionService';
 
 interface VideoTranslatePanelProps {
   isOpen: boolean;
@@ -107,6 +108,11 @@ const VideoTranslatePanel = ({
     setGeneratedAudioUrl(null);
 
     try {
+      const canUseAI = await SubscriptionService.canUseFeature('ai');
+      if (!canUseAI) {
+        throw new Error('AI kullanım kotanız doldu. Lütfen planınızı yükseltin ya da yarını bekleyin.');
+      }
+
       // Step 1: Upload video to storage so the AI can access it
       updateProgress(5, 'Uploading video...');
 

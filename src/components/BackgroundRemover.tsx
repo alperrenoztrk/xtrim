@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { SubscriptionService } from '@/services/SubscriptionService';
 
 interface BackgroundRemoverProps {
   imageUrl: string;
@@ -83,6 +84,11 @@ const BackgroundRemover = ({ imageUrl, onClose, onSave }: BackgroundRemoverProps
     setProgress(0);
 
     try {
+      const canUseAI = await SubscriptionService.canUseFeature('ai');
+      if (!canUseAI) {
+        throw new Error('AI kullanım kotanız doldu. Lütfen planınızı yükseltin ya da yarını bekleyin.');
+      }
+
       const canvas = canvasRef.current;
       const maskCanvas = maskCanvasRef.current;
       if (!canvas || !originalImage || !maskCanvas) {
