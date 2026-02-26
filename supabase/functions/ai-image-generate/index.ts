@@ -91,14 +91,21 @@ serve(async (req) => {
         throw new Error(`Unknown generation type: ${type}`);
     }
 
-    const response = await fetch(config.apiUrl, {
+    // Image generation is region-restricted on Google Cloud,
+    // so always use Lovable AI Gateway for image generation
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    const imageConfig = lovableKey
+      ? { apiUrl: "https://ai.gateway.lovable.dev/v1/chat/completions", apiKey: lovableKey, stripPrefix: false }
+      : config;
+
+    const response = await fetch(imageConfig.apiUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${imageConfig.apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: resolveModel("google/gemini-2.5-flash-image-preview", config.stripPrefix),
+        model: "google/gemini-2.5-flash",
         messages,
         modalities: ["image", "text"]
       }),
