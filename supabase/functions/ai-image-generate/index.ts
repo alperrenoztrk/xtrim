@@ -5,6 +5,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function getAIConfig() {
+  const googleKey = Deno.env.get("GOOGLE_CLOUD_API_KEY");
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (googleKey) {
+    return { apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", apiKey: googleKey, stripPrefix: true };
+  }
+  if (lovableKey) {
+    return { apiUrl: "https://ai.gateway.lovable.dev/v1/chat/completions", apiKey: lovableKey, stripPrefix: false };
+  }
+  throw new Error("No AI API key configured (GOOGLE_CLOUD_API_KEY or LOVABLE_API_KEY)");
+}
+
+function resolveModel(model: string, strip: boolean): string {
+  return strip ? model.replace("google/", "") : model;
+}
+
 interface GenerateRequest {
   type: 'text-to-image' | 'expand' | 'avatar' | 'poster';
   prompt: string;
@@ -30,12 +46,8 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
-    console.log(`Processing AI generation: ${type}`);
+    const config = getAIConfig();
+    console.log(`Processing AI generation: ${type} (using ${config.stripPrefix ? 'Google Cloud' : 'Lovable'} API)`);
 
     let fullPrompt = prompt;
     let messages: any[] = [];
@@ -45,78 +57,48 @@ serve(async (req) => {
         fullPrompt = `Generate a high-quality image based on this description: ${prompt}. Make it visually stunning and professional.`;
         messages = [{ role: "user", content: fullPrompt }];
         break;
-      
       case 'expand':
-        if (!inputImage) {
-          throw new Error("Input image is required for expansion");
-        }
+        if (!inputImage) throw new Error("Input image is required for expansion");
         fullPrompt = `Expand this image beyond its current boundaries. ${prompt}. Seamlessly extend the content while maintaining consistency with the original image style and content.`;
-        messages = [{
-          role: "user",
-          content: [
-            { type: "text", text: fullPrompt },
-            {
-              type: "image_url",
-              image_url: {
-                url: inputImage.startsWith("data:") ? inputImage : `data:image/png;base64,${inputImage}`
-              }
-            }
-          ]
-        }];
+        messages = [{ role: "user", content: [
+          { type: "text", text: fullPrompt },
+          { type: "image_url", image_url: { url: inputImage.startsWith("data:") ? inputImage : `data:image/png;base64,${inputImage}` } }
+        ]}];
         break;
-      
       case 'avatar':
         fullPrompt = `Create a professional AI avatar: ${prompt}. The avatar should be high-quality, suitable for profile pictures, with good lighting and a clean background.`;
         if (inputImage) {
-          messages = [{
-            role: "user",
-            content: [
-              { type: "text", text: `Transform this photo into a stylized avatar. ${fullPrompt}` },
-              {
-                type: "image_url",
-                image_url: {
-                  url: inputImage.startsWith("data:") ? inputImage : `data:image/png;base64,${inputImage}`
-                }
-              }
-            ]
-          }];
+          messages = [{ role: "user", content: [
+            { type: "text", text: `Transform this photo into a stylized avatar. ${fullPrompt}` },
+            { type: "image_url", image_url: { url: inputImage.startsWith("data:") ? inputImage : `data:image/png;base64,${inputImage}` } }
+          ]}];
         } else {
           messages = [{ role: "user", content: fullPrompt }];
         }
         break;
-      
       case 'poster':
         fullPrompt = `Design a professional poster: ${prompt}. Include appropriate typography placement areas, balanced composition, and eye-catching visual elements.`;
         if (inputImage) {
-          messages = [{
-            role: "user",
-            content: [
-              { type: "text", text: `Create a poster design incorporating this image. ${fullPrompt}` },
-              {
-                type: "image_url",
-                image_url: {
-                  url: inputImage.startsWith("data:") ? inputImage : `data:image/png;base64,${inputImage}`
-                }
-              }
-            ]
-          }];
+          messages = [{ role: "user", content: [
+            { type: "text", text: `Create a poster design incorporating this image. ${fullPrompt}` },
+            { type: "image_url", image_url: { url: inputImage.startsWith("data:") ? inputImage : `data:image/png;base64,${inputImage}` } }
+          ]}];
         } else {
           messages = [{ role: "user", content: fullPrompt }];
         }
         break;
-      
       default:
         throw new Error(`Unknown generation type: ${type}`);
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(config.apiUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${config.apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
+        model: resolveModel("google/gemini-2.5-flash-image-preview", config.stripPrefix),
         messages,
         modalities: ["image", "text"]
       }),
@@ -124,13 +106,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      
-      // IMPORTANT:
-      // supabase.functions.invoke treats non-2xx responses as `error`, which can surface
-      // as "Edge function returned 402" in the client and may crash flows if not handled.
-      // For quota/payment/rate-limit cases we return HTTP 200 + success:false so the UI
-      // can show a friendly message without hard-failing.
+      console.error("AI API error:", response.status, errorText);
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ success: false, error: "Rate limit exceeded. Please try again later." }),
@@ -143,8 +119,7 @@ serve(async (req) => {
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
-      throw new Error(`AI gateway error: ${response.status}`);
+      throw new Error(`AI API error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -157,21 +132,14 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        type,
-        imageUrl: generatedImage,
-        message: `${type} generation completed successfully`
-      }),
+      JSON.stringify({ success: true, type, imageUrl: generatedImage, message: `${type} generation completed successfully` }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
     console.error("Error in AI generation:", error);
     return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error occurred"
-      }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error occurred" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
