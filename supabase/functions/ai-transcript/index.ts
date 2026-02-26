@@ -5,6 +5,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function getAIConfig() {
+  const googleKey = Deno.env.get("GOOGLE_CLOUD_API_KEY");
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (googleKey) {
+    return { apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", apiKey: googleKey, stripPrefix: true };
+  }
+  if (lovableKey) {
+    return { apiUrl: "https://ai.gateway.lovable.dev/v1/chat/completions", apiKey: lovableKey, stripPrefix: false };
+  }
+  throw new Error("No AI API key configured (GOOGLE_CLOUD_API_KEY or LOVABLE_API_KEY)");
+}
+
+function resolveModel(model: string, strip: boolean): string {
+  return strip ? model.replace("google/", "") : model;
+}
+
 interface TranscriptRequest {
   videoUrl: string;
   includeEmptySeconds?: boolean;
@@ -16,27 +32,14 @@ interface TranscriptLine {
 }
 
 const normalizeTranscript = (input: unknown): TranscriptLine[] => {
-  if (!Array.isArray(input)) {
-    return [];
-  }
-
+  if (!Array.isArray(input)) return [];
   return input
     .map((line) => {
-      if (!line || typeof line !== "object") {
-        return null;
-      }
-
+      if (!line || typeof line !== "object") return null;
       const second = Number((line as Record<string, unknown>).second);
       const text = String((line as Record<string, unknown>).text ?? "").trim();
-
-      if (!Number.isFinite(second) || second < 0 || !text) {
-        return null;
-      }
-
-      return {
-        second: Math.floor(second),
-        text,
-      };
+      if (!Number.isFinite(second) || second < 0 || !text) return null;
+      return { second: Math.floor(second), text };
     })
     .filter((line): line is TranscriptLine => Boolean(line))
     .sort((a, b) => a.second - b.second);
@@ -52,15 +55,11 @@ serve(async (req) => {
 
     if (!videoUrl) {
       return new Response(JSON.stringify({ error: "Video URL is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    const config = getAIConfig();
 
     const prompt = `Analyze the speech in this video and create a second-by-second transcript.
 
@@ -81,24 +80,17 @@ Requirements:
 - ${includeEmptySeconds ? "Include empty seconds with text '[silence]' when nobody speaks." : "Skip seconds with no speech."}
 - If video cannot be processed, include an "error" field`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(config.apiUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${config.apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: resolveModel("google/gemini-2.5-flash", config.stripPrefix),
         messages: [
-          {
-            role: "system",
-            content:
-              "You are an expert speech-to-text assistant. Always return strictly valid JSON with no markdown wrapper.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
+          { role: "system", content: "You are an expert speech-to-text assistant. Always return strictly valid JSON with no markdown wrapper." },
+          { role: "user", content: prompt },
         ],
         response_format: { type: "json_object" },
       }),
@@ -106,28 +98,21 @@ Requirements:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      console.error("AI API error:", response.status, errorText);
+      throw new Error(`AI API error: ${response.status}`);
     }
 
     const data = await response.json();
     const rawResult = data.choices?.[0]?.message?.content;
 
-    if (!rawResult) {
-      throw new Error("AI response did not include transcript content");
-    }
+    if (!rawResult) throw new Error("AI response did not include transcript content");
 
     let parsedResult: Record<string, unknown>;
-    try {
-      parsedResult = JSON.parse(rawResult);
-    } catch {
-      throw new Error("AI response was not valid JSON");
-    }
+    try { parsedResult = JSON.parse(rawResult); } catch { throw new Error("AI response was not valid JSON"); }
 
     if (parsedResult.error) {
       return new Response(JSON.stringify({ error: String(parsedResult.error) }), {
-        status: 422,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -137,26 +122,16 @@ Requirements:
       JSON.stringify({
         success: true,
         detectedLanguage: parsedResult.detectedLanguage ?? "unknown",
-        durationSeconds:
-          typeof parsedResult.durationSeconds === "number"
-            ? Math.max(0, Math.floor(parsedResult.durationSeconds))
-            : null,
+        durationSeconds: typeof parsedResult.durationSeconds === "number" ? Math.max(0, Math.floor(parsedResult.durationSeconds)) : null,
         transcript,
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("Error generating transcript:", error);
     return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error occurred" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
