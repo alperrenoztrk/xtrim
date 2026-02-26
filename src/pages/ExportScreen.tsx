@@ -32,6 +32,7 @@ import { ProjectService } from '@/services/ProjectService';
 import { MediaService } from '@/services/MediaService';
 import { nativeExportService } from '@/services/NativeExportService';
 import { ffmpegService } from '@/services/FFmpegService';
+import { SubscriptionService } from '@/services/SubscriptionService';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { Project, ExportSettings } from '@/types';
@@ -180,6 +181,28 @@ const ExportScreen = () => {
   const [estimatedTime, setEstimatedTime] = useState('0 min');
   const [exportedVideoBlob, setExportedVideoBlob] = useState<Blob | null>(null);
   const [isNative] = useState(nativeExportService.isNativePlatform());
+  const [shouldAddWatermark, setShouldAddWatermark] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadPlan = async () => {
+      try {
+        const { plan } = await SubscriptionService.getCurrentPlan();
+        if (!isMounted) return;
+        setShouldAddWatermark(plan === 'free');
+      } catch {
+        if (!isMounted) return;
+        setShouldAddWatermark(true);
+      }
+    };
+
+    void loadPlan();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!project) return;
@@ -292,7 +315,8 @@ const ExportScreen = () => {
           setProgressMessage(p.message);
           if (p.stage === 'encoding') setExportStatus('exporting');
           else if (p.stage === 'finalizing') setExportStatus('finalizing');
-        }
+        },
+        { includeWatermark: shouldAddWatermark }
       );
 
       setExportedVideoBlob(videoBlob);
@@ -778,6 +802,10 @@ const ExportScreen = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">Bitrate:</span>
                   <span className="font-medium">{qualityOptions.find(q => q.id === settings.bitrate)?.bitrateMbps} Mbps</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Watermark:</span>
+                  <span className="font-medium">{shouldAddWatermark ? 'Xtrim filigranı eklenecek' : 'Kaldırıldı (Pro+)'}</span>
                 </div>
               </div>
               <div className="flex justify-between pt-2 border-t border-primary/10">
