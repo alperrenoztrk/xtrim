@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
+import { SubscriptionService } from '@/services/SubscriptionService';
 
 interface TranscriptLine {
   second: number;
@@ -54,6 +55,11 @@ export const AITranscriptPanel = ({ isOpen, onClose, videoUrl, videoName }: AITr
     setIsProcessing(true);
 
     try {
+      const canUseAI = await SubscriptionService.canUseFeature('ai');
+      if (!canUseAI) {
+        throw new Error('AI kullanım kotanız doldu. Lütfen planınızı yükseltin ya da yarını bekleyin.');
+      }
+
       const { data, error } = await supabase.functions.invoke('ai-transcript', {
         body: {
           videoUrl,

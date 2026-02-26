@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { SubscriptionService } from '@/services/SubscriptionService';
 
 export type VideoAITool = 'autocut' | 'enhance' | 'stabilize' | 'denoise' | 'upscale';
 export type ImageGenerationType = 'text-to-image' | 'expand' | 'avatar' | 'poster';
@@ -22,6 +23,11 @@ export class AIToolsService {
     options?: { style?: string; strength?: number }
   ): Promise<AIToolResult> {
     try {
+      const canUseAI = await SubscriptionService.canUseFeature('ai');
+      if (!canUseAI) {
+        throw new Error('AI kullanım kotanız doldu. Lütfen planınızı yükseltin ya da yarını bekleyin.');
+      }
+
       const { data, error } = await supabase.functions.invoke('ai-video-tools', {
         body: { tool, imageBase64, options }
       });
@@ -48,6 +54,11 @@ export class AIToolsService {
     options?: { style?: string; aspectRatio?: string }
   ): Promise<AIToolResult> {
     try {
+      const canUseAI = await SubscriptionService.canUseFeature('ai');
+      if (!canUseAI) {
+        throw new Error('AI kullanım kotanız doldu. Lütfen planınızı yükseltin ya da yarını bekleyin.');
+      }
+
       const { data, error } = await supabase.functions.invoke('ai-image-generate', {
         body: { type, prompt, inputImage, options }
       });
@@ -69,6 +80,11 @@ export class AIToolsService {
   // Remove background (uses existing function)
   static async removeBackground(imageBase64: string): Promise<AIToolResult> {
     try {
+      const canUseAI = await SubscriptionService.canUseFeature('ai');
+      if (!canUseAI) {
+        throw new Error('AI kullanım kotanız doldu. Lütfen planınızı yükseltin ya da yarını bekleyin.');
+      }
+
       const { data, error } = await supabase.functions.invoke('remove-background', {
         body: { imageBase64 }
       });

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { SubscriptionService } from '@/services/SubscriptionService';
 
 interface VideoAIGeneratePanelProps {
   isOpen: boolean;
@@ -127,6 +128,11 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
     cleanupGeneratedVideo();
 
     try {
+      const canUseAI = await SubscriptionService.canUseFeature('ai');
+      if (!canUseAI) {
+        throw new Error('AI kullanım kotanız doldu. Lütfen planınızı yükseltin ya da yarını bekleyin.');
+      }
+
       // Simulate progress for UX
       const progressInterval = setInterval(() => {
         setProgress(prev => {
