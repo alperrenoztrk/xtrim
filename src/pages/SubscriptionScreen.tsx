@@ -42,7 +42,7 @@ const SubscriptionScreen = () => {
           const prices = Object.fromEntries(products.map((product) => [product.productId, product.price ?? '']));
           setStorePrices(prices);
         } catch (error) {
-          console.error('Google Play ürünleri yüklenemedi:', error);
+          console.error('Failed to load Google Play products:', error);
         }
       }
 
@@ -57,7 +57,7 @@ const SubscriptionScreen = () => {
     setPurchasing(planId);
 
     if (!SubscriptionService.isNativeBillingSupported()) {
-      toast.info('Satın alma işlemleri yalnızca Android uygulaması içinde yapılabilir.');
+      toast.info('Purchases can only be made inside the Android app.');
       setPurchasing(null);
       return;
     }
@@ -65,9 +65,9 @@ const SubscriptionScreen = () => {
     try {
       await SubscriptionService.purchasePlan(planId);
       setCurrentPlan(planId);
-      toast.success(`${SubscriptionService.getPlanDetails(planId).name} planınız aktif edildi.`);
+      toast.success(`${SubscriptionService.getPlanDetails(planId).name} plan has been activated.`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Satın alma sırasında bir hata oluştu.';
+      const message = error instanceof Error ? error.message : 'An error occurred during purchase.';
       toast.error(message);
     }
 
@@ -76,7 +76,7 @@ const SubscriptionScreen = () => {
 
   const handleRestorePurchases = async () => {
     if (!SubscriptionService.isNativeBillingSupported()) {
-      toast.info('Abonelik geri yükleme yalnızca Android uygulamasında desteklenir.');
+      toast.info('Subscription restore is only supported in the Android app.');
       return;
     }
 
@@ -84,13 +84,13 @@ const SubscriptionScreen = () => {
     try {
       const { restoredPlan } = await SubscriptionService.restoreNativePurchases();
       if (!restoredPlan) {
-        toast.info('Geri yüklenecek aktif bir Google Play aboneliği bulunamadı.');
+        toast.info('No active Google Play subscription was found to restore.');
       } else {
         setCurrentPlan(restoredPlan);
-        toast.success(`${SubscriptionService.getPlanDetails(restoredPlan).name} planı geri yüklendi.`);
+        toast.success(`${SubscriptionService.getPlanDetails(restoredPlan).name} plan has been restored.`);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Abonelik geri yüklenemedi.';
+      const message = error instanceof Error ? error.message : 'Subscription could not be restored.';
       toast.error(message);
     } finally {
       setRestoring(false);
@@ -114,7 +114,7 @@ const SubscriptionScreen = () => {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="text-lg font-semibold">Abonelik Planları</h1>
+        <h1 className="text-lg font-semibold">Subscription Plans</h1>
       </header>
 
       <div className="p-4 space-y-4 pb-20">
@@ -127,11 +127,11 @@ const SubscriptionScreen = () => {
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-1">
               {planIcons[currentPlan]}
-              <span className="text-sm font-medium text-foreground/80">Mevcut Plan</span>
+              <span className="text-sm font-medium text-foreground/80">Current Plan</span>
             </div>
             <h2 className="text-2xl font-bold text-foreground">{currentPlanDetails.name}</h2>
             <p className="text-sm text-foreground/70 mt-1">
-              AI Kullanım: {currentPlanDetails.aiTasksPerDay === -1 ? '∞' : `${aiUsed}/${currentPlanDetails.aiTasksPerDay}`} bugün
+              AI Usage: {currentPlanDetails.aiTasksPerDay === -1 ? '∞' : `${aiUsed}/${currentPlanDetails.aiTasksPerDay}`} today
             </p>
           </div>
         </motion.div>
@@ -159,7 +159,7 @@ const SubscriptionScreen = () => {
                 {isPopular && (
                   <div className="bg-gradient-to-r from-accent to-primary px-4 py-1.5 text-center">
                     <span className="text-xs font-bold text-foreground tracking-wider uppercase">
-                      En Popüler
+                      Most Popular
                     </span>
                   </div>
                 )}
@@ -180,7 +180,7 @@ const SubscriptionScreen = () => {
                     </div>
                     {isCurrent && (
                       <span className="text-xs font-medium bg-primary/20 text-primary px-3 py-1 rounded-full">
-                        Aktif
+                        Active
                       </span>
                     )}
                   </div>
@@ -209,10 +209,10 @@ const SubscriptionScreen = () => {
                       onClick={() => handleSubscribe(plan.id)}
                     >
                       {purchasing === plan.id
-                        ? 'İşleniyor...'
+                        ? 'Processing...'
                         : isCurrent
-                        ? 'Mevcut Planınız'
-                        : `${plan.name}'a Yükselt`}
+                        ? 'Your Current Plan'
+                        : `Upgrade to ${plan.name}`}
                     </Button>
                   )}
                 </div>
@@ -223,8 +223,8 @@ const SubscriptionScreen = () => {
 
         {/* Info */}
         <p className="text-xs text-center text-muted-foreground px-4 leading-relaxed">
-          Abonelikler Google Play üzerinden yönetilir. İstediğiniz zaman iptal edebilirsiniz.
-          Ödeme Google Play hesabınızdan tahsil edilir.
+          Subscriptions are managed through Google Play. You can cancel anytime.
+          Payment is charged to your Google Play account.
         </p>
 
         <Button
@@ -233,7 +233,7 @@ const SubscriptionScreen = () => {
           onClick={handleRestorePurchases}
           disabled={restoring}
         >
-          {restoring ? 'Geri yükleniyor...' : 'Satın alımları geri yükle'}
+          {restoring ? 'Restoring...' : 'Restore purchases'}
         </Button>
       </div>
     </div>
