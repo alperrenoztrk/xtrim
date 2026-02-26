@@ -26,6 +26,8 @@ const SubscriptionScreen = () => {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [aiUsed, setAiUsed] = useState(0);
+  const [storePrices, setStorePrices] = useState<Record<string, string>>({});
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -33,6 +35,17 @@ const SubscriptionScreen = () => {
       setCurrentPlan(plan);
       const used = await SubscriptionService.getAiUsageToday();
       setAiUsed(used);
+
+      if (SubscriptionService.isNativeBillingSupported()) {
+        try {
+          const products = await SubscriptionService.fetchStoreProducts();
+          const prices = Object.fromEntries(products.map((product) => [product.productId, product.price ?? '']));
+          setStorePrices(prices);
+        } catch (error) {
+          console.error('Google Play ürünleri yüklenemedi:', error);
+        }
+      }
+
       setLoading(false);
     };
     load();
@@ -42,13 +55,46 @@ const SubscriptionScreen = () => {
     if (planId === 'free' || planId === currentPlan) return;
 
     setPurchasing(planId);
-    // In production, this would trigger Google Play Billing
-    // For now, show info about Google Play integration
-    toast.info(
-      'Google Play Billing entegrasyonu gerekli. Uygulama mağazaya yüklendikten sonra satın alma aktif olacak.',
-      { duration: 5000 }
-    );
+
+    if (!SubscriptionService.isNativeBillingSupported()) {
+      toast.info('Satın alma işlemleri yalnızca Android uygulaması içinde yapılabilir.');
+      setPurchasing(null);
+      return;
+    }
+
+    try {
+      await SubscriptionService.purchasePlan(planId);
+      setCurrentPlan(planId);
+      toast.success(`${SubscriptionService.getPlanDetails(planId).name} planınız aktif edildi.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Satın alma sırasında bir hata oluştu.';
+      toast.error(message);
+    }
+
     setPurchasing(null);
+  };
+
+  const handleRestorePurchases = async () => {
+    if (!SubscriptionService.isNativeBillingSupported()) {
+      toast.info('Abonelik geri yükleme yalnızca Android uygulamasında desteklenir.');
+      return;
+    }
+
+    setRestoring(true);
+    try {
+      const { restoredPlan } = await SubscriptionService.restoreNativePurchases();
+      if (!restoredPlan) {
+        toast.info('Geri yüklenecek aktif bir Google Play aboneliği bulunamadı.');
+      } else {
+        setCurrentPlan(restoredPlan);
+        toast.success(`${SubscriptionService.getPlanDetails(restoredPlan).name} planı geri yüklendi.`);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Abonelik geri yüklenemedi.';
+      toast.error(message);
+    } finally {
+      setRestoring(false);
+    }
   };
 
   const currentPlanDetails = PLANS.find(p => p.id === currentPlan)!;
@@ -127,7 +173,9 @@ const SubscriptionScreen = () => {
                       </div>
                       <div>
                         <h3 className="font-bold text-lg text-foreground">{plan.name}</h3>
-                        <p className="text-sm font-semibold text-primary">{plan.price}</p>
+                        <p className="text-sm font-semibold text-primary">
+                          {storePrices[plan.googlePlayProductId] || plan.price}
+                        </p>
                       </div>
                     </div>
                     {isCurrent && (
@@ -178,6 +226,15 @@ const SubscriptionScreen = () => {
           Abonelikler Google Play üzerinden yönetilir. İstediğiniz zaman iptal edebilirsiniz.
           Ödeme Google Play hesabınızdan tahsil edilir.
         </p>
+
+        <Button
+          variant="ghost"
+          className="w-full"
+          onClick={handleRestorePurchases}
+          disabled={restoring}
+        >
+          {restoring ? 'Geri yükleniyor...' : 'Satın alımları geri yükle'}
+        </Button>
       </div>
     </div>
   );
