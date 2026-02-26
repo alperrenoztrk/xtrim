@@ -14,6 +14,7 @@ class FFmpegService {
   private loaded = false;
   private loading = false;
   private readonly ffmpegVersion = '0.12.10';
+  private readonly watermarkText = 'XTRIM';
 
   private async loadFromCDN(baseURL: string) {
     if (!this.ffmpeg) throw new Error('FFmpeg could not be initialized');
@@ -88,7 +89,8 @@ class FFmpegService {
     project: Project,
     settings: ExportSettings,
     format: string,
-    onProgress?: (p: FFmpegProgress) => void
+    onProgress?: (p: FFmpegProgress) => void,
+    options?: { includeWatermark?: boolean }
   ): Promise<Blob> {
     await this.load(onProgress);
 
@@ -197,13 +199,22 @@ class FFmpegService {
     // Get output settings
     const { outputExt, codecArgs } = this.getOutputSettings(format, settings, sourceBitrateMbps);
     const outputName = `output.${outputExt}`;
+    const watermarkEnabled = options?.includeWatermark === true;
 
     // Concatenate all clips
-    await ffmpeg.exec([
+    const concatArgs = [
       '-y',
       '-f', 'concat',
       '-safe', '0',
       '-i', 'concat.txt',
+    ];
+
+    if (watermarkEnabled && format !== 'gif') {
+      concatArgs.push('-vf', this.getWatermarkFilter(settings));
+    }
+
+    await ffmpeg.exec([
+      ...concatArgs,
       ...codecArgs,
       outputName,
     ]);
@@ -265,6 +276,14 @@ class FFmpegService {
   private getScaleFilter(settings: ExportSettings): string {
     const { width, height } = this.getResolutionDimensions(settings.resolution);
     return `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
+  }
+
+  private getWatermarkFilter(settings: ExportSettings): string {
+    const { width, height } = this.getResolutionDimensions(settings.resolution);
+    const fontSize = Math.max(Math.round(Math.min(width, height) * 0.038), 24);
+    const margin = Math.max(Math.round(Math.min(width, height) * 0.025), 16);
+
+    return `drawtext=text='${this.watermarkText}':x=w-tw-${margin}:y=h-th-${margin}:fontsize=${fontSize}:fontcolor=white@0.9:box=1:boxcolor=black@0.35:boxborderw=12`;
   }
 
   private getExtension(uri: string, name: string, type: string): string {
