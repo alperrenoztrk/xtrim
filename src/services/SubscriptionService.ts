@@ -1,4 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
+import { Capacitor } from '@capacitor/core';
+import { PlayBilling, type BillingProduct, type BillingPurchase } from '@/plugins/PlayBillingPlugin';
 
 export type SubscriptionPlan = 'free' | 'pro' | 'premium' | 'ultra';
 
@@ -92,6 +94,91 @@ export const PLANS: PlanDetails[] = [
 ];
 
 export class SubscriptionService {
+  static getPaidPlans(): PlanDetails[] {
+    return PLANS.filter((plan) => plan.id !== 'free');
+  }
+
+  static getPlanByProductId(productId: string): SubscriptionPlan | null {
+    const plan = PLANS.find((item) => item.googlePlayProductId === productId);
+    return plan?.id ?? null;
+  }
+
+  static isNativeBillingSupported(): boolean {
+    return Capacitor.getPlatform() === 'android' && Capacitor.isNativePlatform();
+  }
+
+  static async initializeBilling(): Promise<void> {
+    if (!this.isNativeBillingSupported()) {
+      throw new Error('Google Play Billing yalnızca Android native ortamında destekleniyor.');
+    }
+
+    const { available } = await PlayBilling.isAvailable();
+    if (!available) {
+      throw new Error('Cihazda Google Play Billing kullanılamıyor.');
+    }
+
+    await PlayBilling.initialize();
+  }
+
+  static async fetchStoreProducts(): Promise<BillingProduct[]> {
+    await this.initializeBilling();
+    const productIds = this.getPaidPlans().map((plan) => plan.googlePlayProductId);
+    const { products } = await PlayBilling.getProducts({ productIds, type: 'subs' });
+    return products;
+  }
+
+  static async purchasePlan(plan: SubscriptionPlan): Promise<{ purchase: BillingPurchase; activatedPlan: SubscriptionPlan }> {
+    const planDetails = this.getPlanDetails(plan);
+    if (planDetails.id === 'free' || !planDetails.googlePlayProductId) {
+      throw new Error('Bu plan Google Play üzerinden satın alınamaz.');
+    }
+
+    await this.initializeBilling();
+    const { purchase } = await PlayBilling.purchaseProduct({
+      productId: planDetails.googlePlayProductId,
+      type: 'subs',
+    });
+
+    if (!purchase) {
+      throw new Error('Satın alma tamamlanamadı.');
+    }
+
+    if (purchase.purchaseState !== 'purchased') {
+      throw new Error('Satın alma beklemede. Ödeme onaylandığında planınız aktif olacaktır.');
+    }
+
+    await this.activatePlan(plan, purchase.purchaseToken, purchase.orderId);
+
+    if (!purchase.acknowledged) {
+      await PlayBilling.acknowledgePurchase({ purchaseToken: purchase.purchaseToken });
+    }
+
+    return { purchase, activatedPlan: plan };
+  }
+
+  static async restoreNativePurchases(): Promise<{ restoredPlan: SubscriptionPlan | null }> {
+    await this.initializeBilling();
+    const { purchases } = await PlayBilling.restorePurchases({ type: 'subs' });
+
+    const purchased = purchases.find((item) => item.purchaseState === 'purchased');
+    if (!purchased) {
+      return { restoredPlan: null };
+    }
+
+    const matchedPlan = this.getPlanByProductId(purchased.productId);
+    if (!matchedPlan || matchedPlan === 'free') {
+      return { restoredPlan: null };
+    }
+
+    await this.activatePlan(matchedPlan, purchased.purchaseToken, purchased.orderId);
+
+    if (!purchased.acknowledged) {
+      await PlayBilling.acknowledgePurchase({ purchaseToken: purchased.purchaseToken });
+    }
+
+    return { restoredPlan: matchedPlan };
+  }
+
   static async getCurrentPlan(): Promise<{ plan: SubscriptionPlan; isActive: boolean; expiresAt: string | null }> {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return { plan: 'free', isActive: true, expiresAt: null };
