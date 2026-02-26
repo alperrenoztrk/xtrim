@@ -123,8 +123,13 @@ const VideoTranslatePanel = ({
         },
       });
 
-      if (translateError) throw translateError;
-      if (!translateData.success) throw new Error(translateData.error || 'Translation failed');
+      if (translateError) {
+        // When edge function returns non-2xx, read the error from context
+        const errorBody = translateError?.context ? await translateError.context.json?.().catch(() => null) : null;
+        const errorMessage = errorBody?.error || translateError.message || 'Translation failed';
+        throw new Error(errorMessage);
+      }
+      if (!translateData?.success) throw new Error(translateData?.error || 'Translation failed');
 
       updateProgress(40, 'Text translated...');
 
