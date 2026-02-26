@@ -5,20 +5,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function getAIConfig() {
-  const googleKey = Deno.env.get("GOOGLE_CLOUD_API_KEY");
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  if (googleKey) {
-    return { apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", apiKey: googleKey, stripPrefix: true };
-  }
-  if (lovableKey) {
-    return { apiUrl: "https://ai.gateway.lovable.dev/v1/chat/completions", apiKey: lovableKey, stripPrefix: false };
-  }
-  throw new Error("No AI API key configured (GOOGLE_CLOUD_API_KEY or LOVABLE_API_KEY)");
-}
-
-function resolveModel(model: string, strip: boolean): string {
-  return strip ? model.replace("google/", "") : model;
+function getGoogleApiKey(): string {
+  const key = Deno.env.get("GOOGLE_CLOUD_API_KEY");
+  if (key) return key;
+  throw new Error("GOOGLE_CLOUD_API_KEY is not configured");
 }
 
 interface TranscriptRequest {
@@ -59,7 +49,7 @@ serve(async (req) => {
       });
     }
 
-    const config = getAIConfig();
+    const apiKey = getGoogleApiKey();
 
     const prompt = `Analyze the speech in this video and create a second-by-second transcript.
 
@@ -80,14 +70,14 @@ Requirements:
 - ${includeEmptySeconds ? "Include empty seconds with text '[silence]' when nobody speaks." : "Skip seconds with no speech."}
 - If video cannot be processed, include an "error" field`;
 
-    const response = await fetch(config.apiUrl, {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: resolveModel("google/gemini-2.5-flash", config.stripPrefix),
+        model: "gemini-2.5-flash",
         messages: [
           { role: "system", content: "You are an expert speech-to-text assistant. Always return strictly valid JSON with no markdown wrapper." },
           { role: "user", content: prompt },
