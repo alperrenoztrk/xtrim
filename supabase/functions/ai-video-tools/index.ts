@@ -6,9 +6,9 @@ const corsHeaders = {
 };
 
 function getGoogleApiKey(): string {
-  const key = Deno.env.get("GOOGLE_CLOUD_API_KEY");
+  const key = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
   if (key) return key;
-  throw new Error("GOOGLE_CLOUD_API_KEY is not configured");
+  throw new Error("GEMINI_API_KEY is not configured");
 }
 
 interface AIToolRequest {
