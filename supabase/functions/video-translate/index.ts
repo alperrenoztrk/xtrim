@@ -1,24 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function getAIConfig() {
-  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  if (geminiKey) {
-    return { apiUrl: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", apiKey: geminiKey, stripPrefix: true };
-  }
-  if (lovableKey) {
-    return { apiUrl: "https://ai.gateway.lovable.dev/v1/chat/completions", apiKey: lovableKey, stripPrefix: false };
-  }
+function getApiKey(): string {
+  const key = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
+  if (key) return key;
   throw new Error("GEMINI_API_KEY is not configured");
-}
-
-function resolveModel(model: string, strip: boolean): string {
-  return strip ? model.replace("google/", "") : model;
 }
 
 interface TranslateRequest {
@@ -49,8 +40,19 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const config = getAIConfig();
-    console.log(`Processing video translation: ${sourceLanguage || 'auto'} -> ${targetLanguage} (using ${config.stripPrefix ? 'Google Cloud' : 'Lovable'} API)`);
+    const apiKey = getApiKey();
+    console.log(`Processing video translation: ${sourceLanguage || 'auto'} -> ${targetLanguage}`);
+
+    // Download the video and convert to base64 for Gemini native API
+    console.log("Downloading video from:", videoUrl);
+    const videoResponse = await fetch(videoUrl);
+    if (!videoResponse.ok) {
+      throw new Error(`Failed to download video: ${videoResponse.status}`);
+    }
+    const videoBytes = new Uint8Array(await videoResponse.arrayBuffer());
+    const videoBase64 = base64Encode(videoBytes);
+    const mimeType = videoResponse.headers.get("content-type") || "video/mp4";
+    console.log(`Video downloaded: ${videoBytes.length} bytes, type: ${mimeType}`);
 
     const languageNames: Record<string, string> = {
       'en': 'English', 'tr': 'Turkish', 'es': 'Spanish', 'fr': 'French',
@@ -66,64 +68,58 @@ serve(async (req) => {
     if (options?.generateSubtitles) translationTasks.push(`Subtitle text in ${targetLangName} with timestamps`);
     if (translationTasks.length === 0) translationTasks.push(`A translated script in ${targetLangName}`);
 
-    const translationPrompt = `You are a professional video translator.
-
-Task: Analyze the provided video content and generate:
+    const translationPrompt = `You are a professional video translator. Analyze the speech in this video and generate:
 ${translationTasks.map((task, index) => `${index + 1}. ${task}`).join('\n')}
 
 Source language: ${sourceLangName}
 Target language: ${targetLangName}
-Video URL: ${videoUrl}
 
 Requirements:
 - Preserve the original meaning and tone
 - Adapt cultural references appropriately
 - Maintain natural speech patterns for the target language
 - Include timestamps for subtitles in SRT format
-- Use the provided video URL as the source content to analyze
-- If the video URL is inaccessible, return an "error" field that explains the reason
 
-Please provide the translated content in JSON format with the following structure:
+Respond with valid JSON only:
 {
-  "detectedSourceLanguage": "detected language code",
+  "detectedSourceLanguage": "language code",
   "translatedScript": "full translated script for dubbing",
   "subtitles": [
     { "start": "00:00:00,000", "end": "00:00:03,000", "text": "translated subtitle text" }
   ]
 }`;
 
-    const response = await fetch(config.apiUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: resolveModel("google/gemini-2.5-flash", config.stripPrefix),
-        messages: [
-          { role: "system", content: "You are a professional video translator and subtitle generator. Always respond with valid JSON." },
-          { role: "user", content: translationPrompt }
-        ],
-        response_format: { type: "json_object" }
-      }),
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inlineData: { mimeType, data: videoBase64 } },
+              { text: translationPrompt }
+            ]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json"
+          }
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI API error:", response.status, errorText);
+      console.error("Gemini API error:", response.status, errorText);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "API credits exhausted. Please add funds." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      throw new Error(`AI API error: ${response.status}`);
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const translationResult = data.choices?.[0]?.message?.content;
+    const translationResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!translationResult) throw new Error("AI response did not include translation content");
 
