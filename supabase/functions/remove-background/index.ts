@@ -13,6 +13,53 @@ function getApiConfig(): { apiKey: string; useLovable: boolean } {
   throw new Error("No API key configured");
 }
 
+const CANDIDATE_MODELS = [
+  "gemini-2.0-flash-preview-image-generation",
+  "gemini-2.0-flash-exp-image-generation",
+  "gemini-2.5-flash-preview-04-17",
+  "gemini-2.0-flash-exp",
+];
+
+async function generateWithFallback(apiKey: string, prompt: string, mimeType: string, imageData: string): Promise<string | null> {
+  for (const model of CANDIDATE_MODELS) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    console.log(`Trying model: ${model}`);
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data: imageData } }] }],
+          generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+        }),
+      });
+      if (response.status === 404) {
+        console.log(`Model ${model} returned 404, trying next...`);
+        await response.text();
+        continue;
+      }
+      if (response.status === 429) throw new Error("RATE_LIMIT");
+      if (!response.ok) {
+        const errText = await response.text();
+        console.log(`Model ${model} error ${response.status}: ${errText}`);
+        continue;
+      }
+      const data = await response.json();
+      const parts = data.candidates?.[0]?.content?.parts;
+      if (parts) {
+        for (const part of parts) {
+          if (part.inlineData) return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        }
+      }
+      console.log(`Model ${model} returned no image data`);
+    } catch (e) {
+      if (e.message === "RATE_LIMIT") throw e;
+      console.log(`Model ${model} fetch error: ${e.message}`);
+    }
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -59,25 +106,13 @@ serve(async (req) => {
         const match = imageBase64.match(/^data:(image\/\w+);base64,(.+)$/);
         if (match) { mimeType = match[1]; imageData = match[2]; }
       }
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data: imageData } }] }],
-          generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
-        }),
-      });
-      if (!response.ok) {
-        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-      const data = await response.json();
-      const candidate = data.candidates?.[0];
-      if (candidate?.content?.parts) {
-        for (const part of candidate.content.parts) {
-          if (part.inlineData) { generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`; break; }
+      try {
+        generatedImage = await generateWithFallback(apiKey, prompt, mimeType, imageData);
+      } catch (e) {
+        if (e.message === "RATE_LIMIT") {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
+        throw e;
       }
     }
 
