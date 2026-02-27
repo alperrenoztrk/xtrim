@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, RotateCcw, RotateCw, FlipHorizontal, FlipVertical, Crop, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,11 @@ interface VideoRotateCropPanelProps {
   onClose: () => void;
   onApplyRotation: (rotation: number, flipH: boolean, flipV: boolean) => void;
   onApplyCrop: (aspectRatio: string) => void;
+  initialTab?: 'rotate' | 'crop';
   currentRotation?: number;
   currentFlipH?: boolean;
   currentFlipV?: boolean;
+  currentCropRatio?: string;
 }
 
 const cropRatios = [
@@ -28,15 +30,27 @@ export const VideoRotateCropPanel = ({
   onClose,
   onApplyRotation,
   onApplyCrop,
+  initialTab = 'rotate',
   currentRotation = 0,
   currentFlipH = false,
   currentFlipV = false,
+  currentCropRatio = 'free',
 }: VideoRotateCropPanelProps) => {
-  const [activeTab, setActiveTab] = useState<'rotate' | 'crop'>('rotate');
+  const [activeTab, setActiveTab] = useState<'rotate' | 'crop'>(initialTab);
   const [rotation, setRotation] = useState(currentRotation);
   const [flipH, setFlipH] = useState(currentFlipH);
   const [flipV, setFlipV] = useState(currentFlipV);
-  const [selectedCropRatio, setSelectedCropRatio] = useState('free');
+  const [selectedCropRatio, setSelectedCropRatio] = useState(currentCropRatio);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setActiveTab(initialTab);
+    setRotation(currentRotation);
+    setFlipH(currentFlipH);
+    setFlipV(currentFlipV);
+    setSelectedCropRatio(currentCropRatio);
+  }, [currentCropRatio, currentFlipH, currentFlipV, currentRotation, initialTab, isOpen]);
 
   const handleRotate = (direction: 'cw' | 'ccw') => {
     const newRotation = rotation + (direction === 'cw' ? 90 : -90);
@@ -85,14 +99,6 @@ export const VideoRotateCropPanel = ({
               </Button>
               <span className="font-medium text-foreground">Rotate & Crop</span>
             </div>
-            <Button
-              variant="gradient"
-              size="sm"
-              onClick={activeTab === 'rotate' ? handleApplyRotation : handleApplyCrop}
-            >
-              <Check className="w-4 h-4 mr-1" />
-              Apply
-            </Button>
           </div>
 
           {/* Tab selector */}
@@ -136,23 +142,23 @@ export const VideoRotateCropPanel = ({
 
                 {/* Transform buttons */}
                 <div className="flex items-center justify-center gap-3">
-                  <Button variant="outline" size="lg" onClick={() => handleRotate('ccw')}>
+                  <Button variant="outline" size="sm" onClick={() => handleRotate('ccw')}>
                     <RotateCcw className="w-5 h-5" />
                   </Button>
-                  <Button variant="outline" size="lg" onClick={() => handleRotate('cw')}>
+                  <Button variant="outline" size="sm" onClick={() => handleRotate('cw')}>
                     <RotateCw className="w-5 h-5" />
                   </Button>
                   <div className="w-px h-8 bg-border mx-2" />
                   <Button
                     variant={flipH ? 'secondary' : 'outline'}
-                    size="lg"
+                    size="sm"
                     onClick={() => handleFlip('h')}
                   >
                     <FlipHorizontal className="w-5 h-5" />
                   </Button>
                   <Button
                     variant={flipV ? 'secondary' : 'outline'}
-                    size="lg"
+                    size="sm"
                     onClick={() => handleFlip('v')}
                   >
                     <FlipVertical className="w-5 h-5" />
@@ -163,6 +169,10 @@ export const VideoRotateCropPanel = ({
                 <div className="flex justify-center">
                   <Button variant="ghost" size="sm" onClick={handleReset}>
                     Reset
+                  </Button>
+                  <Button variant="gradient" size="sm" onClick={handleApplyRotation}>
+                    <Check className="w-4 h-4 mr-1" />
+                    Apply
                   </Button>
                 </div>
               </div>
@@ -182,9 +192,26 @@ export const VideoRotateCropPanel = ({
                   ))}
                 </div>
 
-                <p className="text-xs text-muted-foreground text-center">
-                  Video will be cropped with selected ratio
-                </p>
+                {selectedCropRatio === 'free' ? (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Free mode keeps the original framing.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Selected ratio will crop from center.
+                  </p>
+                )}
+
+                <div className="flex gap-2 mt-2 justify-center">
+                  <Button variant="outline" size="sm" onClick={onClose}>
+                    <X className="w-4 h-4" />
+                    Cancel
+                  </Button>
+                  <Button variant="gradient" size="sm" onClick={handleApplyCrop}>
+                    <Check className="w-4 h-4" />
+                    Apply Crop
+                  </Button>
+                </div>
               </div>
             )}
           </div>

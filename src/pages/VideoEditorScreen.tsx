@@ -460,6 +460,7 @@ const VideoEditorScreen = () => {
   const [showTranslatePanel, setShowTranslatePanel] = useState(false);
   const [showTranscriptPanel, setShowTranscriptPanel] = useState(false);
   const [showRotateCropPanel, setShowRotateCropPanel] = useState(false);
+  const [rotateCropInitialTab, setRotateCropInitialTab] = useState<'rotate' | 'crop'>('rotate');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isFeaturePanelOpen =
@@ -1491,12 +1492,13 @@ const VideoEditorScreen = () => {
   };
 
   // Handle Rotate/Crop Panel
-  const handleOpenRotateCrop = () => {
+  const handleOpenRotateCrop = (initialTab: 'rotate' | 'crop' = 'rotate') => {
     if (!selectedClipId || !project) {
       toast.error('Please select a clip');
       return;
     }
     closeAllToolPanels();
+    setRotateCropInitialTab(initialTab);
     setShowRotateCropPanel(true);
   };
 
@@ -1665,8 +1667,10 @@ const VideoEditorScreen = () => {
         handleOpenColor();
         break;
       case 'rotate':
+        handleOpenRotateCrop('rotate');
+        break;
       case 'crop':
-        handleOpenRotateCrop();
+        handleOpenRotateCrop('crop');
         break;
       default:
         break;
@@ -3322,9 +3326,11 @@ const VideoEditorScreen = () => {
           onClose={() => setShowRotateCropPanel(false)}
           onApplyRotation={handleApplyRotation}
           onApplyCrop={handleApplyCrop}
+          initialTab={rotateCropInitialTab}
           currentRotation={selectedClip.rotation || 0}
           currentFlipH={selectedClip.flipH || false}
           currentFlipV={selectedClip.flipV || false}
+          currentCropRatio={selectedClip.cropRatio || 'free'}
         />
       )}
 
