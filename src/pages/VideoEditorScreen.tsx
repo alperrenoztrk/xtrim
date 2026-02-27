@@ -2146,7 +2146,7 @@ const VideoEditorScreen = () => {
   const timelinePixelsPerSecond = (Math.max(timelineViewportWidth, 1) / Math.max(project.duration, 1)) * timelineZoom;
 
   useEffect(() => {
-    if (!timelineScrubRef.current || !selectedClipId) return;
+    if (!timelineScrubRef.current || !selectedClipId || !isPlaying) return;
 
     const timelineNode = timelineScrubRef.current;
     const selectedClipIndex = orderedTimeline.findIndex((clip) => clip.id === selectedClipId);
@@ -2169,7 +2169,7 @@ const VideoEditorScreen = () => {
     requestAnimationFrame(() => {
       isTimelineScrollSyncingRef.current = false;
     });
-  }, [currentTime, fixedTimelinePlayheadOffsetPx, timelinePadding, timelinePixelsPerSecond, orderedTimeline, project.duration, selectedClipId]);
+  }, [currentTime, fixedTimelinePlayheadOffsetPx, isPlaying, timelinePadding, timelinePixelsPerSecond, orderedTimeline, project.duration, selectedClipId]);
 
   return (
     <div className="h-screen flex flex-col bg-white text-black dark:bg-black dark:text-white safe-area-top overflow-hidden">
