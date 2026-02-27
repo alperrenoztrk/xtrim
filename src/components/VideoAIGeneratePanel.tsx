@@ -202,7 +202,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
           </div>
           <div>
             <h3 className="font-semibold text-foreground flex items-center gap-2">
-              AI Video Generateimi
+              AI Video Generate
               <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs rounded-full flex items-center gap-1">
                 <Crown className="w-3 h-3" />
                 PRO
