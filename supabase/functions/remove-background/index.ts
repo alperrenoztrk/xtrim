@@ -5,17 +5,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function getApiConfig(): { apiKey: string; useLovable: boolean } {
-  // User preference: use Gemini API directly first
-  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
-  if (geminiKey) return { apiKey: geminiKey, useLovable: false };
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  if (lovableKey) return { apiKey: lovableKey, useLovable: true };
-  throw new Error("No API key configured");
+function getApiKey(): string {
+  const key = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
+  if (!key) throw new Error("GEMINI_API_KEY is not configured.");
+  return key;
 }
 
 const CANDIDATE_MODELS = [
-  // Prefer newer Gemini image-capable names first
   "gemini-2.5-flash-image",
   "gemini-2.5-flash-image-preview",
   "gemini-2.0-flash-preview-image-generation",
@@ -24,7 +20,8 @@ const CANDIDATE_MODELS = [
   "gemini-2.0-flash-exp",
 ];
 
-async function generateWithFallback(apiKey: string, prompt: string, mimeType: string, imageData: string): Promise<string | null> {
+async function generateWithGemini(apiKey: string, prompt: string, mimeType: string, imageData: string): Promise<{ image: string | null; lastError: string }> {
+  let lastError = "";
   for (const model of CANDIDATE_MODELS) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     console.log(`Trying model: ${model}`);
@@ -38,30 +35,39 @@ async function generateWithFallback(apiKey: string, prompt: string, mimeType: st
         }),
       });
       if (response.status === 404) {
-        console.log(`Model ${model} returned 404, trying next...`);
         await response.text();
+        lastError = `Model ${model} not found`;
+        console.log(`${lastError}, trying next...`);
         continue;
       }
-      if (response.status === 429) throw new Error("RATE_LIMIT");
+      if (response.status === 429) {
+        await response.text();
+        return { image: null, lastError: "RATE_LIMIT" };
+      }
       if (!response.ok) {
         const errText = await response.text();
-        console.log(`Model ${model} error ${response.status}: ${errText}`);
+        lastError = `${model} error ${response.status}: ${errText.substring(0, 200)}`;
+        console.log(lastError);
         continue;
       }
       const data = await response.json();
       const parts = data.candidates?.[0]?.content?.parts;
       if (parts) {
         for (const part of parts) {
-          if (part.inlineData) return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          if (part.inlineData) {
+            console.log(`Success with model: ${model}`);
+            return { image: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`, lastError: "" };
+          }
         }
       }
-      console.log(`Model ${model} returned no image data`);
+      lastError = `${model} returned no image data`;
+      console.log(lastError);
     } catch (e) {
-      if (e.message === "RATE_LIMIT") throw e;
-      console.log(`Model ${model} fetch error: ${e.message}`);
+      lastError = `${model} error: ${e.message}`;
+      console.log(lastError);
     }
   }
-  return null;
+  return { image: null, lastError };
 }
 
 serve(async (req) => {
@@ -77,85 +83,29 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { apiKey, useLovable } = getApiConfig();
-    console.log(`Processing background removal, useLovable=${useLovable}`);
+    const apiKey = getApiKey();
+    console.log("Processing background removal with Gemini API (strict mode)");
 
     const trimmedPrompt = customPrompt?.trim();
     const userInstruction = trimmedPrompt ? `User request: "${trimmedPrompt}"` : "";
     const prompt = ["Task: Remove background from this image.", userInstruction, "Keep subject(s) sharp and natural; removed regions must be fully transparent (alpha 0).", "Return PNG image with transparency only."].filter(Boolean).join("\n");
 
-    let generatedImage: string | null = null;
+    let imageData = imageBase64, mimeType = "image/png";
+    if (imageBase64.startsWith("data:")) {
+      const match = imageBase64.match(/^data:(image\/\w+);base64,(.+)$/);
+      if (match) { mimeType = match[1]; imageData = match[2]; }
+    }
 
-    if (useLovable) {
-      const imageUrl = imageBase64.startsWith("data:") ? imageBase64 : `data:image/png;base64,${imageBase64}`;
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
-          messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: imageUrl } }] }],
-          modalities: ["image", "text"],
-        }),
-      });
-      if (!response.ok) {
-        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        throw new Error(`AI error: ${response.status}`);
-      }
-      const data = await response.json();
-      generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    } else {
-      let imageData = imageBase64, mimeType = "image/png";
-      if (imageBase64.startsWith("data:")) {
-        const match = imageBase64.match(/^data:(image\/\w+);base64,(.+)$/);
-        if (match) { mimeType = match[1]; imageData = match[2]; }
-      }
-      try {
-        generatedImage = await generateWithFallback(apiKey, prompt, mimeType, imageData);
-      } catch (e) {
-        if (e.message === "RATE_LIMIT") {
-          return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
-        throw e;
-      }
+    const { image: generatedImage, lastError } = await generateWithGemini(apiKey, prompt, mimeType, imageData);
 
-      // Fallback to Lovable AI Gateway if all Gemini models failed
-      if (!generatedImage) {
-        const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-        if (lovableKey) {
-          console.log("All Gemini models failed, falling back to Lovable AI Gateway");
-          const imageUrl = imageBase64.startsWith("data:") ? imageBase64 : `data:image/png;base64,${imageBase64}`;
-          const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash-image",
-              messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: imageUrl } }] }],
-              modalities: ["image", "text"],
-            }),
-          });
-
-          if (response.status === 429) {
-            return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-          }
-          if (response.status === 402) {
-            return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-          }
-
-          if (response.ok) {
-            const data = await response.json();
-            generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-          } else {
-            const errorText = await response.text();
-            console.log(`Lovable fallback also failed: ${response.status} - ${errorText}`);
-          }
-        }
-      }
+    if (lastError === "RATE_LIMIT") {
+      return new Response(JSON.stringify({ error: "Gemini API rate limit exceeded. Please wait and try again." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (!generatedImage) {
       return new Response(
-        JSON.stringify({ error: "Gemini image generation models are unavailable for this API key (404 on all candidates)." }),
+        JSON.stringify({ error: `Gemini image generation unavailable. ${lastError}` }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
