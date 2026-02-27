@@ -20,6 +20,55 @@ interface VideoGenerateRequest {
   quality: number;
 }
 
+async function generateImageWithGeminiNative(apiKey: string, prompt: string): Promise<string> {
+  const candidateModels = [
+    "gemini-2.0-flash-preview-image-generation",
+    "gemini-2.0-flash-exp-image-generation",
+    "gemini-2.5-flash-image",
+    "gemini-1.5-flash",
+  ];
+
+  let lastError = "No compatible model found";
+
+  for (const model of candidateModels) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+      }),
+    });
+
+    if (response.status === 404) {
+      const body = await response.text();
+      console.warn(`Gemini model not available: ${model}`, body);
+      lastError = body || `Model not found: ${model}`;
+      continue;
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      if (response.status === 429) throw new Error("Rate limit exceeded.");
+      throw new Error(`Gemini API error (${model}): ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    const candidate = data.candidates?.[0];
+    if (candidate?.content?.parts) {
+      for (const part of candidate.content.parts) {
+        if (part.inlineData?.data && part.inlineData?.mimeType) {
+          return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        }
+      }
+    }
+  }
+
+  throw new Error(`Gemini API error: 404 (${lastError})`);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -74,34 +123,7 @@ serve(async (req) => {
       const data = await response.json();
       generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     } else {
-      // Direct Gemini API
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: enhancedPrompt }] }],
-          generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Gemini API error:", response.status, errorText);
-        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const candidate = data.candidates?.[0];
-      if (candidate?.content?.parts) {
-        for (const part of candidate.content.parts) {
-          if (part.inlineData) {
-            generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-            break;
-          }
-        }
-      }
+      generatedImage = await generateImageWithGeminiNative(apiKey, enhancedPrompt);
     }
 
     if (!generatedImage) throw new Error("Failed to generate video frame");
