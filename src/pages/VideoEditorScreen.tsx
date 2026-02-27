@@ -264,6 +264,16 @@ const findBestSongMatch = async (query: string): Promise<SearchSongResult | null
   }
 };
 
+const getClipTrimmedDuration = (clip: TimelineClip) => Math.max(0, clip.endTime - clip.startTime);
+
+const getClipEffectiveDuration = (clip: TimelineClip) => {
+  const speed = clip.speed && clip.speed > 0 ? clip.speed : 1;
+  return getClipTrimmedDuration(clip) / speed;
+};
+
+const getTimelineEffectiveDuration = (timeline: TimelineClip[]) =>
+  timeline.reduce((sum, clip) => sum + getClipEffectiveDuration(clip), 0);
+
 const TimelineClipItem = ({
   clip,
   media,
@@ -279,7 +289,7 @@ const TimelineClipItem = ({
   isDragging?: boolean;
   pixelsPerSecond: number;
 }) => {
-  const duration = clip.endTime - clip.startTime;
+  const duration = getClipEffectiveDuration(clip);
   const width = Math.max(duration * pixelsPerSecond, 12);
   const isVideo = media?.type === 'video';
   const thumbnailTiles = Math.max(1, Math.round(width / 70));
@@ -637,7 +647,7 @@ const VideoEditorScreen = () => {
       let mediaItemsToAppend = [...newMediaItems];
 
       if (newClips.length > 1) {
-        const clipsTotalDuration = newClips.reduce((acc, clip) => acc + (clip.endTime - clip.startTime), 0);
+        const clipsTotalDuration = getTimelineEffectiveDuration(newClips);
         const mergeProject: Project = {
           ...project,
           mediaItems: [...project.mediaItems, ...newMediaItems],
@@ -713,7 +723,7 @@ const VideoEditorScreen = () => {
         ...project,
         mediaItems: [...project.mediaItems, ...mediaItemsToAppend],
         timeline: appendedTimeline,
-        duration: appendedTimeline.reduce((acc, clip) => acc + (clip.endTime - clip.startTime), 0),
+        duration: getTimelineEffectiveDuration(appendedTimeline),
       };
 
       saveProject(updatedProject);
@@ -748,10 +758,7 @@ const VideoEditorScreen = () => {
     saveProject({
       ...project,
       timeline: updatedTimeline,
-      duration: updatedTimeline.reduce(
-        (acc, clip) => acc + (clip.endTime - clip.startTime),
-        0
-      ),
+      duration: getTimelineEffectiveDuration(updatedTimeline),
     });
     setSelectedClipId(null);
   };
@@ -878,10 +885,7 @@ const VideoEditorScreen = () => {
       return clip;
     });
     
-    const newDuration = updatedTimeline.reduce(
-      (acc, clip) => acc + (clip.endTime - clip.startTime),
-      0
-    );
+    const newDuration = getTimelineEffectiveDuration(updatedTimeline);
 
     const updatedSelectedClip = updatedTimeline.find((clip) => clip.id === selectedClipId);
     if (video && updatedSelectedClip) {
@@ -1323,10 +1327,7 @@ const VideoEditorScreen = () => {
       return clip;
     });
 
-    const newTotalDuration = updatedTimeline.reduce(
-      (acc, clip) => acc + (clip.endTime - clip.startTime),
-      0
-    );
+    const newTotalDuration = getTimelineEffectiveDuration(updatedTimeline);
 
     saveProject({
       ...project,
@@ -1404,10 +1405,7 @@ const VideoEditorScreen = () => {
     }
 
     const orderedClips = [...project.timeline].sort((a, b) => a.order - b.order);
-    const totalDuration = orderedClips.reduce(
-      (acc, clip) => acc + (clip.endTime - clip.startTime),
-      0
-    );
+    const totalDuration = getTimelineEffectiveDuration(orderedClips);
 
     const primaryClip = orderedClips[0];
     const primaryMedia = project.mediaItems.find((item) => item.id === primaryClip.mediaId);
@@ -1549,10 +1547,7 @@ const VideoEditorScreen = () => {
     };
 
     // Create a new clip for the timeline
-    const currentDuration = project.timeline.reduce(
-      (acc, clip) => acc + (clip.endTime - clip.startTime),
-      0
-    );
+    const currentDuration = getTimelineEffectiveDuration(project.timeline);
 
     const newClip: TimelineClip = {
       id: uuidv4(),
@@ -1608,7 +1603,7 @@ const VideoEditorScreen = () => {
     saveProject({
       ...project,
       timeline: updatedTimeline,
-      duration: updatedTimeline.reduce((acc, clip) => acc + (clip.endTime - clip.startTime), 0),
+      duration: getTimelineEffectiveDuration(updatedTimeline),
     });
 
     toast.success(`Video ${newClips.length} parts split`);
@@ -1654,7 +1649,7 @@ const VideoEditorScreen = () => {
           saveProject({
             ...project,
             timeline: [...project.timeline, newClip],
-            duration: project.duration + (newClip.endTime - newClip.startTime),
+            duration: project.duration + getClipEffectiveDuration(newClip),
           });
         }
         break;
@@ -1883,11 +1878,13 @@ const VideoEditorScreen = () => {
     if (!clip) return;
 
     // Calculate relative time within the clip
-    const relativeTime = video.currentTime - clip.startTime;
-    const clipDuration = clip.endTime - clip.startTime;
-    
-    // Update current time display (relative to clip)
-    setCurrentTime(Math.max(0, Math.min(relativeTime, clipDuration)));
+    const clipSpeed = clip.speed && clip.speed > 0 ? clip.speed : 1;
+    const relativeSourceTime = video.currentTime - clip.startTime;
+    const clipDuration = getClipEffectiveDuration(clip);
+    const relativeTimelineTime = relativeSourceTime / clipSpeed;
+
+    // Update current time display (relative to clip timeline duration)
+    setCurrentTime(Math.max(0, Math.min(relativeTimelineTime, clipDuration)));
 
     // Stop at clip end
     if (video.currentTime >= clip.endTime) {
@@ -1932,10 +1929,12 @@ const VideoEditorScreen = () => {
     const clip = project?.timeline.find((c) => c.id === selectedClipId);
     
     if (video && clip) {
-      // time is relative to clip, so add clip.startTime
-      const absoluteTime = clip.startTime + time;
+      const clipSpeed = clip.speed && clip.speed > 0 ? clip.speed : 1;
+      // time is relative to timeline duration, map back to source media with speed.
+      const absoluteTime = clip.startTime + time * clipSpeed;
+      const clampedTimelineTime = Math.max(0, Math.min(time, getClipEffectiveDuration(clip)));
       video.currentTime = Math.max(clip.startTime, Math.min(absoluteTime, clip.endTime));
-      setCurrentTime(time);
+      setCurrentTime(clampedTimelineTime);
     }
   };
 
@@ -1953,7 +1952,7 @@ const VideoEditorScreen = () => {
     let targetRelativeTime = 0;
 
     for (const clip of orderedTimeline) {
-      const clipDuration = Math.max(0, clip.endTime - clip.startTime);
+      const clipDuration = getClipEffectiveDuration(clip);
       const clipEnd = elapsedDuration + clipDuration;
 
       if (targetAbsoluteTime <= clipEnd || clip === orderedTimeline[orderedTimeline.length - 1]) {
@@ -1971,9 +1970,10 @@ const VideoEditorScreen = () => {
 
     const video = videoRef.current;
     if (video) {
+      const targetClipSpeed = targetClip.speed && targetClip.speed > 0 ? targetClip.speed : 1;
       video.currentTime = Math.max(
         targetClip.startTime,
-        Math.min(targetClip.startTime + targetRelativeTime, targetClip.endTime)
+        Math.min(targetClip.startTime + targetRelativeTime * targetClipSpeed, targetClip.endTime)
       );
     }
 
@@ -1992,9 +1992,9 @@ const VideoEditorScreen = () => {
 
     const selectedClipOffset = orderedTimeline
       .slice(0, selectedClipIndex)
-      .reduce((sum, clip) => sum + (clip.endTime - clip.startTime), 0);
+      .reduce((sum, clip) => sum + getClipEffectiveDuration(clip), 0);
 
-    const selectedClipDuration = selectedTimelineClip.endTime - selectedTimelineClip.startTime;
+    const selectedClipDuration = getClipEffectiveDuration(selectedTimelineClip);
     const timelineNode = timelineScrubRef.current;
     const viewportW = Math.max(timelineNode.clientWidth, 1);
     const padding = Math.max(viewportW / 2, 16);
@@ -2153,7 +2153,7 @@ const VideoEditorScreen = () => {
 
     const selectedClipOffset = orderedTimeline
       .slice(0, selectedClipIndex)
-      .reduce((sum, clip) => sum + (clip.endTime - clip.startTime), 0);
+      .reduce((sum, clip) => sum + getClipEffectiveDuration(clip), 0);
 
     const absoluteTime = selectedClipOffset + currentTime;
     const clipPixelPosition = absoluteTime * timelinePixelsPerSecond;
@@ -2418,7 +2418,7 @@ const VideoEditorScreen = () => {
         {selectedMedia?.type === 'video' && selectedClip && showVideoControls && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-sm">
             <span className="text-sm text-white font-medium">
-              {MediaService.formatDuration(currentTime)} / {MediaService.formatDuration(selectedClip.endTime - selectedClip.startTime)}
+              {MediaService.formatDuration(currentTime)} / {MediaService.formatDuration(getClipEffectiveDuration(selectedClip))}
             </span>
           </div>
         )}
@@ -2435,14 +2435,14 @@ const VideoEditorScreen = () => {
               </span>
               <Slider
                 value={[currentTime]}
-                max={selectedClip.endTime - selectedClip.startTime}
+                max={getClipEffectiveDuration(selectedClip)}
                 step={0.01}
                 onValueChange={([value]) => handleSeek(value)}
                 onValueCommit={([value]) => handleSeek(value)}
                 className="w-full"
               />
               <span className="text-xs text-white/90 min-w-[40px] text-right">
-                {MediaService.formatDuration(selectedClip.endTime - selectedClip.startTime)}
+                {MediaService.formatDuration(getClipEffectiveDuration(selectedClip))}
               </span>
             </div>
           </div>
@@ -2599,7 +2599,7 @@ const VideoEditorScreen = () => {
 
                 <Slider
                   value={[currentTime]}
-                  max={selectedClip ? (selectedClip.endTime - selectedClip.startTime) : Math.max(project.duration, 1)}
+                  max={selectedClip ? getClipEffectiveDuration(selectedClip) : Math.max(project.duration, 1)}
                   step={0.1}
                   onValueChange={([value]) => handleSeek(value)}
                   onValueCommit={([value]) => handleSeek(value)}
@@ -3079,7 +3079,7 @@ const VideoEditorScreen = () => {
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{media?.name || `Clip ${index + 1}`}</p>
                           <p className="text-xs text-muted-foreground">
-                            {MediaService.formatDuration(clip.endTime - clip.startTime)}
+                            {MediaService.formatDuration(getClipEffectiveDuration(clip))}
                           </p>
                         </div>
                       </div>
