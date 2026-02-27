@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   X, 
@@ -8,14 +8,15 @@ import {
   Check,
   Sparkles,
   Image as ImageIcon,
-  Download
+  Download,
+  Eraser
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { AIToolsService } from '@/services/AIToolsService';
 import { toast } from 'sonner';
 
-type EnhanceMode = 'enhance' | 'denoise' | 'upscale';
+type EnhanceMode = 'enhance' | 'denoise' | 'upscale' | 'watermark-remove';
 
 interface EnhanceModeOption {
   id: EnhanceMode;
@@ -43,26 +44,38 @@ const enhanceModes: EnhanceModeOption[] = [
     description: 'Upscale low-quality visuals',
     icon: ImageIcon 
   },
+  {
+    id: 'watermark-remove',
+    label: 'Watermark Remover',
+    description: 'Remove logo and text watermarks from the frame',
+    icon: Eraser
+  },
 ];
 
 interface VideoEnhancePanelProps {
   videoRef: React.RefObject<HTMLVideoElement>;
   onClose: () => void;
   onEnhanceComplete?: (enhancedImageUrl: string) => void;
+  initialMode?: EnhanceMode;
 }
 
 export const VideoEnhancePanel = ({
   videoRef,
   onClose,
-  onEnhanceComplete
+  onEnhanceComplete,
+  initialMode = 'enhance'
 }: VideoEnhancePanelProps) => {
-  const [selectedMode, setSelectedMode] = useState<EnhanceMode>('enhance');
+  const [selectedMode, setSelectedMode] = useState<EnhanceMode>(initialMode);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [resultImageUrl, setResultImageUrl] = useState<string | null>(null);
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
   const [showComparison, setShowComparison] = useState(false);
+
+  useEffect(() => {
+    setSelectedMode(initialMode);
+  }, [initialMode]);
 
   const captureAndEnhance = useCallback(async () => {
     const video = videoRef.current;

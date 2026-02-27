@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SubscriptionService } from '@/services/SubscriptionService';
 
-export type VideoAITool = 'autocut' | 'enhance' | 'stabilize' | 'denoise' | 'upscale';
+export type VideoAITool = 'autocut' | 'enhance' | 'stabilize' | 'denoise' | 'upscale' | 'watermark-remove';
 export type ImageGenerationType = 'text-to-image' | 'expand' | 'avatar' | 'poster';
 
 export interface AIToolResult {

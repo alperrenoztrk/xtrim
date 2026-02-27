@@ -14,7 +14,7 @@ function getApiConfig(): { apiKey: string; useLovable: boolean } {
 }
 
 interface AIToolRequest {
-  tool: 'autocut' | 'enhance' | 'stabilize' | 'denoise' | 'upscale';
+  tool: 'autocut' | 'enhance' | 'stabilize' | 'denoise' | 'upscale' | 'watermark-remove';
   videoBase64?: string;
   imageBase64?: string;
   options?: { style?: string; strength?: number; targetFps?: number };
@@ -45,11 +45,12 @@ serve(async (req) => {
       case 'stabilize': prompt = "Analyze this video frame for camera shake and motion blur. Describe the stabilization needed and corrections required."; break;
       case 'denoise': prompt = "Remove noise and grain from this image while preserving details and sharpness. Output a clean, high-quality version."; break;
       case 'upscale': prompt = "Upscale and enhance the resolution of this image. Add fine details, improve clarity while maintaining natural appearance."; break;
+      case 'watermark-remove': prompt = "Remove visible watermark/logo/text overlays from this visual. Fill the removed area naturally by matching nearby texture, color and lighting. Preserve original composition and quality."; break;
       default: throw new Error(`Unknown tool: ${tool}`);
     }
 
     // Image processing tools
-    if (tool === 'enhance' || tool === 'denoise' || tool === 'upscale') {
+    if (tool === 'enhance' || tool === 'denoise' || tool === 'upscale' || tool === 'watermark-remove') {
       if (!inputData) throw new Error("Image data is required for this tool");
 
       let generatedImage: string | null = null;
