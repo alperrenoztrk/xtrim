@@ -141,7 +141,7 @@ const LoginScreen = () => {
           onClick={() => setIsSignUp(!isSignUp)}
           className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors text-center"
         >
-          {isSignUp ? 'Already have an account? Sign In' : 'Don't have an account? Sign Up'}
+          {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
         </button>
 
         {/* Divider */}
