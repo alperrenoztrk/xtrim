@@ -27,7 +27,9 @@ import {
   MoreHorizontal,
   Bot,
   Loader2,
+  Copy,
   Share2,
+  Sticker,
   Maximize,
   Minimize,
   ZoomIn,
@@ -191,13 +193,14 @@ interface CropInteractionState {
   handle?: CropHandle;
 }
 
-type QuickTool = 'collage' | 'delete' | 'audio' | 'text' | 'more';
+type QuickTool = 'collage' | 'delete' | 'audio' | 'text' | 'sticker' | 'more';
 
 const moreMenuTools: { id: Exclude<QuickTool, 'more'>; icon: React.ComponentType<any>; label: string }[] = [
   { id: 'collage', icon: LayoutGrid, label: 'Collage' },
   { id: 'delete', icon: Trash2, label: 'Delete' },
   { id: 'audio', icon: Volume2, label: 'Audio' },
   { id: 'text', icon: Type, label: 'Text' },
+  { id: 'sticker', icon: Sticker, label: 'Sticker' },
 ];
 
 const drawBrushOptions: { id: DrawBrushType; label: string; icon: React.ComponentType<any>; description: string }[] = [
@@ -242,6 +245,7 @@ const PhotoEditorScreen = () => {
   const [drawOpacity, setDrawOpacity] = useState(0.9);
   const [drawBrushType, setDrawBrushType] = useState<DrawBrushType>('precision');
   const [cornerRadius, setCornerRadius] = useState(0);
+  const [isCreatingSticker, setIsCreatingSticker] = useState(false);
   
   // AI Tool states
   const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
@@ -1006,6 +1010,65 @@ const PhotoEditorScreen = () => {
     await handleSaveToDevice(imageBlob);
   };
 
+  const blobToDataUrl = (blob: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result !== 'string') {
+          reject(new Error('File could not be read'));
+          return;
+        }
+
+        resolve(reader.result);
+      };
+      reader.onerror = () => reject(new Error('File could not be read'));
+      reader.readAsDataURL(blob);
+    });
+
+  const handleCreateStickerCopy = async () => {
+    if (!imageUrl) {
+      toast.error('Please select a photo first');
+      return;
+    }
+
+    setIsCreatingSticker(true);
+
+    try {
+      const editedImageBlob = await createEditedImageBlob();
+      if (!editedImageBlob) {
+        return;
+      }
+
+      const editedImageBase64 = await blobToDataUrl(editedImageBlob);
+      const stickerResult = await AIToolsService.removeBackground(editedImageBase64);
+
+      if (!stickerResult.success || !stickerResult.imageUrl) {
+        throw new Error(stickerResult.error || 'Sticker could not be created');
+      }
+
+      const stickerResponse = await fetch(stickerResult.imageUrl);
+      const stickerBlob = await stickerResponse.blob();
+
+      if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+        setImageUrl(stickerResult.imageUrl);
+        toast.success('Sticker created. Clipboard is not supported on this device.');
+        return;
+      }
+
+      await navigator.clipboard.write([
+        new ClipboardItem({ [stickerBlob.type]: stickerBlob }),
+      ]);
+
+      toast.success('Sticker copied to clipboard');
+    } catch (error) {
+      console.error('Sticker creation error:', error);
+      const message = error instanceof Error ? error.message : 'Sticker could not be created';
+      toast.error(message);
+    } finally {
+      setIsCreatingSticker(false);
+    }
+  };
+
   // AI Processing functions
   const processAITool = async () => {
     if (!imageUrl && activeAITool !== 'generate') {
@@ -1108,7 +1171,7 @@ const PhotoEditorScreen = () => {
     toast.success('Photo removed from editor');
   };
 
-  const handleQuickToolClick = (toolId: QuickTool) => {
+  const handleQuickToolClick = async (toolId: QuickTool) => {
     setActiveQuickTool(toolId);
     const collageSourceImages = selectedImageUrls.length > 0
       ? selectedImageUrls
@@ -1135,6 +1198,9 @@ const PhotoEditorScreen = () => {
       case 'text':
         setActiveTab('ai');
         setActiveAITool('poster');
+        break;
+      case 'sticker':
+        await handleCreateStickerCopy();
         break;
       case 'more':
         setActiveTab('filters');
@@ -1893,12 +1959,24 @@ const PhotoEditorScreen = () => {
                           'h-20 rounded-xl border border-border bg-background transition-colors px-3 flex items-center gap-3',
                           'hover:bg-secondary/40'
                         )}
-                        onClick={() => handleQuickToolClick(tool.id)}
+                        onClick={() => {
+                          void handleQuickToolClick(tool.id);
+                        }}
+                        disabled={tool.id === 'sticker' && isCreatingSticker}
                       >
                         <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                          <tool.icon className="w-4 h-4" />
+                          {tool.id === 'sticker' && isCreatingSticker ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <tool.icon className="w-4 h-4" />
+                          )}
                         </div>
-                        <span className="text-sm font-medium text-left">{tool.label}</span>
+                        <span className="text-sm font-medium text-left">
+                          {tool.id === 'sticker' ? 'Sticker (Kopyala)' : tool.label}
+                        </span>
+                        {tool.id === 'sticker' && (
+                          <Copy className="w-4 h-4 ml-auto text-muted-foreground" />
+                        )}
                       </button>
                     ))}
                   </div>
