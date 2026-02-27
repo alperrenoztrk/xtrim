@@ -1164,7 +1164,7 @@ const PhotoEditorScreen = () => {
     { id: 'expand', name: 'Expand', icon: Expand, description: 'Expand photo with AI' },
     { id: 'generate', name: 'Image from Text', icon: Type, description: 'Create image from description' },
     { id: 'avatar', name: 'Avatar Generator', icon: Bot, description: 'Design AI avatar' },
-    { id: 'poster', name: 'Poster Yap', icon: Palette, description: 'Profesyonel poster tasarla' },
+    { id: 'poster', name: 'Make a Poster', icon: Palette, description: 'Design a professional poster' },
   ];
 
   return (
@@ -1745,7 +1745,7 @@ const PhotoEditorScreen = () => {
                         <Input
                           value={aiAnimatedPrompt}
                           onChange={(event) => setAiAnimatedPrompt(event.target.value)}
-                          placeholder="Örn: neon parçacıklar, sis, sinematik ışık sızıntısı"
+                          placeholder="E.g.: neon particles, fog, cinematic light leak"
                           className="h-8 text-xs"
                         />
                         <Button
@@ -1755,7 +1755,7 @@ const PhotoEditorScreen = () => {
                           onClick={handleGenerateAnimatedFilter}
                         >
                           {isGeneratingAnimatedFilter ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
-                          AI animasyon filtresi üret
+                          Generate AI animation filter
                         </Button>
                       </div>
                     )}
@@ -1905,7 +1905,7 @@ const PhotoEditorScreen = () => {
 
                   <div className="mt-4 rounded-xl border border-border bg-background p-3 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Kenar Yuvarlama</span>
+                      <span className="text-sm font-medium">Corner Radius</span>
                       <span className="text-xs text-muted-foreground">{cornerRadius}px</span>
                     </div>
                     <Slider
