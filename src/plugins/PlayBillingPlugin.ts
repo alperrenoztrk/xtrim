@@ -40,26 +40,26 @@ class PlayBillingWeb extends WebPlugin implements PlayBillingPlugin {
   }
 
   async initialize(): Promise<void> {
-    throw this.unavailable('Google Play Billing is only available in the native Android environment.');
+    throw this.createUnavailableError('Google Play Billing is only available in the native Android environment.');
   }
 
   async getProducts(): Promise<{ products: BillingProduct[] }> {
-    throw this.unavailable('Google Play Billing is only available in the native Android environment.');
+    throw this.createUnavailableError('Google Play Billing is only available in the native Android environment.');
   }
 
   async purchaseProduct(): Promise<{ purchase: BillingPurchase | null }> {
-    throw this.unavailable('Google Play Billing is only available in the native Android environment.');
+    throw this.createUnavailableError('Google Play Billing is only available in the native Android environment.');
   }
 
   async restorePurchases(): Promise<{ purchases: BillingPurchase[] }> {
-    throw this.unavailable('Google Play Billing is only available in the native Android environment.');
+    throw this.createUnavailableError('Google Play Billing is only available in the native Android environment.');
   }
 
   async acknowledgePurchase(): Promise<void> {
-    throw this.unavailable('Google Play Billing is only available in the native Android environment.');
+    throw this.createUnavailableError('Google Play Billing is only available in the native Android environment.');
   }
 
-  private unavailable(message: string): Error {
+  private createUnavailableError(message: string): Error {
     return new Error(message);
   }
 }
