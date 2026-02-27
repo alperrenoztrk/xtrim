@@ -2012,7 +2012,8 @@ const VideoEditorScreen = () => {
 
   const handleTimelinePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!selectedClipId) return;
-    if (event.pointerType !== 'touch' && event.button !== 0) return;
+    if (event.pointerType === 'touch') return;
+    if (event.button !== 0) return;
 
     const target = event.target as HTMLElement;
     if (target.closest('[data-timeline-item="true"]')) return;
@@ -2619,7 +2620,7 @@ const VideoEditorScreen = () => {
           <div
             ref={timelineScrubRef}
             className={cn(
-              'px-4 pb-2 overflow-x-auto scrollbar-hide touch-pan-x',
+              'pb-2 overflow-x-auto scrollbar-hide touch-pan-x',
               selectedClipId && 'cursor-ew-resize'
             )}
             onPointerDown={handleTimelinePointerDown}
