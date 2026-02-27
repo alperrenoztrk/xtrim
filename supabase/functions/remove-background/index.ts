@@ -6,10 +6,11 @@ const corsHeaders = {
 };
 
 function getApiConfig(): { apiKey: string; useLovable: boolean } {
-  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
-  if (geminiKey) return { apiKey: geminiKey, useLovable: false };
+  // Prioritize Lovable AI Gateway for image generation (native Gemini models often 404)
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   if (lovableKey) return { apiKey: lovableKey, useLovable: true };
+  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
+  if (geminiKey) return { apiKey: geminiKey, useLovable: false };
   throw new Error("No API key configured");
 }
 
