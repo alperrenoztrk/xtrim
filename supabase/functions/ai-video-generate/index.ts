@@ -5,6 +5,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function getApiConfig(): { apiKey: string; useLovable: boolean } {
+  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
+  if (geminiKey) return { apiKey: geminiKey, useLovable: false };
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableKey) return { apiKey: lovableKey, useLovable: true };
+  throw new Error("No API key configured");
+}
+
 interface VideoGenerateRequest {
   prompt: string;
   style: string;
@@ -27,10 +35,8 @@ serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
-
-    console.log(`Generating AI video frame: style=${style}, duration=${duration}s, quality=${quality}%`);
+    const { apiKey, useLovable } = getApiConfig();
+    console.log(`Generating AI video frame: style=${style}, duration=${duration}s, quality=${quality}%, useLovable=${useLovable}`);
 
     const styleDescriptions: Record<string, string> = {
       cinematic: "cinematic film style, dramatic lighting, movie quality, 35mm film look",
@@ -44,42 +50,66 @@ serve(async (req) => {
     const styleDesc = styleDescriptions[style] || styleDescriptions.cinematic;
     const enhancedPrompt = `Create a stunning video frame: ${prompt}. Style: ${styleDesc}. High quality, ${quality}% detail level. Ultra high resolution, professional cinematography.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
-        messages: [{ role: "user", content: enhancedPrompt }],
-        modalities: ["image", "text"],
-      }),
-    });
+    let generatedImage: string | null = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (useLovable) {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3-pro-image-preview",
+          messages: [{ role: "user", content: enhancedPrompt }],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Lovable AI error:", response.status, errorText);
+        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        throw new Error(`AI error: ${response.status}`);
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+      const data = await response.json();
+      generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    } else {
+      // Direct Gemini API
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: enhancedPrompt }] }],
+          generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Gemini API error:", response.status, errorText);
+        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        throw new Error(`Gemini API error: ${response.status}`);
       }
-      throw new Error(`AI Gateway error: ${response.status}`);
+
+      const data = await response.json();
+      const candidate = data.candidates?.[0];
+      if (candidate?.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (part.inlineData) {
+            generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+            break;
+          }
+        }
+      }
     }
-
-    const data = await response.json();
-    const generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!generatedImage) throw new Error("Failed to generate video frame");
 
     console.log("Video frame generated successfully");
 
     return new Response(
-      JSON.stringify({ success: true, frameUrl: generatedImage, duration, style, message: "Video frame generated successfully. Ready to add to timeline." }),
+      JSON.stringify({ success: true, frameUrl: generatedImage, duration, style, message: "Video frame generated successfully." }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
