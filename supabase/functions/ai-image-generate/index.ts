@@ -5,14 +5,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function getApiConfig(): { apiKey: string; useLovable: boolean } {
+  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
+  if (geminiKey) return { apiKey: geminiKey, useLovable: false };
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableKey) return { apiKey: lovableKey, useLovable: true };
+  throw new Error("No API key configured");
+}
+
 interface GenerateRequest {
   type: 'text-to-image' | 'expand' | 'avatar' | 'poster';
   prompt: string;
   inputImage?: string;
-  options?: {
-    style?: string;
-    aspectRatio?: string;
-  };
+  options?: { style?: string; aspectRatio?: string };
 }
 
 serve(async (req) => {
@@ -24,86 +29,79 @@ serve(async (req) => {
     const { type, prompt, inputImage, options }: GenerateRequest = await req.json();
 
     if (!type || !prompt) {
-      return new Response(
-        JSON.stringify({ error: "Type and prompt are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Type and prompt are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("LOVABLE_API_KEY is not configured");
-
-    console.log(`Processing AI generation: ${type}`);
+    const { apiKey, useLovable } = getApiConfig();
+    console.log(`Processing AI generation: ${type}, useLovable=${useLovable}`);
 
     let fullPrompt = "";
     switch (type) {
-      case 'text-to-image':
-        fullPrompt = `Generate a high-quality image based on this description: ${prompt}. Make it visually stunning and professional.`;
-        break;
-      case 'expand':
-        fullPrompt = `Expand this image beyond its current boundaries. ${prompt}. Seamlessly extend the content while maintaining consistency.`;
-        break;
-      case 'avatar':
-        fullPrompt = `Create a professional AI avatar: ${prompt}. High-quality, suitable for profile pictures, good lighting, clean background.`;
-        break;
-      case 'poster':
-        fullPrompt = `Design a professional poster: ${prompt}. Include typography placement areas, balanced composition, eye-catching visuals.`;
-        break;
-      default:
-        throw new Error(`Unknown generation type: ${type}`);
+      case 'text-to-image': fullPrompt = `Generate a high-quality image: ${prompt}. Visually stunning and professional.`; break;
+      case 'expand': fullPrompt = `Expand this image beyond its current boundaries. ${prompt}. Seamlessly extend content.`; break;
+      case 'avatar': fullPrompt = `Create a professional AI avatar: ${prompt}. High-quality, good lighting, clean background.`; break;
+      case 'poster': fullPrompt = `Design a professional poster: ${prompt}. Balanced composition, eye-catching visuals.`; break;
+      default: throw new Error(`Unknown type: ${type}`);
     }
 
-    // Build message content
-    const content: any[] = [{ type: "text", text: fullPrompt }];
-    if (inputImage && (type === 'expand' || type === 'avatar' || type === 'poster')) {
-      content.push({ type: "image_url", image_url: { url: inputImage.startsWith("data:") ? inputImage : `data:image/png;base64,${inputImage}` } });
-    }
+    let generatedImage: string | null = null;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
-        messages: [{ role: "user", content }],
-        modalities: ["image", "text"],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ success: false, error: "Rate limit exceeded. Please try again later." }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (useLovable) {
+      const content: any[] = [{ type: "text", text: fullPrompt }];
+      if (inputImage && type !== 'text-to-image') {
+        content.push({ type: "image_url", image_url: { url: inputImage.startsWith("data:") ? inputImage : `data:image/png;base64,${inputImage}` } });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ success: false, error: "AI credits exhausted." }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "google/gemini-3-pro-image-preview", messages: [{ role: "user", content }], modalities: ["image", "text"] }),
+      });
+      if (!response.ok) {
+        if (response.status === 429) return new Response(JSON.stringify({ success: false, error: "Rate limit exceeded." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (response.status === 402) return new Response(JSON.stringify({ success: false, error: "AI credits exhausted." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        throw new Error(`AI error: ${response.status}`);
       }
-      throw new Error(`AI Gateway error: ${response.status}`);
+      const data = await response.json();
+      generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    } else {
+      const parts: any[] = [{ text: fullPrompt }];
+      if (inputImage && type !== 'text-to-image') {
+        let imageData = inputImage, mimeType = "image/png";
+        if (inputImage.startsWith("data:")) {
+          const match = inputImage.match(/^data:(image\/\w+);base64,(.+)$/);
+          if (match) { mimeType = match[1]; imageData = match[2]; }
+        }
+        parts.push({ inlineData: { mimeType, data: imageData } });
+      }
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseModalities: ["TEXT", "IMAGE"] } }),
+      });
+      if (!response.ok) {
+        if (response.status === 429) return new Response(JSON.stringify({ success: false, error: "Rate limit exceeded." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+      const data = await response.json();
+      const candidate = data.candidates?.[0];
+      if (candidate?.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (part.inlineData) { generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`; break; }
+        }
+      }
     }
 
-    const data = await response.json();
-    const generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-    if (!generatedImage) {
-      console.log("No image generated, response:", JSON.stringify(data).slice(0, 500));
-      throw new Error("Image generation failed");
-    }
+    if (!generatedImage) throw new Error("Image generation failed");
 
     return new Response(
-      JSON.stringify({ success: true, type, imageUrl: generatedImage, message: `${type} generation completed successfully` }),
+      JSON.stringify({ success: true, type, imageUrl: generatedImage, message: `${type} generation completed` }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
   } catch (error) {
     console.error("Error in AI generation:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error occurred" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
