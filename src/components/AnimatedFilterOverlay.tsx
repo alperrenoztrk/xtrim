@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 
-export type AnimatedFilterType = 'none' | 'snow' | 'rain' | 'sparkles';
+export type AnimatedFilterType = 'none' | 'snow' | 'rain' | 'sparkles' | 'ai';
 
 interface AnimatedFilterOverlayProps {
   type: AnimatedFilterType;
   className?: string;
   particleCount?: number;
+  aiTextureUrl?: string;
 }
 
 interface ParticleStyle {
@@ -32,6 +33,7 @@ export const AnimatedFilterOverlay = ({
   type,
   className,
   particleCount,
+  aiTextureUrl,
 }: AnimatedFilterOverlayProps) => {
   const particles = useMemo(() => {
     switch (type) {
@@ -41,6 +43,8 @@ export const AnimatedFilterOverlay = ({
         return createParticles(particleCount ?? 52, true);
       case 'sparkles':
         return createParticles(particleCount ?? 26);
+      case 'ai':
+        return createParticles(particleCount ?? 18);
       default:
         return [];
     }
@@ -97,11 +101,33 @@ export const AnimatedFilterOverlay = ({
         </span>
       ))}
 
+      {type === 'ai' && aiTextureUrl && (
+        <>
+          <span
+            className="absolute -inset-[20%] bg-center bg-cover opacity-45 mix-blend-screen animate-xtrim-ai-drift"
+            style={{ backgroundImage: `url(${aiTextureUrl})` }}
+          />
+          {particles.map((particle, index) => (
+            <span
+              key={`ai-glow-${index}`}
+              className="absolute rounded-full bg-violet-200/70 blur-[1px] animate-xtrim-twinkle"
+              style={{
+                width: `${4 + (index % 4)}px`,
+                height: `${4 + (index % 4)}px`,
+                ...particle,
+                animationDuration: `${1.6 + (index % 7) * 0.35}s`,
+              }}
+            />
+          ))}
+        </>
+      )}
+
       <div className={cn(
         'absolute inset-0',
         type === 'snow' && 'bg-gradient-to-b from-white/5 via-transparent to-sky-200/10',
         type === 'rain' && 'bg-gradient-to-b from-slate-700/10 via-slate-900/15 to-slate-800/20',
-        type === 'sparkles' && 'bg-gradient-to-br from-fuchsia-400/5 via-transparent to-cyan-300/10'
+        type === 'sparkles' && 'bg-gradient-to-br from-fuchsia-400/5 via-transparent to-cyan-300/10',
+        type === 'ai' && 'bg-gradient-to-br from-violet-500/10 via-transparent to-cyan-200/15'
       )} />
     </div>
   );

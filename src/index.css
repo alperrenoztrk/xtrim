@@ -292,6 +292,19 @@
   }
 }
 
+
+@keyframes xtrim-ai-drift {
+  0% {
+    transform: translate3d(-6%, -5%, 0) scale(1.05);
+  }
+  50% {
+    transform: translate3d(4%, 3%, 0) scale(1.12);
+  }
+  100% {
+    transform: translate3d(-4%, 6%, 0) scale(1.08);
+  }
+}
+
 @keyframes xtrim-twinkle {
   0%,
   100% {
@@ -339,6 +352,10 @@
 
 .animate-xtrim-twinkle {
   animation: xtrim-twinkle 2.6s ease-in-out infinite;
+}
+
+.animate-xtrim-ai-drift {
+  animation: xtrim-ai-drift 10s ease-in-out infinite alternate;
 }
 
 .dragon-wallpaper {

@@ -9,12 +9,15 @@ import {
   Droplets,
   Thermometer,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import type { AnimatedFilterType } from '@/components/AnimatedFilterOverlay';
+import { AIToolsService } from '@/services/AIToolsService';
 
 interface ColorSettings {
   brightness: number;
@@ -112,14 +115,18 @@ interface VideoColorPanelProps {
   videoRef: React.RefObject<HTMLVideoElement>;
   onClose: () => void;
   currentAnimatedFilter?: AnimatedFilterType;
+  currentAnimatedFilterAssetUrl?: string;
+  currentAnimatedFilterPrompt?: string;
   onApplySettings?: (settings: ColorSettings, filterId: string) => void;
-  onApplyAnimatedFilter?: (filter: AnimatedFilterType) => void;
+  onApplyAnimatedFilter?: (filter: AnimatedFilterType, assetUrl?: string, prompt?: string) => void;
 }
 
 export const VideoColorPanel = ({
   videoRef,
   onClose,
   currentAnimatedFilter = 'none',
+  currentAnimatedFilterAssetUrl,
+  currentAnimatedFilterPrompt,
   onApplySettings,
   onApplyAnimatedFilter
 }: VideoColorPanelProps) => {
@@ -127,6 +134,9 @@ export const VideoColorPanel = ({
   const [activeFilter, setActiveFilter] = useState<string>('normal');
   const [activeTab, setActiveTab] = useState<'filters' | 'adjust' | 'animated'>('filters');
   const [animatedFilter, setAnimatedFilter] = useState<AnimatedFilterType>(currentAnimatedFilter);
+  const [animatedPrompt, setAnimatedPrompt] = useState(currentAnimatedFilterPrompt ?? '');
+  const [aiAnimatedAssetUrl, setAiAnimatedAssetUrl] = useState<string | undefined>(currentAnimatedFilterAssetUrl);
+  const [isGeneratingAnimatedFilter, setIsGeneratingAnimatedFilter] = useState(false);
 
   // Apply CSS filter to video for live preview
   const applyFiltersToVideo = useCallback(() => {
@@ -165,7 +175,9 @@ export const VideoColorPanel = ({
 
   useEffect(() => {
     setAnimatedFilter(currentAnimatedFilter);
-  }, [currentAnimatedFilter]);
+    setAiAnimatedAssetUrl(currentAnimatedFilterAssetUrl);
+    setAnimatedPrompt(currentAnimatedFilterPrompt ?? '');
+  }, [currentAnimatedFilter, currentAnimatedFilterAssetUrl, currentAnimatedFilterPrompt]);
   useEffect(() => {
     applyFiltersToVideo();
   }, [applyFiltersToVideo]);
@@ -200,9 +212,39 @@ export const VideoColorPanel = ({
     if (onApplySettings) {
       onApplySettings(settings, activeFilter);
     }
-    onApplyAnimatedFilter?.(animatedFilter);
+    onApplyAnimatedFilter?.(animatedFilter, aiAnimatedAssetUrl, animatedPrompt);
     toast.success('Color settings applied');
     onClose();
+  };
+
+  const handleGenerateAIAnimatedFilter = async () => {
+    if (!animatedPrompt.trim()) {
+      toast.error('Please enter a prompt for AI animated filter');
+      return;
+    }
+
+    setIsGeneratingAnimatedFilter(true);
+    try {
+      const result = await AIToolsService.generateImage(
+        'poster',
+        `${animatedPrompt}. Generate a seamless cinematic texture for motion overlay.`,
+        undefined,
+        { style: 'animated overlay texture' }
+      );
+
+      const output = result.imageUrl || result.outputUrl;
+      if (!result.success || !output) {
+        throw new Error(result.error || 'AI animated texture could not be created');
+      }
+
+      setAnimatedFilter('ai');
+      setAiAnimatedAssetUrl(output);
+      toast.success('AI animated filter generated');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'AI animated filter failed');
+    } finally {
+      setIsGeneratingAnimatedFilter(false);
+    }
   };
 
   const adjustmentControls = [
@@ -291,6 +333,7 @@ export const VideoColorPanel = ({
               { id: 'snow' as const, name: 'Snow', desc: 'Snowfall overlay' },
               { id: 'rain' as const, name: 'Rain', desc: 'Rainfall overlay' },
               { id: 'sparkles' as const, name: 'Sparkle', desc: 'Twinkling particles' },
+              { id: 'ai' as const, name: 'AI', desc: 'AI generated animated texture' },
             ].map((item) => (
               <button
                 key={item.id}
@@ -305,6 +348,20 @@ export const VideoColorPanel = ({
                 <div className="text-xs text-muted-foreground">{item.desc}</div>
               </button>
             ))}
+
+            {animatedFilter === 'ai' && (
+              <div className="rounded-lg border border-border p-3 space-y-2">
+                <Input
+                  value={animatedPrompt}
+                  onChange={(event) => setAnimatedPrompt(event.target.value)}
+                  placeholder="Describe the AI animated effect"
+                />
+                <Button className="w-full" onClick={handleGenerateAIAnimatedFilter} disabled={isGeneratingAnimatedFilter}>
+                  {isGeneratingAnimatedFilter ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                  Generate AI animated filter
+                </Button>
+              </div>
+            )}
           </div>
         )}
 

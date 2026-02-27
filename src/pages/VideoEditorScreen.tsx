@@ -1344,7 +1344,7 @@ const VideoEditorScreen = () => {
     setShowColorPanel(true);
   };
 
-  const handleApplyAnimatedFilter = (filter: AnimatedFilterType) => {
+  const handleApplyAnimatedFilter = (filter: AnimatedFilterType, assetUrl?: string, prompt?: string) => {
     if (!selectedClipId || !project) return;
 
     const updatedTimeline = project.timeline.map((clip) =>
@@ -1352,6 +1352,8 @@ const VideoEditorScreen = () => {
         ? {
             ...clip,
             animatedFilter: filter,
+            animatedFilterAssetUrl: filter === 'ai' ? assetUrl : undefined,
+            animatedFilterPrompt: filter === 'ai' ? prompt : undefined,
           }
         : clip
     );
@@ -2282,7 +2284,7 @@ const VideoEditorScreen = () => {
                   playsInline
                   preload="auto"
                 />
-                <AnimatedFilterOverlay type={selectedClip?.animatedFilter ?? 'none'} />
+                <AnimatedFilterOverlay type={selectedClip?.animatedFilter ?? 'none'} aiTextureUrl={selectedClip?.animatedFilterAssetUrl} />
               </div>
               {textOverlays.map((overlay) => {
                 const videoCurrentTime = videoRef.current?.currentTime || 0;
@@ -2327,7 +2329,7 @@ const VideoEditorScreen = () => {
                   transform: `rotate(${selectedClip?.rotation || 0}deg) scaleX(${selectedClip?.flipH ? -1 : 1}) scaleY(${selectedClip?.flipV ? -1 : 1})`,
                 }}
               />
-              <AnimatedFilterOverlay type={selectedClip?.animatedFilter ?? 'none'} />
+              <AnimatedFilterOverlay type={selectedClip?.animatedFilter ?? 'none'} aiTextureUrl={selectedClip?.animatedFilterAssetUrl} />
               {textOverlays.map((overlay) => (
                 <DraggableTextOverlay
                   key={overlay.id}
@@ -3220,6 +3222,8 @@ const VideoEditorScreen = () => {
           <VideoColorPanel
             videoRef={videoRef}
             currentAnimatedFilter={selectedClip?.animatedFilter ?? 'none'}
+            currentAnimatedFilterAssetUrl={selectedClip?.animatedFilterAssetUrl}
+            currentAnimatedFilterPrompt={selectedClip?.animatedFilterPrompt}
             onApplyAnimatedFilter={handleApplyAnimatedFilter}
             onClose={() => setShowColorPanel(false)}
           />
