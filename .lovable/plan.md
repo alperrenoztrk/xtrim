@@ -1,66 +1,38 @@
 
 
-# Timeline Redesign: Fixed Center Playhead with Scrollable Clips
+## Problem Analysis
 
-## Current Behavior
-- The playhead is fixed at the left edge (`fixedTimelinePlayheadOffsetPx = 16`)
-- Timeline clips are laid out horizontally and can be reordered via drag-and-drop
-- Scrubbing works by pointer events on the timeline area
-- The timeline auto-scrolls to keep the current position visible
+The AI video generation feature appears structurally complete (panel, edge function, config.toml entry all exist), but there are two likely issues:
 
-## What Changes (CapCut-style timeline)
+1. **Model name `gemini-3.1-flash-image-preview` does not exist** - This has been causing 404 errors across other functions too. Google does not have a model called `gemini-3.1-flash-image-preview`. The correct model for image generation via the Lovable AI gateway is `google/gemini-2.5-flash-image` (also known as "Nano banana").
 
-### 1. Center the Playhead
-Move the playhead line from the left edge (16px) to the horizontal center of the timeline viewport. The playhead remains visually fixed; clips scroll underneath it.
+2. **CORS headers incomplete** - The edge function's CORS headers are missing headers that the Supabase client sends (e.g., `x-supabase-client-platform`), which could cause preflight failures.
 
-- `fixedTimelinePlayheadOffsetPx` changes from `16` to `timelineViewportWidth / 2`
-- The playhead vertical line and dot are repositioned to the center
+3. **Direct Gemini API vs Lovable AI Gateway** - The function calls Google's native `generateContent` API directly with `GEMINI_API_KEY`. Since the project has `GEMINI_API_KEY` configured, this approach should work, but the model name is wrong.
 
-### 2. Add Padding to Clips Container
-To allow the first clip's start and last clip's end to reach the center playhead, add horizontal padding equal to half the viewport width on both sides of the clip list.
+## Plan
 
-- Wrap the `Reorder.Group` content with left/right padding spacers (`width: viewportWidth / 2`)
-- This ensures the timeline can scroll so that any point in the video aligns with the center playhead
+### Step 1: Fix edge function model and CORS
 
-### 3. Update Scroll Logic
-The auto-scroll `useEffect` that keeps the current time visible will be updated:
-- Calculate the pixel position of the current playback time
-- Scroll so that position aligns with the center of the viewport
-- Formula: `scrollLeft = clipPixelPosition + leftPadding - (viewportWidth / 2)`
+Update `supabase/functions/ai-video-generate/index.ts`:
+- Fix CORS headers to include all required Supabase client headers
+- Switch model from `gemini-3.1-flash-image-preview` to `gemini-2.0-flash-exp` (which is a known working model that supports `responseModalities: ["IMAGE"]`)
+- Alternatively, use Lovable AI Gateway with `google/gemini-3-pro-image-preview` model for image generation, which avoids model name guessing
 
-### 4. Update Scrubbing Logic
-`handleTimelineScrub` needs to account for the center playhead:
-- The pointer position relative to the center determines the time offset
-- Account for the new padding spacers in the scroll width calculation
+### Step 2: Fix other affected edge functions
 
-### 5. Video Playback Starts from Playhead Position
-This already works — `handleSeek` sets `video.currentTime` based on the timeline position. The centered playhead just changes where visually "current time" is shown, but the underlying logic remains the same.
+Apply the same model fix to:
+- `supabase/functions/ai-video-tools/index.ts`
+- `supabase/functions/remove-background/index.ts`  
+- `supabase/functions/ai-image-generate/index.ts`
 
-### 6. Keep Existing Features
-- Drag-and-drop reordering stays the same
-- The `+` add media button at the end of clips stays the same style
-- Zoom controls, time markers, and audio/text lanes remain unchanged
-- Trim handles on selected clips remain
+All currently use the non-existent `gemini-3.1-flash-image-preview`.
 
-## Files to Modify
-- **`src/pages/VideoEditorScreen.tsx`** — All changes are in this single file:
-  - Update `fixedTimelinePlayheadOffsetPx` to use center calculation
-  - Add left/right padding spacers around the clips
-  - Update the auto-scroll `useEffect`
-  - Update `handleTimelineScrub` for center-based calculation
-  - Update the time ruler to also have padding spacers
+### Step 3: Add missing config.toml entries
 
-## Technical Details
+Add entries for `ai-transcript`, `elevenlabs-tts`, and `video-translate` functions that are missing from `supabase/config.toml`.
 
-```text
-Before:
-|P clips...                    |
- ^ playhead at 16px
+### Recommended Approach
 
-After:
-|    padding    |P|   clips...   |    padding    |
-                 ^ playhead at center (viewportWidth/2)
-```
-
-The padding spacers ensure clips can scroll fully so the start of the first clip and end of the last clip can both reach the center playhead position.
+Since the native Gemini model names have been unreliable, the most robust fix is to switch image generation functions to use the **Lovable AI Gateway** (`https://ai.gateway.lovable.dev/v1/chat/completions`) with the `google/gemini-3-pro-image-preview` model. The `LOVABLE_API_KEY` is already configured. This avoids the recurring model-name 404 issues entirely.
 
