@@ -20,6 +20,78 @@ interface GenerateRequest {
   options?: { style?: string; aspectRatio?: string };
 }
 
+async function generateImageWithGeminiNative(
+  apiKey: string,
+  fullPrompt: string,
+  inputImage?: string,
+  type: GenerateRequest['type'] = 'text-to-image'
+): Promise<string> {
+  const candidateModels = [
+    "gemini-2.5-flash-image",
+    "gemini-2.0-flash-exp-image-generation",
+    "gemini-2.0-flash-preview-image-generation",
+    "gemini-1.5-flash",
+  ];
+
+  let lastError = "No compatible model returned image output";
+
+  for (const model of candidateModels) {
+    const parts: any[] = [{ text: fullPrompt }];
+
+    if (inputImage && type !== 'text-to-image') {
+      let imageData = inputImage;
+      let mimeType = "image/png";
+
+      if (inputImage.startsWith("data:")) {
+        const match = inputImage.match(/^data:(image\/\w+);base64,(.+)$/);
+        if (match) {
+          mimeType = match[1];
+          imageData = match[2];
+        }
+      }
+
+      parts.push({ inlineData: { mimeType, data: imageData } });
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+      }),
+    });
+
+    if (response.status === 404) {
+      const body = await response.text();
+      console.warn(`Gemini model not available: ${model}`, body);
+      lastError = body || `Model not found: ${model}`;
+      continue;
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      if (response.status === 429) throw new Error("Rate limit exceeded.");
+      throw new Error(`Gemini API error (${model}): ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    const candidate = data.candidates?.[0];
+    if (candidate?.content?.parts) {
+      for (const part of candidate.content.parts) {
+        if (part.inlineData?.data && part.inlineData?.mimeType) {
+          return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        }
+      }
+    }
+
+    lastError = `Model ${model} did not return image data`;
+  }
+
+  throw new Error(`Gemini API error: 404 (${lastError})`);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -65,32 +137,7 @@ serve(async (req) => {
       const data = await response.json();
       generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     } else {
-      const parts: any[] = [{ text: fullPrompt }];
-      if (inputImage && type !== 'text-to-image') {
-        let imageData = inputImage, mimeType = "image/png";
-        if (inputImage.startsWith("data:")) {
-          const match = inputImage.match(/^data:(image\/\w+);base64,(.+)$/);
-          if (match) { mimeType = match[1]; imageData = match[2]; }
-        }
-        parts.push({ inlineData: { mimeType, data: imageData } });
-      }
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts }], generationConfig: { responseModalities: ["TEXT", "IMAGE"] } }),
-      });
-      if (!response.ok) {
-        if (response.status === 429) return new Response(JSON.stringify({ success: false, error: "Rate limit exceeded." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-      const data = await response.json();
-      const candidate = data.candidates?.[0];
-      if (candidate?.content?.parts) {
-        for (const part of candidate.content.parts) {
-          if (part.inlineData) { generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`; break; }
-        }
-      }
+      generatedImage = await generateImageWithGeminiNative(apiKey, fullPrompt, inputImage, type);
     }
 
     if (!generatedImage) throw new Error("Image generation failed");
