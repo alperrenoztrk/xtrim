@@ -153,7 +153,7 @@ const moreMenuItems = [
 ];
 
 const aiToolsMenuItems = [
-  { id: 'ai-generate', icon: Wand2, label: 'AI Video Generate', isAI: true, isPro: true },
+  { id: 'ai-generate', icon: Wand2, label: 'Image-to-Video', isAI: true, isPro: true },
   { id: 'translate', icon: Languages, label: 'Video Translator', isAI: true, isPro: true },
   { id: 'ai-transcript', icon: Captions, label: 'AI Transcript', isAI: true },
   { id: 'autocut', icon: Zap, label: 'AutoCut', isAI: true },

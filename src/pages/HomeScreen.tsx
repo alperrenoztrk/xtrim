@@ -139,7 +139,7 @@ const HomeScreen = () => {
       toast.info('AI Avatars', { description: 'AI avatar creation feature.' });
       navigate('/photo-editor?tool=avatar');
     } else if (toolId === 'ai-generate') {
-      toast.success('AI Video Generate', { description: 'You can create videos with text.' });
+      toast.success('Image-to-Video', { description: 'Animate an image or refine a clip with AI guidance.' });
       const project = ProjectService.createProject();
       ProjectService.saveProject(project);
       navigate(`/editor/${project.id}?tool=ai-generate`);
