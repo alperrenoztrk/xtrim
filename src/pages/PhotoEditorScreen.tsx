@@ -89,6 +89,8 @@ interface EditorSnapshot {
   adjustments: ImageAdjustments;
   selectedFilter: string;
   animatedFilter: AnimatedFilterType;
+  aiAnimatedTextureUrl: string | null;
+  aiAnimatedPrompt: string;
   drawStrokes: DrawStroke[];
   cornerRadius: number;
 }
@@ -146,6 +148,7 @@ const animatedFilterPresets: AnimatedFilterPreset[] = [
   { id: 'snow', name: 'Snow', description: 'Snowfall effect' },
   { id: 'rain', name: 'Rain', description: 'Rainfall effect' },
   { id: 'sparkles', name: 'Sparkle', description: 'Twinkling lights' },
+  { id: 'ai', name: 'AI', description: 'AI generated animated texture' },
 ];
 
 const cropRatios = [
@@ -218,6 +221,9 @@ const PhotoEditorScreen = () => {
   const [adjustments, setAdjustments] = useState<ImageAdjustments>(defaultAdjustments);
   const [selectedFilter, setSelectedFilter] = useState<string>('none');
   const [animatedFilter, setAnimatedFilter] = useState<AnimatedFilterType>('none');
+  const [aiAnimatedTextureUrl, setAiAnimatedTextureUrl] = useState<string | null>(null);
+  const [aiAnimatedPrompt, setAiAnimatedPrompt] = useState('');
+  const [isGeneratingAnimatedFilter, setIsGeneratingAnimatedFilter] = useState(false);
   const [selectedCropRatio, setSelectedCropRatio] = useState<string>('free');
   const [freeCropSettings, setFreeCropSettings] = useState<FreeCropSettings>(defaultFreeCropSettings);
   const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([]);
@@ -280,10 +286,12 @@ const PhotoEditorScreen = () => {
       adjustments: { ...adjustments },
       selectedFilter,
       animatedFilter,
+      aiAnimatedTextureUrl,
+      aiAnimatedPrompt,
       drawStrokes: drawStrokes.map((stroke) => ({ ...stroke, points: [...stroke.points] })),
       cornerRadius,
     }),
-    [imageUrl, adjustments, selectedFilter, animatedFilter, drawStrokes, cornerRadius]
+    [imageUrl, adjustments, selectedFilter, animatedFilter, aiAnimatedTextureUrl, aiAnimatedPrompt, drawStrokes, cornerRadius]
   );
 
   const restoreSnapshot = useCallback((snapshot: EditorSnapshot) => {
@@ -291,6 +299,8 @@ const PhotoEditorScreen = () => {
     setAdjustments(snapshot.adjustments);
     setSelectedFilter(snapshot.selectedFilter);
     setAnimatedFilter(snapshot.animatedFilter);
+    setAiAnimatedTextureUrl(snapshot.aiAnimatedTextureUrl ?? null);
+    setAiAnimatedPrompt(snapshot.aiAnimatedPrompt ?? "");
     setDrawStrokes(snapshot.drawStrokes);
     setCornerRadius(snapshot.cornerRadius ?? 0);
     setActiveDrawStroke(null);
@@ -360,11 +370,58 @@ const PhotoEditorScreen = () => {
     setAdjustments(defaultAdjustments);
     setSelectedFilter('none');
     setAnimatedFilter('none');
+    setAiAnimatedTextureUrl(null);
+    setAiAnimatedPrompt('');
   };
 
   const handleApplyAnimatedFilter = (filter: AnimatedFilterType) => {
     saveState();
     setAnimatedFilter(filter);
+    if (filter !== 'ai') {
+      setAiAnimatedTextureUrl(null);
+    }
+  };
+
+  const handleGenerateAnimatedFilter = async () => {
+    if (!aiAnimatedPrompt.trim()) {
+      toast.error('Please describe the animated filter');
+      return;
+    }
+
+    setIsGeneratingAnimatedFilter(true);
+    try {
+      let imageBase64: string | undefined;
+      if (imageUrl) {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        imageBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      const result = await AIToolsService.generateImage(
+        'poster',
+        `${aiAnimatedPrompt}. Create a seamless VFX texture for animated overlay.`,
+        imageBase64,
+        { style: 'vfx overlay texture' }
+      );
+
+      if (!result.success || !(result.imageUrl || result.outputUrl)) {
+        throw new Error(result.error || 'Could not generate animated filter texture');
+      }
+
+      saveState();
+      setAiAnimatedTextureUrl(result.imageUrl || result.outputUrl || null);
+      setAnimatedFilter('ai');
+      toast.success('AI animated filter is ready');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to generate animated filter';
+      toast.error(message);
+    } finally {
+      setIsGeneratingAnimatedFilter(false);
+    }
   };
 
   const openCollageEditor = useCallback((images: string[]) => {
@@ -397,6 +454,8 @@ const PhotoEditorScreen = () => {
     setAdjustments(defaultAdjustments);
     setSelectedFilter('none');
     setAnimatedFilter('none');
+    setAiAnimatedTextureUrl(null);
+    setAiAnimatedPrompt('');
     setUndoStack([]);
     setRedoStack([]);
     setZoomLevel(1);
@@ -1040,6 +1099,8 @@ const PhotoEditorScreen = () => {
     setSelectedImageUrls([]);
     setActiveAITool(null);
     setAiPrompt('');
+    setAiAnimatedPrompt('');
+    setAiAnimatedTextureUrl(null);
     setActiveQuickTool(null);
     setDrawStrokes([]);
     setActiveDrawStroke(null);
@@ -1182,7 +1243,7 @@ const PhotoEditorScreen = () => {
               style={getImageStyle()}
             />
 
-            <AnimatedFilterOverlay type={animatedFilter} className="rounded-[inherit]" />
+            <AnimatedFilterOverlay type={animatedFilter} aiTextureUrl={aiAnimatedTextureUrl ?? undefined} className="rounded-[inherit]" />
 
             {(activeTab === 'draw' || drawStrokes.length > 0 || activeDrawStroke) && (
               <svg
@@ -1678,6 +1739,26 @@ const PhotoEditorScreen = () => {
                         </motion.button>
                       ))}
                     </div>
+
+                    {animatedFilter === 'ai' && (
+                      <div className="mt-2 rounded-lg border border-border p-2 space-y-2 bg-muted/20 min-w-[280px]">
+                        <Input
+                          value={aiAnimatedPrompt}
+                          onChange={(event) => setAiAnimatedPrompt(event.target.value)}
+                          placeholder="Örn: neon parçacıklar, sis, sinematik ışık sızıntısı"
+                          className="h-8 text-xs"
+                        />
+                        <Button
+                          size="sm"
+                          className="w-full h-8"
+                          disabled={isGeneratingAnimatedFilter}
+                          onClick={handleGenerateAnimatedFilter}
+                        >
+                          {isGeneratingAnimatedFilter ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                          AI animasyon filtresi üret
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}
