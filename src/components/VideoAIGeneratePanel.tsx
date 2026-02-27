@@ -165,7 +165,7 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
         setProgress(100);
         setGeneratedPreview(data.frameUrl);
         setGeneratedVideoUrl(generatedVideoBlobUrl);
-        toast.success('Video created!');
+        toast.success('Video ready!');
       } else {
         throw new Error(data?.error || 'Video could not be created');
       }
@@ -202,13 +202,13 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
           </div>
           <div>
             <h3 className="font-semibold text-foreground flex items-center gap-2">
-              AI Video Generate
+              Image-to-Video
               <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs rounded-full flex items-center gap-1">
                 <Crown className="w-3 h-3" />
                 PRO
               </span>
             </h3>
-            <p className="text-xs text-muted-foreground">Create video from text</p>
+            <p className="text-xs text-muted-foreground">Animate an image or edit a clip with AI</p>
           </div>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}>
@@ -219,16 +219,16 @@ const VideoAIGeneratePanel: React.FC<VideoAIGeneratePanelProps> = ({
       <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(85vh-80px)]">
         {/* Prompt Input */}
         <div className="space-y-2">
-          <Label className="text-sm font-medium">Video Description</Label>
+          <Label className="text-sm font-medium">Image / Clip Instructions</Label>
           <Textarea
-            placeholder="e.g.: A couple walking on the beach at sunset, with cinematic camera movement..."
+            placeholder="e.g.: Animate this product photo with a slow cinematic zoom and soft light transitions..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             className="min-h-[100px] resize-none"
             disabled={isGenerating}
           />
           <p className="text-xs text-muted-foreground">
-            The more detailed your description, the better the result.
+            Describe how the uploaded image or selected clip should be animated or edited for a more controlled result.
           </p>
         </div>
 
