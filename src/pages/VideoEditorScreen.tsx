@@ -1319,8 +1319,22 @@ const VideoEditorScreen = () => {
     // Update the clip in timeline with new speed
     const updatedTimeline = project.timeline.map((clip) => {
       if (clip.id === selectedClipId) {
+        const previousSpeed = clip.speed && clip.speed > 0 ? clip.speed : 1;
+        const currentTrimmedDuration = getClipTrimmedDuration(clip);
+        const targetEffectiveDuration = currentTrimmedDuration / previousSpeed;
+        const desiredTrimmedDuration = targetEffectiveDuration * speed;
+        const sourceMediaDuration = project.mediaItems.find((media) => media.id === clip.mediaId)?.duration;
+        const maxSourceDuration = sourceMediaDuration && sourceMediaDuration > 0
+          ? sourceMediaDuration
+          : clip.endTime;
+
+        const boundedTrimmedDuration = Math.min(desiredTrimmedDuration, maxSourceDuration);
+        const adjustedStartTime = Math.max(0, Math.min(clip.startTime, maxSourceDuration - boundedTrimmedDuration));
+
         return { 
           ...clip, 
+          startTime: adjustedStartTime,
+          endTime: adjustedStartTime + boundedTrimmedDuration,
           speed
         };
       }
