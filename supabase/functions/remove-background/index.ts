@@ -15,6 +15,9 @@ function getApiConfig(): { apiKey: string; useLovable: boolean } {
 }
 
 const CANDIDATE_MODELS = [
+  // Prefer newer Gemini image-capable names first
+  "gemini-2.5-flash-image",
+  "gemini-2.5-flash-image-preview",
   "gemini-2.0-flash-preview-image-generation",
   "gemini-2.0-flash-exp-image-generation",
   "gemini-2.5-flash-preview-04-17",
@@ -126,22 +129,36 @@ serve(async (req) => {
             method: "POST",
             headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-              model: "google/gemini-3-pro-image-preview",
+              model: "google/gemini-2.5-flash-image",
               messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: imageUrl } }] }],
               modalities: ["image", "text"],
             }),
           });
+
+          if (response.status === 429) {
+            return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+          if (response.status === 402) {
+            return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+
           if (response.ok) {
             const data = await response.json();
             generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
           } else {
-            console.log(`Lovable fallback also failed: ${response.status}`);
+            const errorText = await response.text();
+            console.log(`Lovable fallback also failed: ${response.status} - ${errorText}`);
           }
         }
       }
     }
 
-    if (!generatedImage) throw new Error("Background removal failed - no image generated");
+    if (!generatedImage) {
+      return new Response(
+        JSON.stringify({ error: "Gemini image generation models are unavailable for this API key (404 on all candidates)." }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     return new Response(
       JSON.stringify({ success: true, imageUrl: generatedImage, message: "Background removed successfully" }),
