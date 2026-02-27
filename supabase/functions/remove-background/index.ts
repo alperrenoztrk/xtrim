@@ -6,11 +6,11 @@ const corsHeaders = {
 };
 
 function getApiConfig(): { apiKey: string; useLovable: boolean } {
-  // Prioritize Lovable AI Gateway for image generation (native Gemini models often 404)
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  if (lovableKey) return { apiKey: lovableKey, useLovable: true };
+  // User preference: use Gemini API directly first
   const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
   if (geminiKey) return { apiKey: geminiKey, useLovable: false };
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableKey) return { apiKey: lovableKey, useLovable: true };
   throw new Error("No API key configured");
 }
 
@@ -114,6 +114,30 @@ serve(async (req) => {
           return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
         throw e;
+      }
+
+      // Fallback to Lovable AI Gateway if all Gemini models failed
+      if (!generatedImage) {
+        const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+        if (lovableKey) {
+          console.log("All Gemini models failed, falling back to Lovable AI Gateway");
+          const imageUrl = imageBase64.startsWith("data:") ? imageBase64 : `data:image/png;base64,${imageBase64}`;
+          const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-3-pro-image-preview",
+              messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: imageUrl } }] }],
+              modalities: ["image", "text"],
+            }),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+          } else {
+            console.log(`Lovable fallback also failed: ${response.status}`);
+          }
+        }
       }
     }
 
