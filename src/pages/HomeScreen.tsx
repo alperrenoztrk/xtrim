@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Video, Image, Settings, Sparkles } from 'lucide-react';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import ToolsMenuSheet from '@/components/ToolsMenuSheet';
 import TextToImagePanel from '@/components/TextToImagePanel';
+import { homeBackgroundVideos } from '@/constants/homeBackgroundVideos';
 
 interface Tool {
   id: string;
@@ -52,8 +53,6 @@ const tools: Tool[] = [
   },
 ];
 
-const bgVideos = ['/videos/dragon-bg.mp4', '/videos/dragon-bg-2.mp4', '/videos/dragon-bg-3.mp4', '/videos/dragon-bg-4.mp4'];
-
 const HomeScreen = () => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -61,8 +60,12 @@ const HomeScreen = () => {
   const [textToImageOpen, setTextToImageOpen] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
 
-  const switchVideo = useCallback(() => {
-    setCurrentVideoIndex((prev) => (prev + 1) % bgVideos.length);
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setCurrentVideoIndex((prev) => (prev + 1) % homeBackgroundVideos.length);
+    }, 10000);
+
+    return () => window.clearInterval(intervalId);
   }, []);
 
 
@@ -187,16 +190,21 @@ const HomeScreen = () => {
     <div className="relative min-h-screen bg-background safe-area-top safe-area-bottom flex flex-col overflow-hidden">
       {/* Lightweight background video switching */}
       <div className="absolute inset-0 pointer-events-none">
-        <video
-          key={currentVideoIndex}
-          src={bgVideos[currentVideoIndex]}
-          autoPlay
-          muted
-          playsInline
-          preload="metadata"
-          onEnded={switchVideo}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+        {homeBackgroundVideos.map((videoSrc, index) => (
+          <video
+            key={videoSrc}
+            src={videoSrc}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+            className={cn(
+              'absolute inset-0 w-full h-full object-cover transition-opacity duration-1000',
+              currentVideoIndex === index ? 'opacity-100' : 'opacity-0'
+            )}
+          />
+        ))}
         <div className="absolute inset-0 bg-background/10 dark:bg-background/20" />
       </div>
       {/* Header */}

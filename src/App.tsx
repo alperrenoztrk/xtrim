@@ -22,6 +22,7 @@ import { applyTheme, getStoredTheme, subscribeToThemeChanges } from "./lib/theme
 import AndroidBackButtonHandler from "./components/AndroidBackButtonHandler";
 import GlobalZoomGuard from "./components/GlobalZoomGuard";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { homeBackgroundVideos } from "./constants/homeBackgroundVideos";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,25 @@ const App = () => {
     const updateTheme = () => applyTheme(getStoredTheme());
     updateTheme();
     return subscribeToThemeChanges(updateTheme);
+  }, []);
+
+  useEffect(() => {
+    const preloadLinks = homeBackgroundVideos.map((videoSrc) => {
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "video";
+      link.href = videoSrc;
+      document.head.appendChild(link);
+      return link;
+    });
+
+    return () => {
+      preloadLinks.forEach((link) => {
+        if (link.parentNode) {
+          link.parentNode.removeChild(link);
+        }
+      });
+    };
   }, []);
 
   return (
