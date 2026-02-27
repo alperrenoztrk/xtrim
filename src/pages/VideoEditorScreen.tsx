@@ -158,6 +158,7 @@ const aiToolsMenuItems = [
   { id: 'ai-transcript', icon: Captions, label: 'AI Transcript', isAI: true },
   { id: 'autocut', icon: Zap, label: 'AutoCut', isAI: true },
   { id: 'enhance', icon: Wand2, label: 'AI Enhance', isAI: true },
+  { id: 'watermark-remove', icon: Sparkles, label: 'Watermark Remover', isAI: true },
   { id: 'stabilize', icon: Sparkles, label: 'Stabilize', isAI: true },
 ];
 
@@ -461,6 +462,7 @@ const VideoEditorScreen = () => {
   const [showAIToolsMenu, setShowAIToolsMenu] = useState(false);
   const [showAutoCutPanel, setShowAutoCutPanel] = useState(false);
   const [showEnhancePanel, setShowEnhancePanel] = useState(false);
+  const [enhancePanelMode, setEnhancePanelMode] = useState<'enhance' | 'denoise' | 'upscale' | 'watermark-remove'>('enhance');
   const [showStabilizePanel, setShowStabilizePanel] = useState(false);
   const [showSpeedPanel, setShowSpeedPanel] = useState(false);
   const [showColorPanel, setShowColorPanel] = useState(false);
@@ -554,7 +556,7 @@ const VideoEditorScreen = () => {
   // Read URL tool parameter; defer opening panels until timeline/media selection is ready.
   useEffect(() => {
     const tool = searchParams.get('tool');
-    if (tool === 'ai-generate' || tool === 'autocut' || tool === 'enhance' || tool === 'translate' || tool === 'ai-transcript') {
+    if (tool === 'ai-generate' || tool === 'autocut' || tool === 'enhance' || tool === 'watermark-remove' || tool === 'translate' || tool === 'ai-transcript') {
       setRequestedToolFromUrl(tool);
     }
   }, [searchParams]);
@@ -1254,11 +1256,12 @@ const VideoEditorScreen = () => {
   };
 
   // Handle Enhance Panel
-  const handleOpenEnhance = () => {
+  const handleOpenEnhance = (mode: 'enhance' | 'denoise' | 'upscale' | 'watermark-remove' = 'enhance') => {
     if (!ensureVideoClipSelection()) {
       return;
     }
     closeAllToolPanels();
+    setEnhancePanelMode(mode);
     setShowEnhancePanel(true);
   };
 
@@ -1291,7 +1294,10 @@ const VideoEditorScreen = () => {
         handleOpenAutoCut();
         break;
       case 'enhance':
-        handleOpenEnhance();
+        handleOpenEnhance('enhance');
+        break;
+      case 'watermark-remove':
+        handleOpenEnhance('watermark-remove');
         break;
       case 'translate':
         handleOpenTranslate();
@@ -1646,7 +1652,10 @@ const VideoEditorScreen = () => {
         handleOpenAutoCut();
         break;
       case 'enhance':
-        handleOpenEnhance();
+        handleOpenEnhance('enhance');
+        break;
+      case 'watermark-remove':
+        handleOpenEnhance('watermark-remove');
         break;
       case 'stabilize':
         handleOpenStabilize();
@@ -3204,6 +3213,7 @@ const VideoEditorScreen = () => {
         {showEnhancePanel && selectedMedia?.type === 'video' && (
           <VideoEnhancePanel
             videoRef={videoRef}
+            initialMode={enhancePanelMode}
             onClose={() => setShowEnhancePanel(false)}
           />
         )}

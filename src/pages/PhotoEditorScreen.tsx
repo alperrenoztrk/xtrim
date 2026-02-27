@@ -68,7 +68,7 @@ import samplePhoto from '@/assets/sample-photo.jpg';
 
 
 type EditorTab = 'adjust' | 'crop' | 'draw' | 'filters' | 'ai' | 'more';
-type AIToolType = 'enhance' | 'expand' | 'generate' | 'avatar' | 'poster' | 'background' | null;
+type AIToolType = 'enhance' | 'expand' | 'generate' | 'avatar' | 'poster' | 'background' | 'watermark' | null;
 
 interface ImageAdjustments {
   brightness: number;
@@ -278,7 +278,7 @@ const PhotoEditorScreen = () => {
       }
     }
     
-    if (tool === 'background' || tool === 'enhance' || tool === 'expand' || tool === 'generate' || tool === 'avatar' || tool === 'poster') {
+    if (tool === 'background' || tool === 'enhance' || tool === 'expand' || tool === 'generate' || tool === 'avatar' || tool === 'poster' || tool === 'watermark') {
       setActiveTab('ai');
       setActiveAITool(tool as AIToolType);
     }
@@ -1119,6 +1119,9 @@ const PhotoEditorScreen = () => {
         case 'poster':
           result = await AIToolsService.generateImage('poster', aiPrompt, imageBase64);
           break;
+        case 'watermark':
+          result = await AIToolsService.processVideoTool('watermark-remove', imageBase64);
+          break;
         default:
           throw new Error('Unknown AI tool');
       }
@@ -1227,6 +1230,7 @@ const PhotoEditorScreen = () => {
   const aiTools = [
     { id: 'background', name: 'Remove Background', icon: Eraser, description: 'Automatically remove image background' },
     { id: 'enhance', name: 'Enhance Quality', icon: Sparkles, description: 'Improve photo quality' },
+    { id: 'watermark', name: 'Remove Watermark', icon: Eraser, description: 'Remove text/logo watermark with AI' },
     { id: 'expand', name: 'Expand', icon: Expand, description: 'Expand photo with AI' },
     { id: 'generate', name: 'Image from Text', icon: Type, description: 'Create image from description' },
     { id: 'avatar', name: 'Avatar Generator', icon: Bot, description: 'Design AI avatar' },
