@@ -80,7 +80,7 @@ serve(async (req) => {
       parts.push({ inlineData: { mimeType, data: imageData } });
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: "POST",
