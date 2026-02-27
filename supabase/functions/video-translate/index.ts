@@ -49,8 +49,9 @@ serve(async (req) => {
     if (!videoResponse.ok) {
       throw new Error(`Failed to download video: ${videoResponse.status}`);
     }
-    const videoBytes = new Uint8Array(await videoResponse.arrayBuffer());
-    const videoBase64 = base64Encode(videoBytes);
+    const videoArrayBuffer = await videoResponse.arrayBuffer();
+    const videoBytes = new Uint8Array(videoArrayBuffer);
+    const videoBase64 = base64Encode(videoArrayBuffer);
     const mimeType = videoResponse.headers.get("content-type") || "video/mp4";
     console.log(`Video downloaded: ${videoBytes.length} bytes, type: ${mimeType}`);
 
