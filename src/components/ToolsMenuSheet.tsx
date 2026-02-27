@@ -7,12 +7,8 @@ import {
   Trash2,
   Clock,
   Wand2,
-  Languages,
-  Captions,
-  Zap,
   Sparkles,
   Palette,
-  Scissors,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectService } from '@/services/ProjectService';
@@ -26,15 +22,6 @@ interface ToolsMenuSheetProps {
   onToolSelect: (toolId: string) => void;
   onProjectOpen?: (projectId: string) => void;
 }
-
-const videoTools = [
-  { id: 'ai-generate', label: 'Image-to-Video', icon: Wand2 },
-  { id: 'translate', label: 'Video Translator', icon: Languages },
-  { id: 'ai-transcript', label: 'AI Transcript', icon: Captions },
-  { id: 'autocut', label: 'AutoCut', icon: Zap },
-  { id: 'ai-enhance-video', label: 'AI Enhance', icon: Sparkles },
-  { id: 'trim', label: 'Trim', icon: Scissors },
-] as const;
 
 const photoTools = [
   { id: 'generate', label: 'Text-to-Image', icon: Wand2 },
@@ -124,30 +111,30 @@ const ToolsMenuSheet = ({ isOpen, onClose, type, onToolSelect, onProjectOpen }: 
                 New project
               </Button>
 
-              <div className="mb-6">
-                <h2 className="text-base font-semibold text-foreground mb-3">
-                  {type === 'video' ? 'Quick Tools' : 'Photo AI Tools'}
-                </h2>
-                <div className="grid grid-cols-2 gap-3">
-                  {(type === 'video' ? videoTools : photoTools).map((tool) => {
-                    const Icon = tool.icon;
+              {type === 'photo' && (
+                <div className="mb-6">
+                  <h2 className="text-base font-semibold text-foreground mb-3">Photo AI Tools</h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    {photoTools.map((tool) => {
+                      const Icon = tool.icon;
 
-                    return (
-                      <Button
-                        key={tool.id}
-                        variant="outline"
-                        className="h-auto min-h-20 p-3 flex flex-col items-start gap-2 bg-muted/30 hover:bg-muted/50"
-                        onClick={() => onToolSelect(tool.id)}
-                      >
-                        <Icon className="h-4 w-4 text-primary" />
-                        <span className="text-xs font-medium text-left whitespace-normal leading-tight">
-                          {tool.label}
-                        </span>
-                      </Button>
-                    );
-                  })}
+                      return (
+                        <Button
+                          key={tool.id}
+                          variant="outline"
+                          className="h-auto min-h-20 p-3 flex flex-col items-start gap-2 bg-muted/30 hover:bg-muted/50"
+                          onClick={() => onToolSelect(tool.id)}
+                        >
+                          <Icon className="h-4 w-4 text-primary" />
+                          <span className="text-xs font-medium text-left whitespace-normal leading-tight">
+                            {tool.label}
+                          </span>
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Saved Projects */}
               {type === 'video' && projects.length > 0 && (
