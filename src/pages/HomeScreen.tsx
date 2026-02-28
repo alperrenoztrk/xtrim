@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Video, Image, Settings, Sparkles } from 'lucide-react';
+import { Video, Image, Settings, Sparkles, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectService } from '@/services/ProjectService';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,15 @@ const tools: Tool[] = [
     route: '/photo-editor',
     gradient: 'from-primary to-accent',
   },
+  {
+    id: 'convert',
+    name: 'Convert',
+    description: 'Convert files between formats',
+    icon: Repeat,
+    route: '/convert',
+    gradient: 'from-primary to-accent',
+  },
+
   {
     id: 'edits',
     name: 'Edits',
@@ -223,7 +232,7 @@ const HomeScreen = () => {
         <div className="space-y-4 max-w-sm mx-auto w-full">
           {tools.map((tool, index) => {
             const Icon = tool.icon;
-            const isMainTool = tool.id === 'video' || tool.id === 'photo' || tool.id === 'edits';
+            const isMainTool = tool.id === 'video' || tool.id === 'photo' || tool.id === 'edits' || tool.id === 'convert';
 
             return (
               <motion.div
