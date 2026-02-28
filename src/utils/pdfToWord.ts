@@ -1,16 +1,15 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Use the bundled worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url
 ).toString();
 
-const renderPageToDataUrl = async (
+const renderPageToImage = async (
   pdf: pdfjsLib.PDFDocumentProxy,
   pageNum: number,
   scale = 2
-): Promise<{ dataUrl: string; width: number; height: number }> => {
+): Promise<{ base64: string; width: number; height: number }> => {
   const page = await pdf.getPage(pageNum);
   const viewport = page.getViewport({ scale });
 
@@ -23,8 +22,10 @@ const renderPageToDataUrl = async (
 
   await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
 
-  const dataUrl = canvas.toDataURL('image/png');
-  return { dataUrl, width: viewport.width, height: viewport.height };
+  // Get pure base64 (no data: prefix)
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  const base64 = dataUrl.split(',')[1];
+  return { base64, width: viewport.width, height: viewport.height };
 };
 
 export const convertPdfToWord = async (file: File): Promise<Blob> => {
@@ -32,44 +33,54 @@ export const convertPdfToWord = async (file: File): Promise<Blob> => {
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const totalPages = pdf.numPages;
 
-  const pages: string[] = [];
+  const images: { base64: string; cid: string; ptW: number; ptH: number }[] = [];
 
   for (let i = 1; i <= totalPages; i++) {
-    const { dataUrl, width, height } = await renderPageToDataUrl(pdf, i);
-    // Convert pixel dimensions to points (roughly 72 DPI from our 2x scale ≈ 144 DPI render)
-    const ptWidth = Math.round(width / 2); // back to 1x in points
-    const ptHeight = Math.round(height / 2);
-
-    pages.push(`
-      <div style="page-break-after: always; text-align: center; margin: 0; padding: 0;">
-        <img src="${dataUrl}" width="${ptWidth}" height="${ptHeight}" style="display: block; margin: 0 auto;" />
-      </div>
-    `);
+    const { base64, width, height } = await renderPageToImage(pdf, i);
+    images.push({
+      base64,
+      cid: `page${i}@pdf`,
+      ptW: Math.round(width / 2),
+      ptH: Math.round(height / 2),
+    });
   }
 
-  const htmlDoc = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office"
-          xmlns:w="urn:schemas-microsoft-com:office:word"
-          xmlns="http://www.w3.org/TR/REC-html40">
-    <head>
-      <meta charset="utf-8" />
-      <!--[if gte mso 9]>
-      <xml>
-        <w:WordDocument>
-          <w:View>Print</w:View>
-        </w:WordDocument>
-      </xml>
-      <![endif]-->
-      <style>
-        @page { margin: 0; }
-        body { margin: 0; padding: 0; }
-      </style>
-    </head>
-    <body>
-      ${pages.join('\n')}
-    </body>
-    </html>
-  `;
+  const boundary = '----=_NextPart_WordDoc';
 
-  return new Blob(['\uFEFF' + htmlDoc], { type: 'application/msword;charset=utf-8' });
+  const htmlBody = images
+    .map(
+      (img) =>
+        `<div style="page-break-after:always;margin:0;padding:0;text-align:center;">` +
+        `<img src="cid:${img.cid}" width="${img.ptW}" height="${img.ptH}" />` +
+        `</div>`
+    )
+    .join('\n');
+
+  const htmlPart = `Content-Type: text/html; charset="utf-8"\nContent-Transfer-Encoding: quoted-printable\n\n` +
+    `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">` +
+    `<head><meta charset="utf-8"/>` +
+    `<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->` +
+    `<style>@page{margin:0;}body{margin:0;padding:0;}</style></head>` +
+    `<body>${htmlBody}</body></html>`;
+
+  const imageParts = images
+    .map(
+      (img) =>
+        `--${boundary}\n` +
+        `Content-Type: image/jpeg\n` +
+        `Content-Transfer-Encoding: base64\n` +
+        `Content-ID: <${img.cid}>\n\n` +
+        img.base64
+    )
+    .join('\n');
+
+  const mhtml =
+    `MIME-Version: 1.0\n` +
+    `Content-Type: multipart/related; boundary="${boundary}"\n\n` +
+    `--${boundary}\n` +
+    htmlPart +
+    `\n${imageParts}\n` +
+    `--${boundary}--`;
+
+  return new Blob([mhtml], { type: 'application/msword' });
 };
