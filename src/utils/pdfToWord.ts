@@ -2,7 +2,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 // Use the bundled worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.mjs',
+  'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url
 ).toString();
 
@@ -21,7 +21,7 @@ const renderPageToDataUrl = async (
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas context oluşturulamadı.');
 
-  await page.render({ canvasContext: ctx, viewport }).promise;
+  await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
 
   const dataUrl = canvas.toDataURL('image/png');
   return { dataUrl, width: viewport.width, height: viewport.height };
