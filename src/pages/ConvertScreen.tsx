@@ -183,52 +183,6 @@ const extractTextWithGeminiOcr = async (file: File) => {
   return (data.text as string)?.trim() ?? '';
 };
 
-const convertPdfToWordAsPageImages = async (file: File): Promise<Blob> => {
-  const pdfjs = await import('pdfjs-dist');
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
-  const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() } as any).promise;
-  const pageImageHtml: string[] = [];
-
-  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-    const page = await pdf.getPage(pageNumber);
-    const viewport = page.getViewport({ scale: 2 });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-
-    const context = canvas.getContext('2d', { alpha: false });
-    if (!context) {
-      throw new Error('PDF sayfası işlenemedi.');
-    }
-
-    context.fillStyle = '#ffffff';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    await page.render({ canvasContext: context, viewport, canvas } as any).promise;
-    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
-
-    pageImageHtml.push(`
-      <div style="page-break-after: always; width: 100%; text-align: center; margin: 0; padding: 0;">
-        <img src="${imageDataUrl}" alt="PDF sayfa ${pageNumber}" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" />
-      </div>
-    `);
-  }
-
-  const htmlDoc = `
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>PDF → Word (Yerleşim Korumalı)</title>
-      </head>
-      <body style="margin: 0; padding: 0;">
-        ${pageImageHtml.join('')}
-      </body>
-    </html>
-  `;
-
-  return new Blob([htmlDoc], { type: 'application/msword;charset=utf-8' });
-};
-
 const ConvertScreen = () => {
   const navigate = useNavigate();
   const [activeType, setActiveType] = useState<ConverterType>('png-to-pdf');
@@ -308,18 +262,30 @@ const ConvertScreen = () => {
         return;
       }
 
-      if (activeType === 'pdf-to-word') {
-        const wordBlob = await convertPdfToWordAsPageImages(selectedFile);
-        downloadBlob(wordBlob, `${getFileBaseName(selectedFile.name)}.doc`);
-        toast.success('PDF, sayfa düzeni korunarak Word formatına aktarıldı.');
-        return;
-      }
-
       const fileText = await selectedFile.text();
       const readableChunks = buildReadableChunks(fileText);
 
       if (!readableChunks.length) {
         toast.error('Dosyadan okunabilir metin çıkarılamadı. Lütfen metin içeren farklı bir dosya deneyin.');
+        return;
+      }
+
+      if (activeType === 'pdf-to-word') {
+        const htmlDoc = `
+          <html>
+            <head><meta charset="utf-8" /></head>
+            <body>
+              <h2>PDF → Word Sonucu</h2>
+              <p>Kaynak dosya: ${selectedFile.name}</p>
+              <p>Bulunan metin parçaları:</p>
+              ${readableChunks.length ? `<p>${readableChunks.join(' ').replace(/</g, '&lt;')}</p>` : '<p>Metin bulunamadı.</p>'}
+            </body>
+          </html>
+        `;
+
+        const wordBlob = new Blob([htmlDoc], { type: 'application/msword;charset=utf-8' });
+        downloadBlob(wordBlob, `${getFileBaseName(selectedFile.name)}.doc`);
+        toast.success('PDF dosyası Word formatına aktarıldı.');
         return;
       }
 
