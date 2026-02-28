@@ -20,51 +20,55 @@ const CANDIDATE_MODELS = [
   "gemini-2.0-flash-exp",
 ];
 
+async function tryModel(apiKey: string, model: string, prompt: string, mimeType: string, imageData: string): Promise<{ image: string | null; status: "success" | "not_found" | "rate_limit" | "no_image" | "error"; error: string }> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data: imageData } }] }],
+        generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+      }),
+    });
+    if (response.status === 404) { await response.text(); return { image: null, status: "not_found", error: `Model ${model} not found` }; }
+    if (response.status === 429) { await response.text(); return { image: null, status: "rate_limit", error: "Rate limit" }; }
+    if (!response.ok) { const t = await response.text(); return { image: null, status: "error", error: `${model} error ${response.status}: ${t.substring(0, 200)}` }; }
+    const data = await response.json();
+    const parts = data.candidates?.[0]?.content?.parts;
+    if (parts) {
+      for (const part of parts) {
+        if (part.inlineData) {
+          return { image: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`, status: "success", error: "" };
+        }
+      }
+    }
+    return { image: null, status: "no_image", error: `${model} returned no image data` };
+  } catch (e) {
+    return { image: null, status: "error", error: `${model} error: ${e.message}` };
+  }
+}
+
 async function generateWithGemini(apiKey: string, prompt: string, mimeType: string, imageData: string): Promise<{ image: string | null; lastError: string }> {
   let lastError = "";
   for (const model of CANDIDATE_MODELS) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    console.log(`Trying model: ${model}`);
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data: imageData } }] }],
-          generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
-        }),
-      });
-      if (response.status === 404) {
-        await response.text();
-        lastError = `Model ${model} not found`;
-        console.log(`${lastError}, trying next...`);
-        continue;
+    // Retry up to 3 times for models that respond but return no image (intermittent)
+    const maxAttempts = model === CANDIDATE_MODELS[0] ? 3 : 1;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      console.log(`Trying model: ${model} (attempt ${attempt}/${maxAttempts})`);
+      const result = await tryModel(apiKey, model, prompt, mimeType, imageData);
+      if (result.status === "success") {
+        console.log(`Success with model: ${model}`);
+        return { image: result.image, lastError: "" };
       }
-      if (response.status === 429) {
-        await response.text();
-        return { image: null, lastError: "RATE_LIMIT" };
+      if (result.status === "rate_limit") return { image: null, lastError: "RATE_LIMIT" };
+      if (result.status === "not_found") { lastError = result.error; console.log(`${result.error}, trying next...`); break; }
+      lastError = result.error;
+      console.log(result.error);
+      if (result.status === "no_image" && attempt < maxAttempts) {
+        console.log(`Retrying ${model} in 2s...`);
+        await new Promise(r => setTimeout(r, 2000));
       }
-      if (!response.ok) {
-        const errText = await response.text();
-        lastError = `${model} error ${response.status}: ${errText.substring(0, 200)}`;
-        console.log(lastError);
-        continue;
-      }
-      const data = await response.json();
-      const parts = data.candidates?.[0]?.content?.parts;
-      if (parts) {
-        for (const part of parts) {
-          if (part.inlineData) {
-            console.log(`Success with model: ${model}`);
-            return { image: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`, lastError: "" };
-          }
-        }
-      }
-      lastError = `${model} returned no image data`;
-      console.log(lastError);
-    } catch (e) {
-      lastError = `${model} error: ${e.message}`;
-      console.log(lastError);
     }
   }
   return { image: null, lastError };
