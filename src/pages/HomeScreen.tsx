@@ -37,6 +37,15 @@ const tools: Tool[] = [
     gradient: 'from-primary to-accent',
   },
   {
+    id: 'convert',
+    name: 'Convert',
+    description: 'Convert files between formats',
+    icon: Repeat,
+    route: '/convert',
+    gradient: 'from-primary to-accent',
+  },
+
+  {
     id: 'edits',
     name: 'Edits',
     description: 'Create AI edits with ready templates',
