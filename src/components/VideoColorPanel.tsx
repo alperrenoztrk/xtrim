@@ -1,25 +1,34 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   X, 
   Check,
-  Palette,
   Sun,
   Contrast,
   Droplets,
   Thermometer,
-  RotateCcw,
   Sparkles,
-  Loader2
+  Loader2,
+  Circle,
+  Eclipse,
+  Aperture,
+  SunDim,
+  CloudFog,
+  CircleDot,
+  Blend,
+  Palette,
+  Waves,
+  Eye,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import type { AnimatedFilterType } from '@/components/AnimatedFilterOverlay';
 import { AIToolsService } from '@/services/AIToolsService';
 
-interface ColorSettings {
+// ---------- Types ----------
+export interface ColorSettings {
   brightness: number;
   contrast: number;
   saturation: number;
@@ -28,13 +37,12 @@ interface ColorSettings {
   exposure: number;
   highlights: number;
   shadows: number;
-}
-
-interface FilterPreset {
-  id: string;
-  name: string;
-  settings: Partial<ColorSettings>;
-  gradient: string;
+  tone: number;
+  whitePoint: number;
+  blackPoint: number;
+  vignette: number;
+  skinTone: number;
+  blueTone: number;
 }
 
 const defaultSettings: ColorSettings = {
@@ -46,71 +54,67 @@ const defaultSettings: ColorSettings = {
   exposure: 0,
   highlights: 0,
   shadows: 0,
+  tone: 0,
+  whitePoint: 0,
+  blackPoint: 0,
+  vignette: 0,
+  skinTone: 0,
+  blueTone: 0,
 };
 
+// ---------- Filter Presets ----------
+interface FilterPreset {
+  id: string;
+  name: string;
+  css: string; // CSS filter string for thumbnail preview
+  settings: Partial<ColorSettings>;
+}
+
 const filterPresets: FilterPreset[] = [
-  { 
-    id: 'normal', 
-    name: 'Normal', 
-    settings: {},
-    gradient: 'bg-gradient-to-br from-gray-400 to-gray-600'
-  },
-  { 
-    id: 'vivid', 
-    name: 'Vivid', 
-    settings: { saturation: 140, contrast: 110, brightness: 105 },
-    gradient: 'bg-gradient-to-br from-pink-500 to-orange-500'
-  },
-  { 
-    id: 'warm', 
-    name: 'Warm', 
-    settings: { temperature: 30, saturation: 110 },
-    gradient: 'bg-gradient-to-br from-orange-400 to-red-500'
-  },
-  { 
-    id: 'cool', 
-    name: 'Cool', 
-    settings: { temperature: -30, saturation: 90 },
-    gradient: 'bg-gradient-to-br from-blue-400 to-cyan-500'
-  },
-  { 
-    id: 'vintage', 
-    name: 'Vintage', 
-    settings: { saturation: 70, contrast: 90, brightness: 95, temperature: 15 },
-    gradient: 'bg-gradient-to-br from-amber-600 to-yellow-800'
-  },
-  { 
-    id: 'bw', 
-    name: 'S/B', 
-    settings: { saturation: 0 },
-    gradient: 'bg-gradient-to-br from-gray-800 to-gray-300'
-  },
-  { 
-    id: 'dramatic', 
-    name: 'Dramatik', 
-    settings: { contrast: 140, saturation: 80, shadows: -20 },
-    gradient: 'bg-gradient-to-br from-gray-900 to-gray-600'
-  },
-  { 
-    id: 'cinematic', 
-    name: 'Cinematic', 
-    settings: { contrast: 120, saturation: 85, temperature: -10, tint: 5 },
-    gradient: 'bg-gradient-to-br from-teal-600 to-orange-400'
-  },
-  { 
-    id: 'fade', 
-    name: 'Soluk', 
-    settings: { contrast: 80, brightness: 110, saturation: 80, shadows: 30 },
-    gradient: 'bg-gradient-to-br from-gray-300 to-gray-500'
-  },
-  { 
-    id: 'moody', 
-    name: 'Duygusal', 
-    settings: { saturation: 70, contrast: 110, temperature: -15, shadows: -10 },
-    gradient: 'bg-gradient-to-br from-indigo-600 to-purple-800'
-  },
+  { id: 'none', name: 'Yok', css: 'none', settings: {} },
+  { id: 'vivid', name: 'Vivid', css: 'saturate(1.4) contrast(1.1) brightness(1.05)', settings: { saturation: 140, contrast: 110, brightness: 105 } },
+  { id: 'playa', name: 'Playa', css: 'brightness(1.1) saturate(1.15) sepia(0.15)', settings: { brightness: 110, saturation: 115, temperature: 15 } },
+  { id: 'honey', name: 'Honey', css: 'sepia(0.3) saturate(1.2) brightness(1.05)', settings: { temperature: 30, saturation: 120, brightness: 105 } },
+  { id: 'isla', name: 'Isla', css: 'hue-rotate(-15deg) saturate(0.9) brightness(1.08)', settings: { temperature: -15, saturation: 90, brightness: 108 } },
+  { id: 'desert', name: 'Desert', css: 'sepia(0.25) contrast(1.1) saturate(0.85)', settings: { temperature: 25, contrast: 110, saturation: 85 } },
+  { id: 'clay', name: 'Clay', css: 'sepia(0.2) saturate(0.75) contrast(1.05)', settings: { temperature: 20, saturation: 75, contrast: 105 } },
+  { id: 'palma', name: 'Palma', css: 'hue-rotate(10deg) saturate(1.3) brightness(1.02)', settings: { tint: 10, saturation: 130, brightness: 102 } },
+  { id: 'blush', name: 'Blush', css: 'hue-rotate(-5deg) saturate(1.1) brightness(1.06) sepia(0.1)', settings: { tint: -5, saturation: 110, brightness: 106, temperature: 10 } },
+  { id: 'bazaar', name: 'Bazaar', css: 'contrast(1.15) saturate(0.8) sepia(0.1)', settings: { contrast: 115, saturation: 80, temperature: 10 } },
+  { id: 'ollie', name: 'Ollie', css: 'contrast(0.85) brightness(1.08) saturate(0.8) sepia(0.05)', settings: { contrast: 85, brightness: 108, saturation: 80 } },
+  { id: 'onyx', name: 'Onyx', css: 'saturate(0) contrast(1.2)', settings: { saturation: 0, contrast: 120 } },
+  { id: 'eiffel', name: 'Eiffel', css: 'contrast(1.2) saturate(0.85) hue-rotate(-10deg)', settings: { contrast: 120, saturation: 85, temperature: -10 } },
+  { id: 'vogue', name: 'Vogue', css: 'contrast(1.25) saturate(0.7) brightness(0.95)', settings: { contrast: 125, saturation: 70, brightness: 95 } },
 ];
 
+// ---------- Adjust Controls ----------
+interface AdjustControl {
+  key: keyof ColorSettings;
+  label: string;
+  icon: React.ElementType;
+  min: number;
+  max: number;
+  defaultVal: number;
+  isPercent: boolean;
+}
+
+const adjustControls: AdjustControl[] = [
+  { key: 'brightness', label: 'Parlaklık', icon: Sun, min: 0, max: 200, defaultVal: 100, isPercent: true },
+  { key: 'contrast', label: 'Kontrast', icon: Contrast, min: 0, max: 200, defaultVal: 100, isPercent: true },
+  { key: 'tone', label: 'Ton', icon: Palette, min: -50, max: 50, defaultVal: 0, isPercent: false },
+  { key: 'whitePoint', label: 'Beyaz nokta', icon: Circle, min: -50, max: 50, defaultVal: 0, isPercent: false },
+  { key: 'highlights', label: 'Parlak alanlar', icon: SunDim, min: -50, max: 50, defaultVal: 0, isPercent: false },
+  { key: 'shadows', label: 'Gölgeler', icon: CloudFog, min: -50, max: 50, defaultVal: 0, isPercent: false },
+  { key: 'blackPoint', label: 'Siyah nokta', icon: CircleDot, min: -50, max: 50, defaultVal: 0, isPercent: false },
+  { key: 'vignette', label: 'Vinyet', icon: Aperture, min: 0, max: 100, defaultVal: 0, isPercent: false },
+  { key: 'saturation', label: 'Doygunluk', icon: Droplets, min: 0, max: 200, defaultVal: 100, isPercent: true },
+  { key: 'temperature', label: 'Sıcaklık', icon: Thermometer, min: -50, max: 50, defaultVal: 0, isPercent: false },
+  { key: 'tint', label: 'Tonlama', icon: Blend, min: -50, max: 50, defaultVal: 0, isPercent: false },
+  { key: 'skinTone', label: 'Cilt tonu', icon: Eye, min: -50, max: 50, defaultVal: 0, isPercent: false },
+  { key: 'blueTone', label: 'Mavi ton', icon: Waves, min: -50, max: 50, defaultVal: 0, isPercent: false },
+];
+
+// ---------- Props ----------
 interface VideoColorPanelProps {
   videoRef: React.RefObject<HTMLVideoElement>;
   onClose: () => void;
@@ -121,6 +125,7 @@ interface VideoColorPanelProps {
   onApplyAnimatedFilter?: (filter: AnimatedFilterType, assetUrl?: string, prompt?: string) => void;
 }
 
+// ---------- Component ----------
 export const VideoColorPanel = ({
   videoRef,
   onClose,
@@ -128,67 +133,68 @@ export const VideoColorPanel = ({
   currentAnimatedFilterAssetUrl,
   currentAnimatedFilterPrompt,
   onApplySettings,
-  onApplyAnimatedFilter
+  onApplyAnimatedFilter,
 }: VideoColorPanelProps) => {
   const [settings, setSettings] = useState<ColorSettings>(defaultSettings);
-  const [activeFilter, setActiveFilter] = useState<string>('normal');
+  const [activeFilter, setActiveFilter] = useState<string>('none');
   const [activeTab, setActiveTab] = useState<'filters' | 'adjust' | 'animated'>('filters');
+  const [selectedAdjust, setSelectedAdjust] = useState<keyof ColorSettings>('brightness');
+  const [thumbnail, setThumbnail] = useState<string | null>(null);
+
+  // Animated filter state
   const [animatedFilter, setAnimatedFilter] = useState<AnimatedFilterType>(currentAnimatedFilter);
   const [animatedPrompt, setAnimatedPrompt] = useState(currentAnimatedFilterPrompt ?? '');
   const [aiAnimatedAssetUrl, setAiAnimatedAssetUrl] = useState<string | undefined>(currentAnimatedFilterAssetUrl);
   const [isGeneratingAnimatedFilter, setIsGeneratingAnimatedFilter] = useState(false);
 
+  // Capture thumbnail from video on mount
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const capture = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 120;
+        canvas.height = 80;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          setThumbnail(canvas.toDataURL('image/jpeg', 0.7));
+        }
+      } catch { /* cross-origin or not ready */ }
+    };
+    if (video.readyState >= 2) capture();
+    else video.addEventListener('loadeddata', capture, { once: true });
+  }, [videoRef]);
+
   // Apply CSS filter to video for live preview
   const applyFiltersToVideo = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
-
     const filters: string[] = [];
-    
-    // Brightness (0-200, 100 = normal)
-    if (settings.brightness !== 100) {
-      filters.push(`brightness(${settings.brightness / 100})`);
-    }
-    
-    // Contrast (0-200, 100 = normal)
-    if (settings.contrast !== 100) {
-      filters.push(`contrast(${settings.contrast / 100})`);
-    }
-    
-    // Saturation (0-200, 100 = normal)
-    if (settings.saturation !== 100) {
-      filters.push(`saturate(${settings.saturation / 100})`);
-    }
-    
-    // Temperature (simulate with sepia + hue-rotate)
+    if (settings.brightness !== 100) filters.push(`brightness(${settings.brightness / 100})`);
+    if (settings.contrast !== 100) filters.push(`contrast(${settings.contrast / 100})`);
+    if (settings.saturation !== 100) filters.push(`saturate(${settings.saturation / 100})`);
     if (settings.temperature !== 0) {
-      if (settings.temperature > 0) {
-        filters.push(`sepia(${settings.temperature / 100})`);
-      } else {
-        filters.push(`hue-rotate(${settings.temperature}deg)`);
-      }
+      if (settings.temperature > 0) filters.push(`sepia(${settings.temperature / 100})`);
+      else filters.push(`hue-rotate(${settings.temperature}deg)`);
     }
-
     video.style.filter = filters.length > 0 ? filters.join(' ') : 'none';
   }, [settings, videoRef]);
 
+  useEffect(() => { applyFiltersToVideo(); }, [applyFiltersToVideo]);
 
   useEffect(() => {
     setAnimatedFilter(currentAnimatedFilter);
     setAiAnimatedAssetUrl(currentAnimatedFilterAssetUrl);
     setAnimatedPrompt(currentAnimatedFilterPrompt ?? '');
   }, [currentAnimatedFilter, currentAnimatedFilterAssetUrl, currentAnimatedFilterPrompt]);
-  useEffect(() => {
-    applyFiltersToVideo();
-  }, [applyFiltersToVideo]);
 
-  // Reset filters when panel closes
+  // Reset on unmount
   useEffect(() => {
     return () => {
       const video = videoRef.current;
-      if (video) {
-        video.style.filter = 'none';
-      }
+      if (video) video.style.filter = 'none';
     };
   }, [videoRef]);
 
@@ -203,144 +209,173 @@ export const VideoColorPanel = ({
     setActiveFilter(preset.id);
   };
 
-  const handleReset = () => {
-    setSettings(defaultSettings);
-    setActiveFilter('normal');
-  };
-
   const handleApply = () => {
-    if (onApplySettings) {
-      onApplySettings(settings, activeFilter);
-    }
+    onApplySettings?.(settings, activeFilter);
     onApplyAnimatedFilter?.(animatedFilter, aiAnimatedAssetUrl, animatedPrompt);
-    toast.success('Color settings applied');
+    toast.success('Renk ayarları uygulandı');
     onClose();
   };
 
   const handleGenerateAIAnimatedFilter = async () => {
-    if (!animatedPrompt.trim()) {
-      toast.error('Please enter a prompt for AI animated filter');
-      return;
-    }
-
+    if (!animatedPrompt.trim()) { toast.error('Lütfen bir prompt girin'); return; }
     setIsGeneratingAnimatedFilter(true);
     try {
-      const result = await AIToolsService.generateImage(
-        'poster',
-        `${animatedPrompt}. Generate a seamless cinematic texture for motion overlay.`,
-        undefined,
-        { style: 'animated overlay texture' }
-      );
-
+      const result = await AIToolsService.generateImage('poster', `${animatedPrompt}. Generate a seamless cinematic texture for motion overlay.`, undefined, { style: 'animated overlay texture' });
       const output = result.imageUrl || result.outputUrl;
-      if (!result.success || !output) {
-        throw new Error(result.error || 'AI animated texture could not be created');
-      }
-
+      if (!result.success || !output) throw new Error(result.error || 'AI animasyon oluşturulamadı');
       setAnimatedFilter('ai');
       setAiAnimatedAssetUrl(output);
-      toast.success('AI animated filter generated');
+      toast.success('AI animasyon filtresi oluşturuldu');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'AI animated filter failed');
-    } finally {
-      setIsGeneratingAnimatedFilter(false);
-    }
+      toast.error(error instanceof Error ? error.message : 'AI animasyon filtresi başarısız');
+    } finally { setIsGeneratingAnimatedFilter(false); }
   };
 
-  const adjustmentControls = [
-    { key: 'brightness' as const, label: 'Brightness', icon: Sun, min: 0, max: 200, default: 100 },
-    { key: 'contrast' as const, label: 'Kontrast', icon: Contrast, min: 0, max: 200, default: 100 },
-    { key: 'saturation' as const, label: 'Saturation', icon: Droplets, min: 0, max: 200, default: 100 },
-    { key: 'temperature' as const, label: 'Temperature', icon: Thermometer, min: -50, max: 50, default: 0 },
-  ];
+  const currentAdjust = adjustControls.find(c => c.key === selectedAdjust)!;
+
+  const formatValue = (ctrl: AdjustControl, val: number) => {
+    if (ctrl.isPercent) return `${val}%`;
+    return val > 0 ? `+${val}` : `${val}`;
+  };
+
+  const tabTitle = activeTab === 'filters' ? 'Filtreler' : activeTab === 'adjust' ? 'Ayarla' : 'Animasyon';
 
   return (
     <motion.div
-      initial={false}
+      initial={{ y: '100%' }}
       animate={{ y: 0 }}
-      transition={{ duration: 0 }}
-      exit={{ y: 0 }}
-      className="absolute bottom-20 left-0 right-0 bg-white border-t border-zinc-200 dark:border-zinc-800 dark:bg-black p-4 z-10 max-h-[70vh] overflow-hidden flex flex-col"
+      exit={{ y: '100%' }}
+      transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+      className="absolute bottom-0 left-0 right-0 bg-background z-10 flex flex-col"
+      style={{ maxHeight: '55vh' }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Palette className="w-5 h-5 text-primary" />
-          <h3 className="font-medium">Filters & Colors</h3>
-        </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <X className="w-4 h-4" />
-        </Button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 mb-4">
-        <Button
-          variant={activeTab === 'filters' ? 'secondary' : 'ghost'}
-          size="sm"
-          className="flex-1"
-          onClick={() => setActiveTab('filters')}
-        >
-          <Sparkles className="w-4 h-4 mr-2" />
-          Filters
-        </Button>
-        <Button
-          variant={activeTab === 'adjust' ? 'secondary' : 'ghost'}
-          size="sm"
-          className="flex-1"
-          onClick={() => setActiveTab('adjust')}
-        >
-          <Sun className="w-4 h-4 mr-2" />
-          Settings
-        </Button>
-        <Button
-          variant={activeTab === 'animated' ? 'secondary' : 'ghost'}
-          size="sm"
-          className="flex-1"
-          onClick={() => setActiveTab('animated')}
-        >
-          <Sparkles className="w-4 h-4 mr-2" />
-          Animated
-        </Button>
+      {/* Tab switcher - small pills at top */}
+      <div className="flex justify-center gap-1 pt-3 pb-2">
+        {(['filters', 'adjust', 'animated'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              activeTab === tab
+                ? 'bg-foreground/15 text-foreground'
+                : 'text-muted-foreground'
+            }`}
+          >
+            {tab === 'filters' ? 'Filtreler' : tab === 'adjust' ? 'Ayarla' : 'Animasyon'}
+          </button>
+        ))}
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Filters Tab */}
+      <div className="flex-1 overflow-hidden px-2">
+        {/* ===== FILTERS TAB ===== */}
         {activeTab === 'filters' && (
-          <div className="grid grid-cols-5 gap-2">
-            {filterPresets.map((preset) => (
-              <button
-                key={preset.id}
-                className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
-                  activeFilter === preset.id 
-                    ? 'ring-2 ring-primary bg-primary/10' 
-                    : 'hover:bg-secondary'
-                }`}
-                onClick={() => handleFilterSelect(preset)}
-              >
-                <div className={`w-12 h-12 rounded-lg ${preset.gradient} shadow-sm`} />
-                <span className="text-[10px] text-center leading-tight">{preset.name}</span>
-              </button>
+          <div className="flex items-end gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {filterPresets.map((preset, idx) => (
+              <div key={preset.id} className="flex-shrink-0 flex items-center">
+                <button
+                  className="flex flex-col items-center gap-1"
+                  onClick={() => handleFilterSelect(preset)}
+                >
+                  <div
+                    className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-colors ${
+                      activeFilter === preset.id ? 'border-primary' : 'border-transparent'
+                    }`}
+                  >
+                    {thumbnail ? (
+                      <img
+                        src={thumbnail}
+                        alt={preset.name}
+                        className="w-full h-full object-cover"
+                        style={{ filter: preset.css }}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-muted" style={{ filter: preset.css }} />
+                    )}
+                  </div>
+                  <span className={`text-[10px] leading-tight ${
+                    activeFilter === preset.id ? 'text-primary font-semibold' : 'text-muted-foreground'
+                  }`}>
+                    {preset.name}
+                  </span>
+                </button>
+                {/* Vertical divider after "Yok" */}
+                {idx === 0 && (
+                  <div className="w-px h-12 bg-border mx-2 flex-shrink-0" />
+                )}
+              </div>
             ))}
           </div>
         )}
 
+        {/* ===== ADJUST TAB ===== */}
+        {activeTab === 'adjust' && (
+          <div className="flex flex-col gap-3">
+            {/* Shared slider */}
+            <div className="px-4 pt-1">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">{currentAdjust.label}</span>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {formatValue(currentAdjust, settings[selectedAdjust])}
+                </span>
+              </div>
+              <Slider
+                value={[settings[selectedAdjust]]}
+                min={currentAdjust.min}
+                max={currentAdjust.max}
+                step={1}
+                onValueChange={([v]) => handleSettingChange(selectedAdjust, v)}
+              />
+            </div>
+
+            {/* Icon carousel */}
+            <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-hide px-1">
+              {adjustControls.map(ctrl => {
+                const Icon = ctrl.icon;
+                const isActive = selectedAdjust === ctrl.key;
+                const isModified = settings[ctrl.key] !== ctrl.defaultVal;
+                return (
+                  <button
+                    key={ctrl.key}
+                    className="flex-shrink-0 flex flex-col items-center gap-1"
+                    onClick={() => setSelectedAdjust(ctrl.key)}
+                  >
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
+                      isActive
+                        ? 'bg-primary/20 ring-1 ring-primary'
+                        : 'bg-secondary'
+                    }`}>
+                      <Icon className={`w-5 h-5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                    </div>
+                    <span className={`text-[9px] leading-tight max-w-[48px] text-center ${
+                      isActive ? 'text-primary font-medium' : 'text-muted-foreground'
+                    }`}>
+                      {ctrl.label}
+                    </span>
+                    {isModified && (
+                      <div className="w-1 h-1 rounded-full bg-primary" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ===== ANIMATED TAB ===== */}
         {activeTab === 'animated' && (
-          <div className="space-y-2">
-            {[
-              { id: 'none' as const, name: 'None', desc: 'Disable animation' },
-              { id: 'snow' as const, name: 'Snow', desc: 'Snowfall overlay' },
-              { id: 'rain' as const, name: 'Rain', desc: 'Rainfall overlay' },
-              { id: 'sparkles' as const, name: 'Sparkle', desc: 'Twinkling particles' },
-              { id: 'ai' as const, name: 'AI', desc: 'AI generated animated texture' },
-            ].map((item) => (
+          <div className="space-y-2 overflow-y-auto max-h-[30vh] pb-2">
+            {([
+              { id: 'none' as const, name: 'Yok', desc: 'Animasyon kapalı' },
+              { id: 'snow' as const, name: 'Kar', desc: 'Kar yağışı efekti' },
+              { id: 'rain' as const, name: 'Yağmur', desc: 'Yağmur efekti' },
+              { id: 'sparkles' as const, name: 'Parıltı', desc: 'Parıldayan parçacıklar' },
+              { id: 'ai' as const, name: 'AI', desc: 'AI animasyon dokusu' },
+            ]).map(item => (
               <button
                 key={item.id}
-                className={`w-full rounded-lg border px-3 py-2 text-left transition-all ${
-                  animatedFilter === item.id
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border hover:bg-secondary'
+                className={`w-full rounded-xl border px-3 py-2 text-left transition-all ${
+                  animatedFilter === item.id ? 'border-primary bg-primary/10' : 'border-border hover:bg-secondary'
                 }`}
                 onClick={() => setAnimatedFilter(item.id)}
               >
@@ -348,98 +383,34 @@ export const VideoColorPanel = ({
                 <div className="text-xs text-muted-foreground">{item.desc}</div>
               </button>
             ))}
-
             {animatedFilter === 'ai' && (
-              <div className="rounded-lg border border-border p-3 space-y-2">
-                <Input
-                  value={animatedPrompt}
-                  onChange={(event) => setAnimatedPrompt(event.target.value)}
-                  placeholder="Describe the AI animated effect"
-                />
+              <div className="rounded-xl border border-border p-3 space-y-2">
+                <Input value={animatedPrompt} onChange={e => setAnimatedPrompt(e.target.value)} placeholder="AI efekti tanımlayın..." />
                 <Button className="w-full" onClick={handleGenerateAIAnimatedFilter} disabled={isGeneratingAnimatedFilter}>
                   {isGeneratingAnimatedFilter ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                  Generate AI animated filter
+                  AI Filtre Oluştur
                 </Button>
               </div>
             )}
           </div>
         )}
-
-        {/* Adjust Tab */}
-        {activeTab === 'adjust' && (
-          <div className="space-y-5">
-            {adjustmentControls.map((control) => (
-              <div key={control.key} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <control.icon className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">{control.label}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground min-w-[40px] text-right">
-                    {control.default === 100 
-                      ? `${settings[control.key]}%`
-                      : settings[control.key] > 0 
-                        ? `+${settings[control.key]}`
-                        : settings[control.key]
-                    }
-                  </span>
-                </div>
-                <Slider
-                  value={[settings[control.key]]}
-                  min={control.min}
-                  max={control.max}
-                  step={1}
-                  onValueChange={([v]) => handleSettingChange(control.key, v)}
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>{control.min}{control.default === 100 ? '%' : ''}</span>
-                  <span>{control.default}{control.default === 100 ? '%' : ''}</span>
-                  <span>{control.max}{control.default === 100 ? '%' : ''}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* Active Filter Info */}
-      {activeFilter !== 'normal' && activeFilter !== 'custom' && (
-        <div className="mt-4 p-2 bg-primary/5 rounded-lg">
-          <p className="text-xs text-center text-muted-foreground">
-            <span className="font-medium text-primary">
-              {filterPresets.find(f => f.id === activeFilter)?.name}
-            </span>
-            {' '}filter is active
-          </p>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div className="flex gap-2 pt-4 border-t border-border mt-4">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={handleReset}
-          disabled={activeFilter === 'normal' && JSON.stringify(settings) === JSON.stringify(defaultSettings)}
-        >
-          <RotateCcw className="w-4 h-4 mr-1" />
-          Reset
-        </Button>
-        <Button 
-          variant="outline" 
-          className="flex-1"
+      {/* Google Photos style footer */}
+      <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+        <button
           onClick={onClose}
+          className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
         >
-          Cancel
-        </Button>
-        <Button 
-          variant="gradient" 
-          className="flex-1 gap-2"
+          <X className="w-5 h-5 text-foreground" />
+        </button>
+        <span className="text-sm font-medium text-foreground">{tabTitle}</span>
+        <button
           onClick={handleApply}
+          className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
         >
-          <Check className="w-4 h-4" />
-          Apply
-        </Button>
+          <Check className="w-5 h-5 text-foreground" />
+        </button>
       </div>
     </motion.div>
   );
