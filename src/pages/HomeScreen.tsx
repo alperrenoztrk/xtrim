@@ -197,23 +197,17 @@ const HomeScreen = () => {
 
   return (
     <div className="relative min-h-screen bg-background safe-area-top safe-area-bottom flex flex-col overflow-hidden">
-      {/* Lightweight background video switching */}
+      {/* Background video - only render active video */}
       <div className="absolute inset-0 pointer-events-none">
-        {homeBackgroundVideos.map((videoSrc, index) => (
-          <video
-            key={videoSrc}
-            src={videoSrc}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            className={cn(
-              'absolute inset-0 w-full h-full object-cover transition-opacity duration-1000',
-              currentVideoIndex === index ? 'opacity-100' : 'opacity-0'
-            )}
-          />
-        ))}
+        <video
+          key={homeBackgroundVideos[currentVideoIndex]}
+          src={homeBackgroundVideos[currentVideoIndex]}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover animate-fade-in"
+        />
         <div className="absolute inset-0 bg-background/10 dark:bg-background/20" />
       </div>
       {/* Header */}
