@@ -1,4 +1,4 @@
-import { ChangeEvent, useMemo, useState } from 'react';
+import { ChangeEvent, MouseEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileImage, FileSpreadsheet, FileText, FileType2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -210,6 +210,11 @@ const ConvertScreen = () => {
     setSelectedFile(file);
   };
 
+  const handleFileInputClick = (event: MouseEvent<HTMLInputElement>) => {
+    // Allow selecting the same file again when users want to replace/retry the current file.
+    event.currentTarget.value = '';
+  };
+
   const handleConvert = async () => {
     if (!selectedFile) {
       toast.error('Lütfen önce dosya seçin.');
@@ -325,7 +330,14 @@ const ConvertScreen = () => {
 
             <div className="space-y-2">
               <Label htmlFor="converter-file">Dosya seçin</Label>
-              <Input key={activeType} id="converter-file" type="file" accept={acceptedFileType} onChange={handleFileChange} />
+              <Input
+                key={activeType}
+                id="converter-file"
+                type="file"
+                accept={acceptedFileType}
+                onClick={handleFileInputClick}
+                onChange={handleFileChange}
+              />
               {selectedFile && <p className="text-sm text-muted-foreground">Seçilen dosya: {selectedFile.name}</p>}
             </div>
 
