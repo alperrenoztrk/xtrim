@@ -30,7 +30,7 @@ const converterConfig: Record<ConverterType, { accept: string; allowedExtensions
 
 const getFileBaseName = (fileName: string) => fileName.replace(/\.[^/.]+$/, '');
 
-const ocrApiCompatibleExtensions = new Set(['png', 'jpg', 'jpeg', 'webp', 'pdf', 'bmp', 'gif', 'tif', 'tiff']);
+const ocrApiCompatibleExtensions = new Set(['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tif', 'tiff']);
 
 const createPdfFromJpeg = (jpegBytes: Uint8Array, width: number, height: number): Uint8Array => {
   const contentStream = `q\n${width} 0 0 ${height} 0 0 cm\n/Im0 Do\nQ`;
@@ -149,35 +149,30 @@ const downloadBlob = (blob: Blob, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-const extractTextWithOcrApi = async (file: File) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('language', 'tur');
-  formData.append('isOverlayRequired', 'false');
+const extractTextWithGeminiOcr = async (file: File) => {
+  const arrayBuffer = await file.arrayBuffer();
+  const uint8 = new Uint8Array(arrayBuffer);
+  let binary = '';
+  for (let i = 0; i < uint8.length; i++) {
+    binary += String.fromCharCode(uint8[i]);
+  }
+  const base64 = btoa(binary);
+  const mimeType = file.type || 'image/png';
 
-  const response = await fetch('https://api.ocr.space/parse/image', {
-    method: 'POST',
-    headers: {
-      apikey: 'helloworld',
-    },
-    body: formData,
+  const { supabase } = await import('@/integrations/supabase/client');
+  const { data, error } = await supabase.functions.invoke('ocr-extract', {
+    body: { imageBase64: base64, mimeType },
   });
 
-  if (!response.ok) {
+  if (error) {
     throw new Error('OCR servisine ulaşılamadı.');
   }
 
-  const result = (await response.json()) as {
-    IsErroredOnProcessing?: boolean;
-    ErrorMessage?: string[];
-    ParsedResults?: Array<{ ParsedText?: string }>;
-  };
-
-  if (result.IsErroredOnProcessing) {
-    throw new Error(result.ErrorMessage?.[0] ?? 'OCR işlemi başarısız oldu.');
+  if (!data?.success) {
+    throw new Error(data?.error ?? 'OCR işlemi başarısız oldu.');
   }
 
-  return result.ParsedResults?.map((item) => item.ParsedText ?? '').join('\n').trim() ?? '';
+  return (data.text as string)?.trim() ?? '';
 };
 
 const ConvertScreen = () => {
@@ -235,7 +230,7 @@ const ConvertScreen = () => {
         const extension = selectedFile.name.split('.').pop()?.toLowerCase() ?? '';
 
         const extractedText = ocrApiCompatibleExtensions.has(extension)
-          ? await extractTextWithOcrApi(selectedFile)
+          ? await extractTextWithGeminiOcr(selectedFile)
           : (await selectedFile.text()).trim();
 
         if (!extractedText) {

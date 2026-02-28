@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.ai-video-generate]
 verify_jwt = false
+
+[functions.ocr-extract]
+verify_jwt = false
