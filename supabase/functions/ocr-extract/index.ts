@@ -75,7 +75,7 @@ async function extractWithGeminiNative(
           {
             parts: [
               {
-                text: "Extract ALL text from this image. Return only the extracted text, nothing else. If there are multiple languages, preserve them. If no text is found, return an empty string.",
+                text: "Extract ALL text from this image exactly as written, preserving every character including Turkish characters (ç, ş, ğ, ü, ö, ı, İ, Ç, Ş, Ğ, Ü, Ö). Return only the extracted text with correct spelling and diacritics. If no text is found, return an empty string.",
               },
               {
                 inlineData: { mimeType: mime, data: base64Data },
@@ -124,8 +124,7 @@ async function extractWithLovableAI(
           role: "user",
           content: [
             {
-              type: "text",
-              text: "Extract ALL text from this image. Return only the extracted text, nothing else. If there are multiple languages, preserve them. If no text is found, return an empty string.",
+              text: "Extract ALL text from this image exactly as written, preserving every character including Turkish characters (ç, ş, ğ, ü, ö, ı, İ, Ç, Ş, Ğ, Ü, Ö). Return only the extracted text with correct spelling and diacritics. If no text is found, return an empty string.",
             },
             {
               type: "image_url",
