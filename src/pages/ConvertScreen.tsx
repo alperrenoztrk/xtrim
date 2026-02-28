@@ -1,13 +1,13 @@
 import { ChangeEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileSpreadsheet, FileText, FileType2, Loader2 } from 'lucide-react';
+import { ArrowLeft, FileImage, FileSpreadsheet, FileText, FileType2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
-type ConverterType = 'png-to-pdf' | 'pdf-to-word' | 'excel-to-word';
+type ConverterType = 'png-to-pdf' | 'pdf-to-word' | 'excel-to-word' | 'image-to-text-ocr';
 
 const converterConfig: Record<ConverterType, { accept: string; allowedExtensions: string[] }> = {
   'png-to-pdf': {
@@ -22,9 +22,15 @@ const converterConfig: Record<ConverterType, { accept: string; allowedExtensions
     accept: '.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     allowedExtensions: ['xls', 'xlsx'],
   },
+  'image-to-text-ocr': {
+    accept: '*/*',
+    allowedExtensions: [],
+  },
 };
 
 const getFileBaseName = (fileName: string) => fileName.replace(/\.[^/.]+$/, '');
+
+const ocrApiCompatibleExtensions = new Set(['png', 'jpg', 'jpeg', 'webp', 'pdf', 'bmp', 'gif', 'tif', 'tiff']);
 
 const createPdfFromJpeg = (jpegBytes: Uint8Array, width: number, height: number): Uint8Array => {
   const contentStream = `q\n${width} 0 0 ${height} 0 0 cm\n/Im0 Do\nQ`;
@@ -143,6 +149,37 @@ const downloadBlob = (blob: Blob, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
+const extractTextWithOcrApi = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('language', 'tur');
+  formData.append('isOverlayRequired', 'false');
+
+  const response = await fetch('https://api.ocr.space/parse/image', {
+    method: 'POST',
+    headers: {
+      apikey: 'helloworld',
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error('OCR servisine ulaşılamadı.');
+  }
+
+  const result = (await response.json()) as {
+    IsErroredOnProcessing?: boolean;
+    ErrorMessage?: string[];
+    ParsedResults?: Array<{ ParsedText?: string }>;
+  };
+
+  if (result.IsErroredOnProcessing) {
+    throw new Error(result.ErrorMessage?.[0] ?? 'OCR işlemi başarısız oldu.');
+  }
+
+  return result.ParsedResults?.map((item) => item.ParsedText ?? '').join('\n').trim() ?? '';
+};
+
 const ConvertScreen = () => {
   const navigate = useNavigate();
   const [activeType, setActiveType] = useState<ConverterType>('png-to-pdf');
@@ -167,7 +204,8 @@ const ConvertScreen = () => {
     }
 
     const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
-    if (!converterConfig[activeType].allowedExtensions.includes(extension)) {
+    const allowedExtensions = converterConfig[activeType].allowedExtensions;
+    if (allowedExtensions.length > 0 && !allowedExtensions.includes(extension)) {
       toast.error('Seçilen dosya, aktif dönüştürme türüyle uyumlu değil.');
       event.target.value = '';
       setSelectedFile(null);
@@ -190,6 +228,24 @@ const ConvertScreen = () => {
         const pdfBlob = await convertPngToPdf(selectedFile);
         downloadBlob(pdfBlob, `${getFileBaseName(selectedFile.name)}.pdf`);
         toast.success('PNG başarıyla PDF dosyasına dönüştürüldü.');
+        return;
+      }
+
+      if (activeType === 'image-to-text-ocr') {
+        const extension = selectedFile.name.split('.').pop()?.toLowerCase() ?? '';
+
+        const extractedText = ocrApiCompatibleExtensions.has(extension)
+          ? await extractTextWithOcrApi(selectedFile)
+          : (await selectedFile.text()).trim();
+
+        if (!extractedText) {
+          toast.warning('Dosyada okunabilir metin bulunamadı.');
+          return;
+        }
+
+        const textBlob = new Blob([extractedText], { type: 'text/plain;charset=utf-8' });
+        downloadBlob(textBlob, `${getFileBaseName(selectedFile.name)}-ocr.txt`);
+        toast.success('OCR tamamlandı. Metin dosyası indirildi.');
         return;
       }
 
@@ -253,11 +309,11 @@ const ConvertScreen = () => {
           <CardHeader>
             <CardTitle>Dosya Dönüştürücü</CardTitle>
             <CardDescription>
-              PNG → PDF, PDF → Word ve Excel → Word dönüşümlerini tek sayfadan yapın.
+              PNG → PDF, PDF → Word, Excel → Word ve OCR ile tüm dosyalardan metin çıkarmayı tek sayfadan yapın.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
               <Button variant={activeType === 'png-to-pdf' ? 'default' : 'outline'} onClick={() => handleTypeChange('png-to-pdf')}>
                 <FileType2 className="mr-2 h-4 w-4" /> PNG → PDF
               </Button>
@@ -266,6 +322,9 @@ const ConvertScreen = () => {
               </Button>
               <Button variant={activeType === 'excel-to-word' ? 'default' : 'outline'} onClick={() => handleTypeChange('excel-to-word')}>
                 <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel → Word
+              </Button>
+              <Button variant={activeType === 'image-to-text-ocr' ? 'default' : 'outline'} onClick={() => handleTypeChange('image-to-text-ocr')}>
+                <FileImage className="mr-2 h-4 w-4" /> Dosya → OCR
               </Button>
             </div>
 
