@@ -40,7 +40,7 @@ const ConvertScreen = () => {
 
     const format = detectFormat(file);
     if (!format) {
-      toast.error('Bu dosya türü desteklenmiyor.');
+      toast.error('This file type is not supported.');
       event.target.value = '';
       return;
     }
@@ -57,7 +57,7 @@ const ConvertScreen = () => {
 
   const handleConvert = async () => {
     if (!selectedFile || !detectedFormat || !targetFormat) {
-      toast.error('Lütfen dosya seçin ve hedef format belirleyin.');
+      toast.error('Please select a file and choose a target format.');
       return;
     }
 
@@ -65,10 +65,10 @@ const ConvertScreen = () => {
     try {
       const { blob, filename } = await convertFile(selectedFile, detectedFormat, targetFormat);
       downloadBlob(blob, filename);
-      toast.success('Dönüştürme tamamlandı!');
+      toast.success('Conversion completed!');
     } catch (err: any) {
       console.error(err);
-      toast.error(err?.message ?? 'Dönüştürme sırasında bir hata oluştu.');
+      toast.error(err?.message ?? 'An error occurred during conversion.');
     } finally {
       setIsConverting(false);
     }
@@ -79,14 +79,15 @@ const ConvertScreen = () => {
       <div className="max-w-2xl mx-auto space-y-6">
         <Button variant="ghost" onClick={() => navigate('/home')} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
-          Anasayfaya dön
+          Back to home
         </Button>
 
         <Card>
           <CardHeader>
-            <CardTitle>Dosya Dönüştürücü</CardTitle>
+            <CardTitle>File Converter</CardTitle>
             <CardDescription>
-              Dosyanızı yükleyin, format otomatik algılansın. Hedef formatı seçip dönüştürün.
+              Upload your file, let the format be detected automatically, then choose a target format
+              and convert.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -94,7 +95,7 @@ const ConvertScreen = () => {
             <div className="space-y-2">
               <Label htmlFor="converter-file">
                 <Upload className="inline h-4 w-4 mr-1 -mt-0.5" />
-                Dosya seçin
+                Select a file
               </Label>
               <Input
                 id="converter-file"
@@ -105,7 +106,7 @@ const ConvertScreen = () => {
               />
               {selectedFile && detectedFormat && (
                 <p className="text-sm text-muted-foreground">
-                  <strong>{selectedFile.name}</strong> — Algılanan format:{' '}
+                  <strong>{selectedFile.name}</strong> — Detected format:{' '}
                   <span className="font-semibold text-foreground">{sourceLabels[detectedFormat]}</span>
                 </p>
               )}
@@ -114,7 +115,7 @@ const ConvertScreen = () => {
             {/* Target format selector */}
             {availableTargets.length > 0 && (
               <div className="space-y-2">
-                <Label>Hedef format</Label>
+                <Label>Target format</Label>
                 <div className="flex flex-wrap gap-2">
                   {availableTargets.map((t) => (
                     <Button
@@ -140,14 +141,14 @@ const ConvertScreen = () => {
               {isConverting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Dönüştürülüyor...
+                  Converting...
                 </>
               ) : (
                 <>
                   <FileDown className="h-4 w-4 mr-2" />
                   {detectedFormat && targetFormat
-                    ? `${sourceLabels[detectedFormat]} → ${targetLabels[targetFormat]} Dönüştür`
-                    : 'Dönüştür ve indir'}
+                    ? `Convert ${sourceLabels[detectedFormat]} → ${targetLabels[targetFormat]}`
+                    : 'Convert and download'}
                 </>
               )}
             </Button>

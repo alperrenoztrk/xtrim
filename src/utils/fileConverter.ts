@@ -13,20 +13,20 @@ export type TargetFormat = 'pdf' | 'docx' | 'xlsx' | 'png' | 'csv' | 'txt';
 
 export const sourceLabels: Record<SourceFormat, string> = {
   pdf: 'PDF',
-  image: 'Görsel',
+  image: 'Image',
   excel: 'Excel',
   word: 'Word',
   csv: 'CSV',
-  txt: 'Metin',
+  txt: 'Text',
 };
 
 export const targetLabels: Record<TargetFormat, string> = {
   pdf: 'PDF',
   docx: 'Word (DOCX)',
   xlsx: 'Excel (XLSX)',
-  png: 'PNG Görsel',
+  png: 'PNG Image',
   csv: 'CSV',
-  txt: 'Metin (TXT)',
+  txt: 'Text (TXT)',
 };
 
 /* ── Detection ── */
@@ -210,8 +210,8 @@ const ocrExtract = async (file: File): Promise<string> => {
   const { data, error } = await supabase.functions.invoke('ocr-extract', {
     body: { imageBase64: b64, mimeType: mime },
   });
-  if (error) throw new Error('OCR servisine ulaşılamadı.');
-  if (!data?.success) throw new Error(data?.error ?? 'OCR işlemi başarısız.');
+  if (error) throw new Error('Could not reach OCR service.');
+  if (!data?.success) throw new Error(data?.error ?? 'OCR process failed.');
   return (data.text as string)?.trim() ?? '';
 };
 
@@ -262,13 +262,13 @@ const imageToPdf = async (file: File): Promise<Blob> => {
   const dataUrl = await new Promise<string>((res, rej) => {
     const r = new FileReader();
     r.onload = () => res(String(r.result));
-    r.onerror = () => rej(new Error('Dosya okunamadı.'));
+    r.onerror = () => rej(new Error('Could not read the file.'));
     r.readAsDataURL(file);
   });
   const img = await new Promise<HTMLImageElement>((res, rej) => {
     const i = new Image();
     i.onload = () => res(i);
-    i.onerror = () => rej(new Error('Görsel yüklenemedi.'));
+    i.onerror = () => rej(new Error('Could not load the image.'));
     i.src = dataUrl;
   });
   const canvas = document.createElement('canvas');
@@ -319,7 +319,7 @@ const imageToDocx = async (file: File): Promise<Blob> => {
   const img = await new Promise<HTMLImageElement>((res, rej) => {
     const i = new Image();
     i.onload = () => res(i);
-    i.onerror = () => rej(new Error('Görsel yüklenemedi.'));
+    i.onerror = () => rej(new Error('Could not load the image.'));
     i.src = dataUrl;
   });
   URL.revokeObjectURL(dataUrl);
@@ -337,7 +337,7 @@ const imageToDocx = async (file: File): Promise<Blob> => {
 // Image → TXT (OCR)
 const imageToTxt = async (file: File): Promise<Blob> => {
   const text = await ocrExtract(file);
-  if (!text) throw new Error('Görselde okunabilir metin bulunamadı.');
+  if (!text) throw new Error('No readable text found in the image.');
   return new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' });
 };
 
@@ -352,7 +352,7 @@ const excelToDocx = async (file: File): Promise<Blob> => {
     const html = XLSX.utils.sheet_to_html(sheet, { editable: false });
     htmlParts.push(`<h2 style="font-family:Calibri;font-size:14pt;margin:16px 0 8px;">${name}</h2>${html}`);
   }
-  if (!htmlParts.length) throw new Error('Excel dosyasında veri bulunamadı.');
+  if (!htmlParts.length) throw new Error('No data found in the Excel file.');
   return wrapHtmlAsDoc(htmlParts.join('<br style="page-break-after:always">'));
 };
 
@@ -417,7 +417,7 @@ const wordToTxt = async (file: File): Promise<Blob> => {
   const mammoth = await import('mammoth');
   const ab = await file.arrayBuffer();
   const { value: text } = await mammoth.extractRawText({ arrayBuffer: ab });
-  if (!text.trim()) throw new Error('Word dosyasında metin bulunamadı.');
+  if (!text.trim()) throw new Error('No text found in the Word file.');
   return new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' });
 };
 
@@ -521,7 +521,7 @@ export const convertFile = async (
 ): Promise<{ blob: Blob; filename: string }> => {
   const key = `${source}→${target}`;
   const fn = converterMap[key];
-  if (!fn) throw new Error('Bu dönüşüm türü henüz desteklenmiyor.');
+  if (!fn) throw new Error('This conversion type is not supported yet.');
   const blob = await fn(file);
   const ext = specialExtMap[key] ?? extMap[target];
   return { blob, filename: `${getBaseName(file.name)}${ext}` };
