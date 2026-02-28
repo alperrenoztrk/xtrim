@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Video, Image, Settings, Sparkles } from 'lucide-react';
+import { Video, Image, Settings, Sparkles, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectService } from '@/services/ProjectService';
 import { cn } from '@/lib/utils';
@@ -45,6 +45,14 @@ const tools: Tool[] = [
     gradient: 'from-primary to-accent',
   },
   {
+    id: 'convert',
+    name: 'Convert',
+    description: 'Convert your videos with quick tools',
+    icon: Repeat,
+    route: '/editor',
+    gradient: 'from-primary to-accent',
+  },
+  {
     id: 'settings',
     name: 'Settings',
     description: 'App preferences',
@@ -80,8 +88,8 @@ const HomeScreen = () => {
   };
 
   const handleToolClick = (tool: Tool) => {
-    if (tool.id === 'video' || tool.id === 'photo') {
-      setMenuType(tool.id);
+    if (tool.id === 'video' || tool.id === 'photo' || tool.id === 'convert') {
+      setMenuType(tool.id === 'photo' ? 'photo' : 'video');
       setMenuOpen(true);
     } else if (tool.id === 'edits') {
       setTextToImageOpen(true);
@@ -223,7 +231,7 @@ const HomeScreen = () => {
         <div className="space-y-4 max-w-sm mx-auto w-full">
           {tools.map((tool, index) => {
             const Icon = tool.icon;
-            const isMainTool = tool.id === 'video' || tool.id === 'photo' || tool.id === 'edits';
+            const isMainTool = tool.id === 'video' || tool.id === 'photo' || tool.id === 'edits' || tool.id === 'convert';
 
             return (
               <motion.div
