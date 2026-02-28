@@ -265,7 +265,7 @@ const ConvertScreen = () => {
       if (activeType === 'pdf-to-word') {
         const { convertPdfToWord } = await import('@/utils/pdfToWord');
         const wordBlob = await convertPdfToWord(selectedFile);
-        downloadBlob(wordBlob, `${getFileBaseName(selectedFile.name)}.doc`);
+        downloadBlob(wordBlob, `${getFileBaseName(selectedFile.name)}.docx`);
         toast.success('PDF dosyası Word formatına aktarıldı.');
         return;
       }
