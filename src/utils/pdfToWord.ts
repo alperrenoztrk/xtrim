@@ -23,13 +23,13 @@ const renderPdfPage = async (
   canvas.height = Math.round(renderViewport.height);
 
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas context oluşturulamadı.');
+  if (!ctx) throw new Error('Failed to create canvas context.');
 
   await page.render({ canvasContext: ctx, viewport: renderViewport, canvas } as any).promise;
 
   const imageBlob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error('PDF sayfası görsele dönüştürülemedi.'))),
+      (blob) => (blob ? resolve(blob) : reject(new Error('Failed to convert PDF page to image.'))),
       'image/png'
     );
   });

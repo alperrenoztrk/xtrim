@@ -33,7 +33,7 @@ describe('ConvertScreen OCR flow', () => {
     const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => ({
-        ParsedResults: [{ ParsedText: 'Merhaba Dünya' }],
+        ParsedResults: [{ ParsedText: 'Hello World' }],
       }),
     } as Response);
 
@@ -52,7 +52,7 @@ describe('ConvertScreen OCR flow', () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(toast.success).toHaveBeenCalledWith('OCR tamamlandı. Metin dosyası indirildi.');
+      expect(toast.success).toHaveBeenCalledWith('OCR completed. Text file downloaded.');
       expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
     });
   });
@@ -75,7 +75,7 @@ describe('ConvertScreen OCR flow', () => {
 
     await waitFor(() => {
       expect(fetchMock).not.toHaveBeenCalled();
-      expect(toast.success).toHaveBeenCalledWith('OCR tamamlandı. Metin dosyası indirildi.');
+      expect(toast.success).toHaveBeenCalledWith('OCR completed. Text file downloaded.');
       expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
     });
   });
@@ -102,7 +102,7 @@ describe('ConvertScreen OCR flow', () => {
     fireEvent.click(screen.getByRole('button', { name: /Dönüştür ve indir/i }));
 
     await waitFor(() => {
-      expect(toast.warning).toHaveBeenCalledWith('Dosyada okunabilir metin bulunamadı.');
+      expect(toast.warning).toHaveBeenCalledWith('No readable text found in the file.');
       expect(URL.createObjectURL).not.toHaveBeenCalled();
     });
   });

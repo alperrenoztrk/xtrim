@@ -38,7 +38,7 @@ export const PLANS: PlanDetails[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price: '₺149.99/month',
+    price: '$9.99/month',
     priceMonthly: 149.99,
     googlePlayProductId: 'xtrim_pro_monthly',
     features: [
@@ -56,7 +56,7 @@ export const PLANS: PlanDetails[] = [
   {
     id: 'premium',
     name: 'Premium',
-    price: '₺299.99/month',
+    price: '$19.99/month',
     priceMonthly: 299.99,
     googlePlayProductId: 'xtrim_premium_monthly',
     features: [
@@ -75,7 +75,7 @@ export const PLANS: PlanDetails[] = [
   {
     id: 'ultra',
     name: 'Ultra',
-    price: '₺599.99/month',
+    price: '$39.99/month',
     priceMonthly: 599.99,
     googlePlayProductId: 'xtrim_ultra_monthly',
     features: [
