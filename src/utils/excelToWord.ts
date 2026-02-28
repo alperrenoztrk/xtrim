@@ -5,7 +5,7 @@ export const convertExcelToWord = async (file: File): Promise<Blob> => {
   const workbook = XLSX.read(arrayBuffer, { type: 'array', cellStyles: true });
 
   if (!workbook.SheetNames.length) {
-    throw new Error('Excel dosyasında veri bulunamadı.');
+    throw new Error('No data found in the Excel file.');
   }
 
   const sheetHtmlParts: string[] = [];
@@ -22,7 +22,7 @@ export const convertExcelToWord = async (file: File): Promise<Blob> => {
   }
 
   if (!sheetHtmlParts.length) {
-    throw new Error('Excel dosyasında veri bulunamadı.');
+    throw new Error('No data found in the Excel file.');
   }
 
   const fullHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
