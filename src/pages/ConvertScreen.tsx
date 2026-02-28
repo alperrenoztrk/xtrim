@@ -129,7 +129,7 @@ const convertPngToPdf = async (file: File) => {
   }
 
   const pdfBytes = createPdfFromJpeg(jpegBytes, image.width, image.height);
-  return new Blob([pdfBytes], { type: 'application/pdf' });
+  return new Blob([pdfBytes as unknown as BlobPart], { type: 'application/pdf' });
 };
 
 const downloadBlob = (blob: Blob, filename: string) => {

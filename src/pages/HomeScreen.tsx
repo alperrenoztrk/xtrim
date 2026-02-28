@@ -54,14 +54,6 @@ const tools: Tool[] = [
     gradient: 'from-primary to-accent',
   },
   {
-    id: 'convert',
-    name: 'Convert',
-    description: 'Convert your videos with quick tools',
-    icon: Repeat,
-    route: '/editor',
-    gradient: 'from-primary to-accent',
-  },
-  {
     id: 'settings',
     name: 'Settings',
     description: 'App preferences',
@@ -97,7 +89,7 @@ const HomeScreen = () => {
   };
 
   const handleToolClick = (tool: Tool) => {
-    if (tool.id === 'video' || tool.id === 'photo' || tool.id === 'convert') {
+    if (tool.id === 'video' || tool.id === 'photo') {
       setMenuType(tool.id === 'photo' ? 'photo' : 'video');
       setMenuOpen(true);
     } else if (tool.id === 'edits') {
