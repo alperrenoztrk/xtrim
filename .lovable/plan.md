@@ -1,55 +1,38 @@
 
 
-## Plan: Redesign VideoColorPanel to match Google Photos style
+## Problem Analysis
 
-Based on the reference screenshots, the current panel needs a complete UI overhaul to match Google Photos' video filter/adjust editor.
+The AI video generation feature appears structurally complete (panel, edge function, config.toml entry all exist), but there are two likely issues:
 
-### Key Design Changes
+1. **Model name `gemini-3.1-flash-image-preview` does not exist** - This has been causing 404 errors across other functions too. Google does not have a model called `gemini-3.1-flash-image-preview`. The correct model for image generation via the Lovable AI gateway is `google/gemini-2.5-flash-image` (also known as "Nano banana").
 
-**1. Filters Tab - Horizontal thumbnail carousel**
-- Replace the 5-column gradient grid with a horizontally scrollable row of actual video thumbnail previews
-- Each filter shows the video frame with the CSS filter applied on the thumbnail
-- Capture a frame from the video as a thumbnail using canvas
-- Add a vertical divider after "Yok" (None) filter
-- Selected filter gets a rounded border highlight
-- Expand filter list: Yok, Vivid, Playa, Honey, Isla, Desert, Clay, Palma, Blush, Bazaar, Ollie, Onyx, Eiffel, Vogue
+2. **CORS headers incomplete** - The edge function's CORS headers are missing headers that the Supabase client sends (e.g., `x-supabase-client-platform`), which could cause preflight failures.
 
-**2. Adjust Tab - Icon button carousel with shared slider**
-- Replace vertical stacked sliders with a horizontal scrollable row of square icon buttons
-- Labels above each icon (Parlaklık, Kontrast, Ton, Beyaz nokta, Parlak alanlar, Gölgeler, Siyah nokta, Vinyet, Doygunluk, Sıcaklık, Tonlama, Cilt tonu, Mavi ton)
-- A single shared slider between the video and the icon row
-- Tapping an icon selects it and the slider controls that parameter
-- Expand adjustment controls to include: brightness, contrast, tone, white point, highlights, shadows, black point, vignette, saturation, temperature, tint, skin tone, blue tone
+3. **Direct Gemini API vs Lovable AI Gateway** - The function calls Google's native `generateContent` API directly with `GEMINI_API_KEY`. Since the project has `GEMINI_API_KEY` configured, this approach should work, but the model name is wrong.
 
-**3. Bottom Footer - Google Photos style**
-- Round dark X button on the left
-- Title in center ("Filtreler" or "Ayarla")
-- Round dark checkmark button on the right
-- Remove the Reset button and Cancel text button
+## Plan
 
-**4. Remove the header and tab buttons**
-- No top header with Palette icon
-- Bottom footer shows which mode is active via the center title
-- Tab switching happens via the footer title or by keeping the two tab buttons but styling them differently
+### Step 1: Fix edge function model and CORS
 
-### Implementation Steps
+Update `supabase/functions/ai-video-generate/index.ts`:
+- Fix CORS headers to include all required Supabase client headers
+- Switch model from `gemini-3.1-flash-image-preview` to `gemini-2.0-flash-exp` (which is a known working model that supports `responseModalities: ["IMAGE"]`)
+- Alternatively, use Lovable AI Gateway with `google/gemini-3-pro-image-preview` model for image generation, which avoids model name guessing
 
-1. **Update `VideoColorPanel.tsx`**:
-   - Add video thumbnail capture (canvas-based) on mount
-   - Restructure filters as horizontal scrollable with thumbnail previews and CSS filters on each
-   - Restructure adjust tab with icon grid + shared slider
-   - Expand filter presets to ~15 named filters matching Google Photos
-   - Expand adjustment controls to ~13 parameters
-   - Redesign footer to match Google Photos (round buttons + center title)
-   - Add `ColorSettings` fields: `tone`, `whitePoint`, `highlights`, `shadows`, `blackPoint`, `vignette`, `skinTone`, `blueTone`
+### Step 2: Fix other affected edge functions
 
-2. **Update `ColorSettings` interface** and related types to support the new parameters
+Apply the same model fix to:
+- `supabase/functions/ai-video-tools/index.ts`
+- `supabase/functions/remove-background/index.ts`  
+- `supabase/functions/ai-image-generate/index.ts`
 
-### Technical Details
+All currently use the non-existent `gemini-3.1-flash-image-preview`.
 
-- Video thumbnail captured via `canvas.drawImage(video, ...)` → `toDataURL()`
-- Each filter preset thumbnail rendered as `<img>` with inline CSS `filter:` matching the preset's color settings
-- Adjust icons use lucide-react icons in dark square buttons
-- Shared slider positioned between video area and icon row
-- Horizontal scroll via `overflow-x-auto` with `scrollbar-hide`
+### Step 3: Add missing config.toml entries
+
+Add entries for `ai-transcript`, `elevenlabs-tts`, and `video-translate` functions that are missing from `supabase/config.toml`.
+
+### Recommended Approach
+
+Since the native Gemini model names have been unreliable, the most robust fix is to switch image generation functions to use the **Lovable AI Gateway** (`https://ai.gateway.lovable.dev/v1/chat/completions`) with the `google/gemini-3-pro-image-preview` model. The `LOVABLE_API_KEY` is already configured. This avoids the recurring model-name 404 issues entirely.
 
