@@ -5,12 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function getApiConfig(): { apiKey: string; useLovable: boolean } {
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  if (lovableKey) return { apiKey: lovableKey, useLovable: true };
-  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
-  if (geminiKey) return { apiKey: geminiKey, useLovable: false };
-  throw new Error("No API key configured");
+function getApiConfig(): { lovableKey?: string; geminiKey?: string } {
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY") ?? undefined;
+  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY") || undefined;
+  if (!lovableKey && !geminiKey) throw new Error("No API key configured");
+  return { lovableKey, geminiKey };
 }
 
 interface GenerateRequest {
@@ -105,8 +104,8 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { apiKey, useLovable } = getApiConfig();
-    console.log(`Processing AI generation: ${type}, useLovable=${useLovable}`);
+    const { lovableKey, geminiKey } = getApiConfig();
+    console.log(`Processing AI generation: ${type}, hasGemini=${Boolean(geminiKey)}, hasLovable=${Boolean(lovableKey)}`);
 
     let fullPrompt = "";
     switch (type) {
@@ -118,29 +117,45 @@ serve(async (req) => {
     }
 
     let generatedImage: string | null = null;
+    const providerErrors: string[] = [];
 
-    if (useLovable) {
-      const content: any[] = [{ type: "text", text: fullPrompt }];
-      if (inputImage && type !== 'text-to-image') {
-        content.push({ type: "image_url", image_url: { url: inputImage.startsWith("data:") ? inputImage : `data:image/png;base64,${inputImage}` } });
+    if (geminiKey) {
+      try {
+        generatedImage = await generateImageWithGeminiNative(geminiKey, fullPrompt, inputImage, type);
+      } catch (error) {
+        providerErrors.push(`Gemini: ${error instanceof Error ? error.message : String(error)}`);
       }
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "google/gemini-3-pro-image-preview", messages: [{ role: "user", content }], modalities: ["image", "text"] }),
-      });
-      if (!response.ok) {
-        if (response.status === 429) return new Response(JSON.stringify({ success: false, error: "Rate limit exceeded." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        if (response.status === 402) return new Response(JSON.stringify({ success: false, error: "AI credits exhausted." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        throw new Error(`AI error: ${response.status}`);
-      }
-      const data = await response.json();
-      generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    } else {
-      generatedImage = await generateImageWithGeminiNative(apiKey, fullPrompt, inputImage, type);
     }
 
-    if (!generatedImage) throw new Error("Image generation failed");
+    if (!generatedImage && lovableKey) {
+      try {
+        const content: any[] = [{ type: "text", text: fullPrompt }];
+        if (inputImage && type !== 'text-to-image') {
+          content.push({ type: "image_url", image_url: { url: inputImage.startsWith("data:") ? inputImage : `data:image/png;base64,${inputImage}` } });
+        }
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "google/gemini-3-pro-image-preview", messages: [{ role: "user", content }], modalities: ["image", "text"] }),
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          providerErrors.push(`Lovable AI (${response.status}): ${errorText}`);
+        } else {
+          const data = await response.json();
+          generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        }
+      } catch (error) {
+        providerErrors.push(`Lovable AI: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    if (!generatedImage) {
+      return new Response(
+        JSON.stringify({ success: false, error: `Image generation unavailable. ${providerErrors.join(" | ")}` }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     return new Response(
       JSON.stringify({ success: true, type, imageUrl: generatedImage, message: `${type} generation completed` }),

@@ -45,7 +45,8 @@ async function tryModel(apiKey: string, model: string, prompt: string, mimeType:
     }
     return { image: null, status: "no_image", error: `${model} returned no image data` };
   } catch (e) {
-    return { image: null, status: "error", error: `${model} error: ${e.message}` };
+    const message = e instanceof Error ? e.message : String(e);
+    return { image: null, status: "error", error: `${model} error: ${message}` };
   }
 }
 
@@ -62,8 +63,16 @@ async function generateWithGemini(apiKey: string, prompt: string, mimeType: stri
         return { image: result.image, lastError: "" };
       }
       if (result.status === "rate_limit") return { image: null, lastError: "RATE_LIMIT" };
-      if (result.status === "not_found") { lastError = result.error; console.log(`${result.error}, trying next...`); break; }
-      lastError = result.error;
+      if (result.status === "not_found") {
+        if (!lastError || lastError.includes("not found")) lastError = result.error;
+        console.log(`${result.error}, trying next...`);
+        break;
+      }
+      if (result.status === "no_image") {
+        lastError = "Model responded but did not return image data";
+      } else {
+        lastError = result.error;
+      }
       console.log(result.error);
       if (result.status === "no_image" && attempt < maxAttempts) {
         console.log(`Retrying ${model} in 2s...`);
