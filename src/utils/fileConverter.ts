@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
+import html2canvas from 'html2canvas';
 import { Document, ImageRun, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, BorderStyle } from 'docx';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -198,6 +199,109 @@ const wrapHtmlAsDoc = (htmlBody: string): Blob => {
   return new Blob(['\uFEFF' + html], { type: 'application/msword;charset=utf-8' });
 };
 
+/* ── HTML → Image-based PDF (high fidelity) ── */
+const htmlToImagePdf = async (htmlContent: string, cssOverride = ''): Promise<Blob> => {
+  const pageWidth = 595;
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = `${pageWidth}px`;
+  container.style.background = '#fff';
+  container.style.color = '#000';
+  container.style.fontFamily = 'Calibri, Arial, sans-serif';
+  container.style.fontSize = '11pt';
+  container.style.padding = '40px';
+  container.style.boxSizing = 'border-box';
+  if (cssOverride) {
+    const style = document.createElement('style');
+    style.textContent = cssOverride;
+    container.appendChild(style);
+  }
+  container.innerHTML += htmlContent;
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      width: pageWidth,
+    });
+
+    const imgW = canvas.width;
+    const imgH = canvas.height;
+    const scaledPageH = Math.round((842 / 595) * pageWidth * 2);
+    const numPages = Math.ceil(imgH / scaledPageH) || 1;
+    const pageImages: { jpegBytes: Uint8Array; h: number }[] = [];
+
+    for (let p = 0; p < numPages; p++) {
+      const sliceH = Math.min(scaledPageH, imgH - p * scaledPageH);
+      const pc = document.createElement('canvas');
+      pc.width = imgW;
+      pc.height = sliceH;
+      const ctx = pc.getContext('2d')!;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, imgW, sliceH);
+      ctx.drawImage(canvas, 0, -p * scaledPageH);
+      const blob = await new Promise<Blob>((res, rej) =>
+        pc.toBlob((b) => (b ? res(b) : rej(new Error('Render failed'))), 'image/jpeg', 0.95)
+      );
+      const actualH = Math.round((sliceH / imgW) * pageWidth);
+      pageImages.push({ jpegBytes: new Uint8Array(await blob.arrayBuffer()), h: actualH });
+    }
+
+    // Build PDF
+    const enc = new TextEncoder();
+    const parts: Uint8Array[] = [];
+    const offsets: number[] = [0];
+    let pos = 0;
+    const pushT = (s: string) => { const b = enc.encode(s); parts.push(b); pos += b.length; };
+    const pushB = (b: Uint8Array) => { parts.push(b); pos += b.length; };
+    const obj = (id: number, h: string, s?: Uint8Array) => {
+      offsets[id] = pos; pushT(`${id} 0 obj\n${h}`);
+      if (s) { pushT('stream\n'); pushB(s); pushT('\nendstream\n'); }
+      pushT('endobj\n');
+    };
+
+    pushT('%PDF-1.4\n');
+    let nextId = 1;
+    const catalogId = nextId++;
+    const pagesObjId = nextId++;
+    const pageObjIds: number[] = [];
+    const pageDataArr: { pageId: number; imgId: number; contentId: number; jpegBytes: Uint8Array; h: number }[] = [];
+
+    for (const pi of pageImages) {
+      pageDataArr.push({ pageId: nextId++, imgId: nextId++, contentId: nextId++, jpegBytes: pi.jpegBytes, h: pi.h });
+      pageObjIds.push(pageDataArr[pageDataArr.length - 1].pageId);
+    }
+
+    obj(catalogId, `<< /Type /Catalog /Pages ${pagesObjId} 0 R >>\n`);
+    obj(pagesObjId, `<< /Type /Pages /Kids [${pageObjIds.map(id => `${id} 0 R`).join(' ')}] /Count ${pageImages.length} >>\n`);
+
+    for (const pd of pageDataArr) {
+      obj(pd.imgId, `<< /Type /XObject /Subtype /Image /Width ${pageWidth * 2} /Height ${pd.h * 2} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${pd.jpegBytes.length} >>\n`, pd.jpegBytes);
+      const cs = enc.encode(`q\n${pageWidth} 0 0 ${pd.h} 0 0 cm\n/Im0 Do\nQ`);
+      obj(pd.contentId, `<< /Length ${cs.length} >>\n`, cs);
+      obj(pd.pageId, `<< /Type /Page /Parent ${pagesObjId} 0 R /MediaBox [0 0 ${pageWidth} ${pd.h}] /Resources << /XObject << /Im0 ${pd.imgId} 0 R >> >> /Contents ${pd.contentId} 0 R >>\n`);
+    }
+
+    const xr = pos;
+    const totalObjs = nextId;
+    pushT(`xref\n0 ${totalObjs}\n`);
+    pushT('0000000000 65535 f \n');
+    for (let i = 1; i < totalObjs; i++) pushT(`${(offsets[i] ?? 0).toString().padStart(10, '0')} 00000 n \n`);
+    pushT(`trailer\n<< /Size ${totalObjs} /Root ${catalogId} 0 R >>\nstartxref\n${xr}\n%%EOF`);
+
+    const total = new Uint8Array(pos);
+    let ptr = 0;
+    for (const part of parts) { total.set(part, ptr); ptr += part.length; }
+    return new Blob([total], { type: 'application/pdf' });
+  } finally {
+    document.body.removeChild(container);
+  }
+};
+
 /* ── OCR via edge function ── */
 const ocrExtract = async (file: File): Promise<string> => {
   const ab = await file.arrayBuffer();
@@ -356,20 +460,20 @@ const excelToDocx = async (file: File): Promise<Blob> => {
   return wrapHtmlAsDoc(htmlParts.join('<br style="page-break-after:always">'));
 };
 
-// Excel → PDF
+// Excel → PDF (high fidelity via HTML rendering)
 const excelToPdf = async (file: File): Promise<Blob> => {
   const ab = await file.arrayBuffer();
   const wb = XLSX.read(ab, { type: 'array' });
-  const allText: string[] = [];
+  const htmlParts: string[] = [];
   for (const name of wb.SheetNames) {
     const sheet = wb.Sheets[name];
     if (!sheet) continue;
-    allText.push(`--- ${name} ---`);
-    const rows: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false }) as string[][];
-    for (const row of rows) allText.push(row.map(String).join('\t'));
-    allText.push('');
+    const html = XLSX.utils.sheet_to_html(sheet, { editable: false });
+    htmlParts.push(`<h2 style="font-size:14pt;margin:16px 0 8px;">${name}</h2>${html}`);
   }
-  return createTextPdf(allText.join('\n'));
+  if (!htmlParts.length) throw new Error('No data found in the Excel file.');
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
+  return htmlToImagePdf(htmlParts.join('<div style="page-break-after:always"></div>'), css);
 };
 
 // Excel → CSV
@@ -401,15 +505,17 @@ const excelToTxt = async (file: File): Promise<Blob> => {
   return new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/plain;charset=utf-8' });
 };
 
-// Word → PDF (mammoth)
+// Word → PDF (high fidelity via HTML rendering)
 const wordToPdf = async (file: File): Promise<Blob> => {
   const mammoth = await import('mammoth');
   const ab = await file.arrayBuffer();
   const { value: html } = await mammoth.convertToHtml({ arrayBuffer: ab });
-  // Render HTML in hidden iframe, capture as image, build PDF
-  // Simpler approach: create text PDF from extracted text
-  const { value: text } = await mammoth.extractRawText({ arrayBuffer: ab });
-  return createTextPdf(text);
+  if (!html.trim()) {
+    const { value: text } = await mammoth.extractRawText({ arrayBuffer: ab });
+    return createTextPdf(text);
+  }
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 6px}img{max-width:100%}';
+  return htmlToImagePdf(html, css);
 };
 
 // Word → TXT
@@ -442,10 +548,19 @@ const csvToDocx = async (file: File): Promise<Blob> => {
   return wrapHtmlAsDoc(htmlParts.join(''));
 };
 
-// CSV → PDF
+// CSV → PDF (high fidelity via HTML rendering)
 const csvToPdf = async (file: File): Promise<Blob> => {
   const text = await file.text();
-  return createTextPdf(text);
+  const wb = XLSX.read(text, { type: 'string' });
+  const htmlParts: string[] = [];
+  for (const name of wb.SheetNames) {
+    const sheet = wb.Sheets[name];
+    if (!sheet) continue;
+    htmlParts.push(XLSX.utils.sheet_to_html(sheet, { editable: false }));
+  }
+  if (!htmlParts.length) return createTextPdf(text);
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
+  return htmlToImagePdf(htmlParts.join(''), css);
 };
 
 // CSV → TXT
@@ -469,10 +584,11 @@ const txtToDocx = async (file: File): Promise<Blob> => {
   return wrapHtmlAsDoc(`<pre style="font-family:Calibri;font-size:11pt;white-space:pre-wrap">${text.replace(/</g, '&lt;')}</pre>`);
 };
 
-// TXT → PDF
+// TXT → PDF (high fidelity via HTML rendering)
 const txtToPdf = async (file: File): Promise<Blob> => {
   const text = await file.text();
-  return createTextPdf(text);
+  const html = `<pre style="font-family:Calibri,monospace;font-size:11pt;white-space:pre-wrap;word-break:break-word">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+  return htmlToImagePdf(html);
 };
 
 /* ── Conversion router ── */
