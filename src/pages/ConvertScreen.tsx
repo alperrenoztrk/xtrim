@@ -32,6 +32,31 @@ const getFileBaseName = (fileName: string) => fileName.replace(/\.[^/.]+$/, '');
 
 const ocrApiCompatibleExtensions = new Set(['png', 'jpg', 'jpeg', 'webp', 'pdf', 'bmp', 'gif', 'tif', 'tiff']);
 
+const mojibakeTurkishReplacements: Array<[string, string]> = [
+  ['Ã§', 'ç'],
+  ['Ã‡', 'Ç'],
+  ['ÄŸ', 'ğ'],
+  ['Äž', 'Ğ'],
+  ['Ä±', 'ı'],
+  ['Ä°', 'İ'],
+  ['Ã¶', 'ö'],
+  ['Ã–', 'Ö'],
+  ['ÅŸ', 'ş'],
+  ['Åž', 'Ş'],
+  ['Ã¼', 'ü'],
+  ['Ãœ', 'Ü'],
+];
+
+const normalizeTurkishOcrText = (text: string) => {
+  let normalized = text.normalize('NFC').replace(/\u00A0/g, ' ').replace(/\r\n/g, '\n').trim();
+
+  for (const [broken, fixed] of mojibakeTurkishReplacements) {
+    normalized = normalized.replaceAll(broken, fixed);
+  }
+
+  return normalized;
+};
+
 const createPdfFromJpeg = (jpegBytes: Uint8Array, width: number, height: number): Uint8Array => {
   const contentStream = `q\n${width} 0 0 ${height} 0 0 cm\n/Im0 Do\nQ`;
 
@@ -154,6 +179,8 @@ const extractTextWithOcrApi = async (file: File) => {
   formData.append('file', file);
   formData.append('language', 'tur');
   formData.append('isOverlayRequired', 'false');
+  formData.append('OCREngine', '2');
+  formData.append('scale', 'true');
 
   const response = await fetch('https://api.ocr.space/parse/image', {
     method: 'POST',
@@ -177,7 +204,9 @@ const extractTextWithOcrApi = async (file: File) => {
     throw new Error(result.ErrorMessage?.[0] ?? 'OCR işlemi başarısız oldu.');
   }
 
-  return result.ParsedResults?.map((item) => item.ParsedText ?? '').join('\n').trim() ?? '';
+  const parsedText = result.ParsedResults?.map((item) => item.ParsedText ?? '').join('\n').trim() ?? '';
+
+  return normalizeTurkishOcrText(parsedText);
 };
 
 const ConvertScreen = () => {
@@ -243,7 +272,7 @@ const ConvertScreen = () => {
           return;
         }
 
-        const textBlob = new Blob([extractedText], { type: 'text/plain;charset=utf-8' });
+        const textBlob = new Blob(['\uFEFF', extractedText], { type: 'text/plain;charset=utf-8' });
         downloadBlob(textBlob, `${getFileBaseName(selectedFile.name)}-ocr.txt`);
         toast.success('OCR tamamlandı. Metin dosyası indirildi.');
         return;
