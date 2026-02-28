@@ -1,54 +1,48 @@
 
 
-## Plan: Absolute Visual Fidelity for All Conversions
+## Plan: Fix Word→PDF, Remove Word→Word, Add PowerPoint
 
-### Problem
-Several converters lose formatting:
-- `excelToDocx`, `csvToDocx`, `txtToDocx` use HTML-wrapped `.doc` files which render differently across Word versions
-- Text extraction paths (`*ToTxt`) strip all visual formatting
-- Missing conversion paths (e.g. Word→PNG, Excel→PNG)
+### 1. Fix Word→PDF Bug
+The console error `Cannot read properties of undefined (reading 'indexOf')` comes from `XLSX.utils.sheet_to_html` being called on sheets without a valid `!ref` property. This affects Excel/CSV conversions too. For Word→PDF specifically, `mammoth` may fail on `.doc` (non-DOCX) files.
 
-### Approach
-Every conversion will use a **"render as image, embed in target"** pipeline:
+**Fixes in `src/utils/fileConverter.ts`:**
+- Add `!ref` guard before calling `sheet_to_html` on every sheet (skip empty sheets)
+- Wrap `mammoth.convertToHtml` in try-catch for `.doc` files; fall back to reading raw text
+- Add null-check on mammoth result before passing to `htmlToImagePdf`
 
-1. **Source → high-res canvas** (via `html2canvas` or `pdfjs-dist`)
-2. **Canvas → target format** (embed image into PDF/DOCX/PNG)
+### 2. Remove Word→Word Conversion
+- Remove `'docx'` from `word` targets in `getAvailableTargets` (line 49)
+- Remove `'word→docx': wordToDocx` from `converterMap` (line 778)
+- Delete the `wordToDocx` function (lines 706-713)
 
-For text-based outputs (TXT/CSV), text extraction is unavoidable since those formats cannot carry visual data -- these will remain as-is.
+### 3. Add PowerPoint (PPTX) Support
+**New dependency:** `pptxgenjs` — browser-compatible PPTX generation library.
 
-### Changes to `src/utils/fileConverter.ts`
+**New source format:** `'pptx'` — detect `.pptx` and `.ppt` files.
 
-**1. Fix `excelToDocx`, `csvToDocx`, `txtToDocx`** -- Replace `wrapHtmlAsDoc` (lossy HTML `.doc`) with the same image-in-DOCX approach used by `pdfToDocx`:
-- Render HTML content via `html2canvas` at 2x scale
-- Slice into pages
-- Embed each page as a PNG `ImageRun` inside a native `.docx` Document
-- Remove `specialExtMap` entries (all produce real `.docx` now)
+**Conversion approach:** Since there's no reliable browser-based PPTX *reader*, PowerPoint files will be treated as binary blobs for image-based conversions where possible. For *creating* PPTX from other formats, we render the source to images and embed each page/slice as a full-slide image in a PPTX.
 
-**2. Add new helper: `htmlToImageDocx`** -- Mirrors `htmlToImagePdf` but outputs a `.docx` with embedded page images instead of a PDF.
+**New conversions (output PPTX):**
+- `pdf→pptx`: Render each PDF page as image → embed as slides
+- `image→pptx`: Embed image as a single slide
+- `word→pptx`: mammoth HTML → html2canvas → embed as slides
+- `excel→pptx`: sheet HTML → html2canvas → embed as slides
+- `csv→pptx`: parsed HTML → html2canvas → embed as slides
+- `txt→pptx`: pre-formatted HTML → html2canvas → embed as slides
 
-**3. Add missing image output paths:**
-- `word→png`: mammoth HTML → html2canvas → PNG
-- `excel→png`: sheet HTML → html2canvas → PNG  
-- `csv→png`: parsed HTML → html2canvas → PNG
-- `txt→png`: pre-formatted HTML → html2canvas → PNG
+**New conversions (from PPTX):**
+- `pptx→pdf`, `pptx→docx`, `pptx→png`, `pptx→txt`: Extract slides via ZIP parsing (PPTX is a ZIP), render slide XML to basic HTML, then use existing pipelines.
 
-**4. Expand `getAvailableTargets`** to include `png` for word, excel, csv, txt sources.
-
-**5. Remove `wrapHtmlAsDoc`** helper entirely (no longer used).
-
-**6. Remove `specialExtMap`** since all DOCX targets now produce real `.docx`.
-
-### Summary of conversion strategy per target
-
-| Target | Method |
-|--------|--------|
-| PDF | Render as image slices, embed JPEG in hand-built PDF |
-| DOCX | Render as image slices, embed PNG via `docx` library |
-| PNG | Render as single high-res canvas, export as PNG |
-| XLSX | Data-level conversion (XLSX lib) |
-| CSV | Data-level extraction |
-| TXT | Text extraction (unavoidable) |
+**Changes:**
+- Add `'pptx'` to `SourceFormat` and `TargetFormat` types
+- Add labels for pptx
+- Update `detectFormat` to recognize `.ppt`/`.pptx`
+- Update `getAvailableTargets` for all sources to include `pptx`, and for `pptx` source
+- Add converter functions and register in `converterMap`
+- Add `pptx: '.pptx'` to `extMap`
 
 ### Files Modified
-- `src/utils/fileConverter.ts` -- all changes in this single file
+- `src/utils/fileConverter.ts` — all conversion logic changes
+- `src/pages/ConvertScreen.tsx` — add `.pptx,.ppt` to file input accept attribute
+- `package.json` — add `pptxgenjs` dependency
 
