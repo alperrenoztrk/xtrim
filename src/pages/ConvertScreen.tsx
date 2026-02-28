@@ -100,7 +100,7 @@ const ConvertScreen = () => {
               <Input
                 id="converter-file"
                 type="file"
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.log,.png,.jpg,.jpeg,.webp,.bmp,.gif,.tiff,.tif"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.log,.png,.jpg,.jpeg,.webp,.bmp,.gif,.tiff,.tif,.ppt,.pptx"
                 onClick={handleFileInputClick}
                 onChange={handleFileChange}
               />
