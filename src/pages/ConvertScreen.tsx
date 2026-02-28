@@ -184,8 +184,8 @@ const extractTextWithGeminiOcr = async (file: File) => {
 };
 
 const convertPdfToWordAsPageImages = async (file: File): Promise<Blob> => {
-  const { getDocument } = await import('pdfjs-dist');
-  const pdf = await getDocument({ data: await file.arrayBuffer(), disableWorker: true }).promise;
+  const pdfjs = await import('pdfjs-dist');
+  const pdf = await pdfjs.getDocument({ data: await file.arrayBuffer() } as any).promise;
   const pageImageHtml: string[] = [];
 
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
@@ -203,7 +203,7 @@ const convertPdfToWordAsPageImages = async (file: File): Promise<Blob> => {
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    await page.render({ canvasContext: context, viewport }).promise;
+    await page.render({ canvasContext: context, viewport, canvas } as any).promise;
     const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
     pageImageHtml.push(`
