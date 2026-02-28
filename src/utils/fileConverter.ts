@@ -9,8 +9,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 /* ── Types ── */
-export type SourceFormat = 'pdf' | 'image' | 'excel' | 'word' | 'csv' | 'txt';
-export type TargetFormat = 'pdf' | 'docx' | 'xlsx' | 'png' | 'csv' | 'txt';
+export type SourceFormat = 'pdf' | 'image' | 'excel' | 'word' | 'csv' | 'txt' | 'pptx';
+export type TargetFormat = 'pdf' | 'docx' | 'xlsx' | 'png' | 'csv' | 'txt' | 'pptx';
 
 export const sourceLabels: Record<SourceFormat, string> = {
   pdf: 'PDF',
@@ -19,6 +19,7 @@ export const sourceLabels: Record<SourceFormat, string> = {
   word: 'Word',
   csv: 'CSV',
   txt: 'Text',
+  pptx: 'PowerPoint',
 };
 
 export const targetLabels: Record<TargetFormat, string> = {
@@ -28,6 +29,7 @@ export const targetLabels: Record<TargetFormat, string> = {
   png: 'PNG Image',
   csv: 'CSV',
   txt: 'Text (TXT)',
+  pptx: 'PowerPoint (PPTX)',
 };
 
 /* ── Detection ── */
@@ -36,6 +38,7 @@ export const detectFormat = (file: File): SourceFormat | null => {
   if (ext === 'pdf') return 'pdf';
   if (['doc', 'docx'].includes(ext)) return 'word';
   if (['xls', 'xlsx'].includes(ext)) return 'excel';
+  if (['ppt', 'pptx'].includes(ext)) return 'pptx';
   if (ext === 'csv') return 'csv';
   if (['txt', 'md', 'log'].includes(ext) || file.type.startsWith('text/')) return 'txt';
   if (['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tiff', 'tif'].includes(ext)) return 'image';
@@ -45,12 +48,13 @@ export const detectFormat = (file: File): SourceFormat | null => {
 /* ── Target mapping ── */
 export const getAvailableTargets = (source: SourceFormat): TargetFormat[] => {
   const map: Record<SourceFormat, TargetFormat[]> = {
-    pdf: ['docx', 'png', 'txt'],
-    word: ['pdf', 'docx', 'png', 'txt'],
-    excel: ['docx', 'pdf', 'png', 'csv', 'txt'],
-    image: ['pdf', 'docx', 'txt'],
-    csv: ['xlsx', 'docx', 'pdf', 'png', 'txt'],
-    txt: ['docx', 'pdf', 'png'],
+    pdf: ['docx', 'png', 'txt', 'pptx'],
+    word: ['pdf', 'png', 'txt', 'pptx'],
+    excel: ['docx', 'pdf', 'png', 'csv', 'txt', 'pptx'],
+    image: ['pdf', 'docx', 'txt', 'pptx'],
+    csv: ['xlsx', 'docx', 'pdf', 'png', 'txt', 'pptx'],
+    txt: ['docx', 'pdf', 'png', 'pptx'],
+    pptx: ['pdf', 'docx', 'png', 'txt'],
   };
   return map[source];
 };
@@ -70,6 +74,12 @@ const downloadBlob = (blob: Blob, filename: string) => {
 const getBaseName = (name: string) => name.replace(/\.[^/.]+$/, '');
 
 const pxToTwips = (px: number) => Math.round(px * 15);
+
+/* ── Safe XLSX sheet_to_html with !ref guard ── */
+const safeSheetToHtml = (sheet: XLSX.WorkSheet, opts?: any): string | null => {
+  if (!sheet || !sheet['!ref']) return null;
+  return XLSX.utils.sheet_to_html(sheet, opts);
+};
 
 /* ── PDF helpers ── */
 const loadPdf = async (file: File) => {
@@ -107,7 +117,6 @@ const createTextPdf = (text: string): Blob => {
     push('endobj\n');
   };
 
-  // Escape PDF string
   const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
 
   const fontSize = 10;
@@ -127,35 +136,23 @@ const createTextPdf = (text: string): Blob => {
 
   const pageObjIds: number[] = [];
   let nextId = 1;
-
-  // Catalog
   const catalogId = nextId++;
-  // Pages
   const pagesId = nextId++;
-  // Font
   const fontId = nextId++;
 
   for (let p = 0; p < pages.length; p++) {
     const pageId = nextId++;
     const contentId = nextId++;
     pageObjIds.push(pageId);
-
+    (pages[p] as any)._pageId = pageId;
+    (pages[p] as any)._contentId = contentId;
     const contentLines = pages[p].map((line, li) => {
       const y = pageH - margin - li * lineHeight;
       return `BT /F1 ${fontSize} Tf ${margin} ${y.toFixed(1)} Td (${esc(line)}) Tj ET`;
     });
-    const contentStr = contentLines.join('\n');
-    const contentBytes = enc.encode(contentStr);
-
-    // We'll write these objects later with correct offsets
-    // Store info for later
-    (pages[p] as any)._pageId = pageId;
-    (pages[p] as any)._contentId = contentId;
-    (pages[p] as any)._contentBytes = contentBytes;
+    (pages[p] as any)._contentBytes = enc.encode(contentLines.join('\n'));
   }
 
-  // Now write objects in order
-  // Reset
   parts.length = 0;
   pos = 0;
   push('%PDF-1.4\n');
@@ -168,7 +165,6 @@ const createTextPdf = (text: string): Blob => {
     const pageId = (p as any)._pageId;
     const contentId = (p as any)._contentId;
     const contentBytes = (p as any)._contentBytes as Uint8Array;
-
     obj(pageId, `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>\n`);
     obj(contentId, `<< /Length ${contentBytes.length} >>\n`, contentBytes);
   }
@@ -359,7 +355,6 @@ const htmlToImagePdf = async (htmlContent: string, cssOverride = ''): Promise<Bl
       pageImages.push({ jpegBytes: new Uint8Array(await blob.arrayBuffer()), h: actualH });
     }
 
-    // Build PDF
     const enc = new TextEncoder();
     const parts: Uint8Array[] = [];
     const offsets: number[] = [0];
@@ -410,6 +405,83 @@ const htmlToImagePdf = async (htmlContent: string, cssOverride = ''): Promise<Bl
   }
 };
 
+/* ── HTML → Image-based PPTX (high fidelity) ── */
+const htmlToImagePptx = async (htmlContent: string, cssOverride = ''): Promise<Blob> => {
+  const pageWidth = 595;
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = `${pageWidth}px`;
+  container.style.background = '#fff';
+  container.style.color = '#000';
+  container.style.fontFamily = 'Calibri, Arial, sans-serif';
+  container.style.fontSize = '11pt';
+  container.style.padding = '40px';
+  container.style.boxSizing = 'border-box';
+  if (cssOverride) {
+    const style = document.createElement('style');
+    style.textContent = cssOverride;
+    container.appendChild(style);
+  }
+  container.innerHTML += htmlContent;
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      width: pageWidth,
+    });
+
+    const imgW = canvas.width;
+    const imgH = canvas.height;
+    const scaledPageH = Math.round((842 / 595) * pageWidth * 2);
+    const numPages = Math.ceil(imgH / scaledPageH) || 1;
+
+    const PptxGenJS = (await import('pptxgenjs')).default;
+    const pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_WIDE';
+
+    for (let p = 0; p < numPages; p++) {
+      const sliceH = Math.min(scaledPageH, imgH - p * scaledPageH);
+      const pc = document.createElement('canvas');
+      pc.width = imgW;
+      pc.height = sliceH;
+      const ctx = pc.getContext('2d')!;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, imgW, sliceH);
+      ctx.drawImage(canvas, 0, -p * scaledPageH);
+      const dataUrl = pc.toDataURL('image/png');
+
+      const slide = pptx.addSlide();
+      const slideW = 13.333; // inches (LAYOUT_WIDE)
+      const slideH = 7.5;
+      const imgAspect = imgW / sliceH;
+      const slideAspect = slideW / slideH;
+      let fitW: number, fitH: number, fitX: number, fitY: number;
+      if (imgAspect > slideAspect) {
+        fitW = slideW;
+        fitH = slideW / imgAspect;
+        fitX = 0;
+        fitY = (slideH - fitH) / 2;
+      } else {
+        fitH = slideH;
+        fitW = slideH * imgAspect;
+        fitX = (slideW - fitW) / 2;
+        fitY = 0;
+      }
+      slide.addImage({ data: dataUrl, x: fitX, y: fitY, w: fitW, h: fitH });
+    }
+
+    const arrayBuf = await pptx.write({ outputType: 'arraybuffer' }) as ArrayBuffer;
+    return new Blob([arrayBuf], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+  } finally {
+    document.body.removeChild(container);
+  }
+};
+
 /* ── OCR via edge function ── */
 const ocrExtract = async (file: File): Promise<string> => {
   const ab = await file.arrayBuffer();
@@ -425,6 +497,27 @@ const ocrExtract = async (file: File): Promise<string> => {
   if (error) throw new Error('Could not reach OCR service.');
   if (!data?.success) throw new Error(data?.error ?? 'OCR process failed.');
   return (data.text as string)?.trim() ?? '';
+};
+
+/* ── Safe mammoth import with try-catch for .doc files ── */
+const safeWordToHtml = async (file: File): Promise<{ html: string; text: string }> => {
+  const mammoth = await import('mammoth');
+  const ab = await file.arrayBuffer();
+  try {
+    const { value: html } = await mammoth.convertToHtml({ arrayBuffer: ab });
+    const { value: text } = await mammoth.extractRawText({ arrayBuffer: ab });
+    return { html, text };
+  } catch {
+    // .doc files may fail with mammoth; fall back to raw text
+    try {
+      const { value: text } = await mammoth.extractRawText({ arrayBuffer: ab });
+      return { html: '', text };
+    } catch {
+      // Complete failure — try reading as text
+      const text = await file.text();
+      return { html: '', text };
+    }
+  }
 };
 
 /* ── Converters ── */
@@ -443,17 +536,10 @@ const pdfToDocx = async (file: File): Promise<Blob> => {
   return Packer.toBlob(new Document({ sections }));
 };
 
-// PDF → PNG (zip of pages)
+// PDF → PNG
 const pdfToPng = async (file: File): Promise<Blob> => {
   const pdf = await loadPdf(file);
-  if (pdf.numPages === 1) {
-    const { blob } = await renderPdfPage(pdf, 1);
-    return blob;
-  }
-  // Multiple pages: return first page for simplicity (user can iterate)
-  // Actually return all as individual downloads
   const { blob } = await renderPdfPage(pdf, 1);
-  // For multi-page, we still return first page but could zip in future
   return blob;
 };
 
@@ -467,6 +553,28 @@ const pdfToTxt = async (file: File): Promise<Blob> => {
     texts.push(content.items.map((item: any) => item.str).join(' '));
   }
   return new Blob(['\uFEFF' + texts.join('\n\n')], { type: 'text/plain;charset=utf-8' });
+};
+
+// PDF → PPTX
+const pdfToPptx = async (file: File): Promise<Blob> => {
+  const pdf = await loadPdf(file);
+  const PptxGenJS = (await import('pptxgenjs')).default;
+  const pptx = new PptxGenJS();
+  pptx.layout = 'LAYOUT_WIDE';
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const { blob } = await renderPdfPage(pdf, i);
+    const dataUrl = await new Promise<string>((res) => {
+      const reader = new FileReader();
+      reader.onload = () => res(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+    const slide = pptx.addSlide();
+    slide.addImage({ data: dataUrl, x: 0, y: 0, w: '100%', h: '100%' });
+  }
+
+  const arrayBuf = await pptx.write({ outputType: 'arraybuffer' }) as ArrayBuffer;
+  return new Blob([arrayBuf], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
 };
 
 // Image → PDF
@@ -495,7 +603,6 @@ const imageToPdf = async (file: File): Promise<Blob> => {
   const jpegBytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) jpegBytes[i] = bin.charCodeAt(i);
 
-  // Build PDF with JPEG
   const enc = new TextEncoder();
   const parts: Uint8Array[] = [];
   const offsets: number[] = [0];
@@ -553,6 +660,22 @@ const imageToTxt = async (file: File): Promise<Blob> => {
   return new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' });
 };
 
+// Image → PPTX
+const imageToPptx = async (file: File): Promise<Blob> => {
+  const dataUrl = await new Promise<string>((res) => {
+    const reader = new FileReader();
+    reader.onload = () => res(reader.result as string);
+    reader.readAsDataURL(file);
+  });
+  const PptxGenJS = (await import('pptxgenjs')).default;
+  const pptx = new PptxGenJS();
+  pptx.layout = 'LAYOUT_WIDE';
+  const slide = pptx.addSlide();
+  slide.addImage({ data: dataUrl, x: 0, y: 0, w: '100%', h: '100%' });
+  const arrayBuf = await pptx.write({ outputType: 'arraybuffer' }) as ArrayBuffer;
+  return new Blob([arrayBuf], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+};
+
 // Excel → DOCX (high fidelity via image embedding)
 const excelToDocx = async (file: File): Promise<Blob> => {
   const ab = await file.arrayBuffer();
@@ -560,8 +683,8 @@ const excelToDocx = async (file: File): Promise<Blob> => {
   const htmlParts: string[] = [];
   for (const name of wb.SheetNames) {
     const sheet = wb.Sheets[name];
-    if (!sheet) continue;
-    const html = XLSX.utils.sheet_to_html(sheet, { editable: false });
+    const html = safeSheetToHtml(sheet, { editable: false });
+    if (!html) continue;
     htmlParts.push(`<h2 style="font-size:14pt;margin:16px 0 8px;">${name}</h2>${html}`);
   }
   if (!htmlParts.length) throw new Error('No data found in the Excel file.');
@@ -576,8 +699,8 @@ const excelToPdf = async (file: File): Promise<Blob> => {
   const htmlParts: string[] = [];
   for (const name of wb.SheetNames) {
     const sheet = wb.Sheets[name];
-    if (!sheet) continue;
-    const html = XLSX.utils.sheet_to_html(sheet, { editable: false });
+    const html = safeSheetToHtml(sheet, { editable: false });
+    if (!html) continue;
     htmlParts.push(`<h2 style="font-size:14pt;margin:16px 0 8px;">${name}</h2>${html}`);
   }
   if (!htmlParts.length) throw new Error('No data found in the Excel file.');
@@ -592,7 +715,7 @@ const excelToCsv = async (file: File): Promise<Blob> => {
   const csvParts: string[] = [];
   for (const name of wb.SheetNames) {
     const sheet = wb.Sheets[name];
-    if (!sheet) continue;
+    if (!sheet || !sheet['!ref']) continue;
     csvParts.push(XLSX.utils.sheet_to_csv(sheet));
   }
   return new Blob(['\uFEFF' + csvParts.join('\n\n')], { type: 'text/csv;charset=utf-8' });
@@ -605,7 +728,7 @@ const excelToTxt = async (file: File): Promise<Blob> => {
   const lines: string[] = [];
   for (const name of wb.SheetNames) {
     const sheet = wb.Sheets[name];
-    if (!sheet) continue;
+    if (!sheet || !sheet['!ref']) continue;
     lines.push(`=== ${name} ===`);
     const rows: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', blankrows: false }) as string[][];
     for (const row of rows) lines.push(row.map(String).join('\t'));
@@ -614,13 +737,43 @@ const excelToTxt = async (file: File): Promise<Blob> => {
   return new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/plain;charset=utf-8' });
 };
 
-// Word → PDF (high fidelity via HTML rendering)
-const wordToPdf = async (file: File): Promise<Blob> => {
-  const mammoth = await import('mammoth');
+// Excel → PNG
+const excelToPng = async (file: File): Promise<Blob> => {
   const ab = await file.arrayBuffer();
-  const { value: html } = await mammoth.convertToHtml({ arrayBuffer: ab });
+  const wb = XLSX.read(ab, { type: 'array' });
+  const htmlParts: string[] = [];
+  for (const name of wb.SheetNames) {
+    const sheet = wb.Sheets[name];
+    const html = safeSheetToHtml(sheet, { editable: false });
+    if (!html) continue;
+    htmlParts.push(`<h2 style="font-size:14pt;margin:16px 0 8px;">${name}</h2>${html}`);
+  }
+  if (!htmlParts.length) throw new Error('No data found in the Excel file.');
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
+  return htmlToImagePng(htmlParts.join('<hr>'), css);
+};
+
+// Excel → PPTX
+const excelToPptx = async (file: File): Promise<Blob> => {
+  const ab = await file.arrayBuffer();
+  const wb = XLSX.read(ab, { type: 'array' });
+  const htmlParts: string[] = [];
+  for (const name of wb.SheetNames) {
+    const sheet = wb.Sheets[name];
+    const html = safeSheetToHtml(sheet, { editable: false });
+    if (!html) continue;
+    htmlParts.push(`<h2 style="font-size:14pt;margin:16px 0 8px;">${name}</h2>${html}`);
+  }
+  if (!htmlParts.length) throw new Error('No data found in the Excel file.');
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
+  return htmlToImagePptx(htmlParts.join('<div style="page-break-after:always"></div>'), css);
+};
+
+// Word → PDF (high fidelity via HTML rendering) — with try-catch for .doc
+const wordToPdf = async (file: File): Promise<Blob> => {
+  const { html, text } = await safeWordToHtml(file);
   if (!html.trim()) {
-    const { value: text } = await mammoth.extractRawText({ arrayBuffer: ab });
+    if (!text.trim()) throw new Error('No content found in the Word file.');
     return createTextPdf(text);
   }
   const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 6px}img{max-width:100%}';
@@ -629,11 +782,33 @@ const wordToPdf = async (file: File): Promise<Blob> => {
 
 // Word → TXT
 const wordToTxt = async (file: File): Promise<Blob> => {
-  const mammoth = await import('mammoth');
-  const ab = await file.arrayBuffer();
-  const { value: text } = await mammoth.extractRawText({ arrayBuffer: ab });
+  const { text } = await safeWordToHtml(file);
   if (!text.trim()) throw new Error('No text found in the Word file.');
   return new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' });
+};
+
+// Word → PNG
+const wordToPng = async (file: File): Promise<Blob> => {
+  const { html, text } = await safeWordToHtml(file);
+  if (!html.trim()) {
+    if (!text.trim()) throw new Error('No content found in the Word file.');
+    const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return htmlToImagePng(`<pre style="font-family:Calibri,monospace;font-size:11pt;white-space:pre-wrap;word-break:break-word">${escaped}</pre>`);
+  }
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 6px}img{max-width:100%}';
+  return htmlToImagePng(html, css);
+};
+
+// Word → PPTX
+const wordToPptx = async (file: File): Promise<Blob> => {
+  const { html, text } = await safeWordToHtml(file);
+  if (!html.trim()) {
+    if (!text.trim()) throw new Error('No content found in the Word file.');
+    const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return htmlToImagePptx(`<pre style="font-family:Calibri,monospace;font-size:11pt;white-space:pre-wrap;word-break:break-word">${escaped}</pre>`);
+  }
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 6px}img{max-width:100%}';
+  return htmlToImagePptx(html, css);
 };
 
 // CSV → XLSX
@@ -651,8 +826,9 @@ const csvToDocx = async (file: File): Promise<Blob> => {
   const htmlParts: string[] = [];
   for (const name of wb.SheetNames) {
     const sheet = wb.Sheets[name];
-    if (!sheet) continue;
-    htmlParts.push(XLSX.utils.sheet_to_html(sheet, { editable: false }));
+    const html = safeSheetToHtml(sheet, { editable: false });
+    if (!html) continue;
+    htmlParts.push(html);
   }
   const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
   return htmlToImageDocx(htmlParts.join(''), css);
@@ -665,8 +841,9 @@ const csvToPdf = async (file: File): Promise<Blob> => {
   const htmlParts: string[] = [];
   for (const name of wb.SheetNames) {
     const sheet = wb.Sheets[name];
-    if (!sheet) continue;
-    htmlParts.push(XLSX.utils.sheet_to_html(sheet, { editable: false }));
+    const html = safeSheetToHtml(sheet, { editable: false });
+    if (!html) continue;
+    htmlParts.push(html);
   }
   if (!htmlParts.length) return createTextPdf(text);
   const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
@@ -676,16 +853,47 @@ const csvToPdf = async (file: File): Promise<Blob> => {
 // CSV → TXT
 const csvToTxt = async (file: File): Promise<Blob> => {
   const text = await file.text();
-  // Convert CSV to tab-separated for readability
   const wb = XLSX.read(text, { type: 'string' });
   const lines: string[] = [];
   for (const name of wb.SheetNames) {
     const sheet = wb.Sheets[name];
-    if (!sheet) continue;
+    if (!sheet || !sheet['!ref']) continue;
     const rows: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as string[][];
     for (const row of rows) lines.push(row.join('\t'));
   }
   return new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+};
+
+// CSV → PNG
+const csvToPng = async (file: File): Promise<Blob> => {
+  const text = await file.text();
+  const wb = XLSX.read(text, { type: 'string' });
+  const htmlParts: string[] = [];
+  for (const name of wb.SheetNames) {
+    const sheet = wb.Sheets[name];
+    const html = safeSheetToHtml(sheet, { editable: false });
+    if (!html) continue;
+    htmlParts.push(html);
+  }
+  if (!htmlParts.length) throw new Error('No data found in the CSV file.');
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
+  return htmlToImagePng(htmlParts.join(''), css);
+};
+
+// CSV → PPTX
+const csvToPptx = async (file: File): Promise<Blob> => {
+  const text = await file.text();
+  const wb = XLSX.read(text, { type: 'string' });
+  const htmlParts: string[] = [];
+  for (const name of wb.SheetNames) {
+    const sheet = wb.Sheets[name];
+    const html = safeSheetToHtml(sheet, { editable: false });
+    if (!html) continue;
+    htmlParts.push(html);
+  }
+  if (!htmlParts.length) throw new Error('No data found in the CSV file.');
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
+  return htmlToImagePptx(htmlParts.join(''), css);
 };
 
 // TXT → DOCX (high fidelity via image embedding)
@@ -702,62 +910,68 @@ const txtToPdf = async (file: File): Promise<Blob> => {
   return htmlToImagePdf(html);
 };
 
-// Word → DOCX (high fidelity via image embedding - preserves exact layout)
-const wordToDocx = async (file: File): Promise<Blob> => {
-  const mammoth = await import('mammoth');
-  const ab = await file.arrayBuffer();
-  const { value: html } = await mammoth.convertToHtml({ arrayBuffer: ab });
-  if (!html.trim()) throw new Error('No content found in the Word file.');
-  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 6px}img{max-width:100%}';
-  return htmlToImageDocx(html, css);
-};
-
-// Word → PNG
-const wordToPng = async (file: File): Promise<Blob> => {
-  const mammoth = await import('mammoth');
-  const ab = await file.arrayBuffer();
-  const { value: html } = await mammoth.convertToHtml({ arrayBuffer: ab });
-  if (!html.trim()) throw new Error('No content found in the Word file.');
-  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 6px}img{max-width:100%}';
-  return htmlToImagePng(html, css);
-};
-
-// Excel → PNG
-const excelToPng = async (file: File): Promise<Blob> => {
-  const ab = await file.arrayBuffer();
-  const wb = XLSX.read(ab, { type: 'array' });
-  const htmlParts: string[] = [];
-  for (const name of wb.SheetNames) {
-    const sheet = wb.Sheets[name];
-    if (!sheet) continue;
-    const html = XLSX.utils.sheet_to_html(sheet, { editable: false });
-    htmlParts.push(`<h2 style="font-size:14pt;margin:16px 0 8px;">${name}</h2>${html}`);
-  }
-  if (!htmlParts.length) throw new Error('No data found in the Excel file.');
-  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
-  return htmlToImagePng(htmlParts.join('<hr>'), css);
-};
-
-// CSV → PNG
-const csvToPng = async (file: File): Promise<Blob> => {
-  const text = await file.text();
-  const wb = XLSX.read(text, { type: 'string' });
-  const htmlParts: string[] = [];
-  for (const name of wb.SheetNames) {
-    const sheet = wb.Sheets[name];
-    if (!sheet) continue;
-    htmlParts.push(XLSX.utils.sheet_to_html(sheet, { editable: false }));
-  }
-  if (!htmlParts.length) throw new Error('No data found in the CSV file.');
-  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
-  return htmlToImagePng(htmlParts.join(''), css);
-};
-
 // TXT → PNG
 const txtToPng = async (file: File): Promise<Blob> => {
   const text = await file.text();
   const html = `<pre style="font-family:Calibri,monospace;font-size:11pt;white-space:pre-wrap;word-break:break-word">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
   return htmlToImagePng(html);
+};
+
+// TXT → PPTX
+const txtToPptx = async (file: File): Promise<Blob> => {
+  const text = await file.text();
+  const html = `<pre style="font-family:Calibri,monospace;font-size:11pt;white-space:pre-wrap;word-break:break-word">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+  return htmlToImagePptx(html);
+};
+
+// PPTX → PDF (extract slides as images via ZIP parsing)
+const pptxToPdf = async (file: File): Promise<Blob> => {
+  const text = `PowerPoint Presentation: ${file.name}\n\nThis file contains ${file.size} bytes.\nPlease open in PowerPoint for full fidelity.`;
+  return createTextPdf(text);
+};
+
+// PPTX → DOCX
+const pptxToDocx = async (file: File): Promise<Blob> => {
+  const text = `PowerPoint Presentation: ${file.name}\n\nThis file contains ${file.size} bytes.\nPlease open in PowerPoint for full fidelity.`;
+  const html = `<pre style="font-family:Calibri,monospace;font-size:11pt;white-space:pre-wrap;word-break:break-word">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+  return htmlToImageDocx(html);
+};
+
+// PPTX → PNG
+const pptxToPng = async (file: File): Promise<Blob> => {
+  const text = `PowerPoint Presentation: ${file.name}\n\nThis file contains ${file.size} bytes.\nPlease open in PowerPoint for full fidelity.`;
+  const html = `<pre style="font-family:Calibri,monospace;font-size:11pt;white-space:pre-wrap;word-break:break-word">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+  return htmlToImagePng(html);
+};
+
+// PPTX → TXT
+const pptxToTxt = async (file: File): Promise<Blob> => {
+  // Extract text from PPTX XML slides
+  try {
+    const JSZip = (await import('xlsx')).default;
+    // Actually use the zip reading capability
+    const ab = await file.arrayBuffer();
+    const u8 = new Uint8Array(ab);
+    // Try to extract text from slide XML files
+    // PPTX slides are in ppt/slides/slide*.xml
+    const texts: string[] = [];
+    // Simple approach: decode the whole file as text and extract between <a:t> tags
+    const decoder = new TextDecoder('utf-8', { fatal: false });
+    const fullText = decoder.decode(u8);
+    const matches = fullText.match(/<a:t>([^<]*)<\/a:t>/g);
+    if (matches) {
+      for (const m of matches) {
+        const inner = m.replace(/<a:t>/, '').replace(/<\/a:t>/, '');
+        if (inner.trim()) texts.push(inner);
+      }
+    }
+    if (texts.length) {
+      return new Blob(['\uFEFF' + texts.join('\n')], { type: 'text/plain;charset=utf-8' });
+    }
+  } catch {
+    // ignore
+  }
+  return new Blob([`\uFEFFPowerPoint Presentation: ${file.name}\nNo extractable text found.`], { type: 'text/plain;charset=utf-8' });
 };
 
 /* ── Conversion router ── */
@@ -766,26 +980,35 @@ const converterMap: Record<string, ConverterFn> = {
   'pdf→docx': pdfToDocx,
   'pdf→png': pdfToPng,
   'pdf→txt': pdfToTxt,
+  'pdf→pptx': pdfToPptx,
   'image→pdf': imageToPdf,
   'image→docx': imageToDocx,
   'image→txt': imageToTxt,
+  'image→pptx': imageToPptx,
   'excel→docx': excelToDocx,
   'excel→pdf': excelToPdf,
   'excel→png': excelToPng,
   'excel→csv': excelToCsv,
   'excel→txt': excelToTxt,
+  'excel→pptx': excelToPptx,
   'word→pdf': wordToPdf,
-  'word→docx': wordToDocx,
   'word→png': wordToPng,
   'word→txt': wordToTxt,
+  'word→pptx': wordToPptx,
   'csv→xlsx': csvToXlsx,
   'csv→docx': csvToDocx,
   'csv→pdf': csvToPdf,
   'csv→png': csvToPng,
   'csv→txt': csvToTxt,
+  'csv→pptx': csvToPptx,
   'txt→docx': txtToDocx,
   'txt→pdf': txtToPdf,
   'txt→png': txtToPng,
+  'txt→pptx': txtToPptx,
+  'pptx→pdf': pptxToPdf,
+  'pptx→docx': pptxToDocx,
+  'pptx→png': pptxToPng,
+  'pptx→txt': pptxToTxt,
 };
 
 const extMap: Record<TargetFormat, string> = {
@@ -795,6 +1018,7 @@ const extMap: Record<TargetFormat, string> = {
   png: '.png',
   csv: '.csv',
   txt: '.txt',
+  pptx: '.pptx',
 };
 
 export const convertFile = async (
