@@ -31,6 +31,13 @@ const converterConfig: Record<ConverterType, { accept: string; allowedExtensions
 const getFileBaseName = (fileName: string) => fileName.replace(/\.[^/.]+$/, '');
 
 const ocrApiCompatibleExtensions = new Set(['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tif', 'tiff']);
+const plainTextCompatibleExtensions = new Set(['txt', 'md', 'csv', 'json', 'xml', 'html', 'htm']);
+
+const buildReadableChunks = (rawText: string) =>
+  (rawText.match(/[\p{L}\p{N}][\p{L}\p{N}\s,.;:!?()\-]{3,}/gu) ?? [])
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .slice(0, 500);
 
 const createPdfFromJpeg = (jpegBytes: Uint8Array, width: number, height: number): Uint8Array => {
   const contentStream = `q\n${width} 0 0 ${height} 0 0 cm\n/Im0 Do\nQ`;
@@ -233,10 +240,15 @@ const ConvertScreen = () => {
 
       if (activeType === 'image-to-text-ocr') {
         const extension = selectedFile.name.split('.').pop()?.toLowerCase() ?? '';
+        const isImageForOcr = ocrApiCompatibleExtensions.has(extension);
+        const isPlainTextFile = plainTextCompatibleExtensions.has(extension) || selectedFile.type.startsWith('text/');
 
-        const extractedText = ocrApiCompatibleExtensions.has(extension)
-          ? await extractTextWithGeminiOcr(selectedFile)
-          : (await selectedFile.text()).trim();
+        if (!isImageForOcr && !isPlainTextFile) {
+          toast.error('Bu dosya türü OCR için uygun değil. Görsel veya metin tabanlı dosya seçin.');
+          return;
+        }
+
+        const extractedText = isImageForOcr ? await extractTextWithGeminiOcr(selectedFile) : (await selectedFile.text()).trim();
 
         if (!extractedText) {
           toast.warning('Dosyada okunabilir metin bulunamadı.');
@@ -250,10 +262,12 @@ const ConvertScreen = () => {
       }
 
       const fileText = await selectedFile.text();
-      const readableChunks = (fileText.match(/[\p{L}\p{N}][\p{L}\p{N}\s,.;:!?()\-]{3,}/gu) ?? [])
-        .map((chunk) => chunk.trim())
-        .filter(Boolean)
-        .slice(0, 500);
+      const readableChunks = buildReadableChunks(fileText);
+
+      if (!readableChunks.length) {
+        toast.error('Dosyadan okunabilir metin çıkarılamadı. Lütfen metin içeren farklı bir dosya deneyin.');
+        return;
+      }
 
       if (activeType === 'pdf-to-word') {
         const htmlDoc = `
