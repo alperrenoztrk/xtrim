@@ -273,7 +273,7 @@ const ConvertScreen = () => {
       if (activeType === 'excel-to-word') {
         const { convertExcelToWord } = await import('@/utils/excelToWord');
         const wordBlob = await convertExcelToWord(selectedFile);
-        downloadBlob(wordBlob, `${getFileBaseName(selectedFile.name)}.docx`);
+        downloadBlob(wordBlob, `${getFileBaseName(selectedFile.name)}.doc`);
         toast.success('Excel dosyası Word formatına aktarıldı.');
         return;
       }
