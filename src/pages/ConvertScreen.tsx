@@ -262,30 +262,19 @@ const ConvertScreen = () => {
         return;
       }
 
+      if (activeType === 'pdf-to-word') {
+        const { convertPdfToWord } = await import('@/utils/pdfToWord');
+        const wordBlob = await convertPdfToWord(selectedFile);
+        downloadBlob(wordBlob, `${getFileBaseName(selectedFile.name)}.doc`);
+        toast.success('PDF dosyası Word formatına aktarıldı.');
+        return;
+      }
+
       const fileText = await selectedFile.text();
       const readableChunks = buildReadableChunks(fileText);
 
       if (!readableChunks.length) {
         toast.error('Dosyadan okunabilir metin çıkarılamadı. Lütfen metin içeren farklı bir dosya deneyin.');
-        return;
-      }
-
-      if (activeType === 'pdf-to-word') {
-        const htmlDoc = `
-          <html>
-            <head><meta charset="utf-8" /></head>
-            <body>
-              <h2>PDF → Word Sonucu</h2>
-              <p>Kaynak dosya: ${selectedFile.name}</p>
-              <p>Bulunan metin parçaları:</p>
-              ${readableChunks.length ? `<p>${readableChunks.join(' ').replace(/</g, '&lt;')}</p>` : '<p>Metin bulunamadı.</p>'}
-            </body>
-          </html>
-        `;
-
-        const wordBlob = new Blob([htmlDoc], { type: 'application/msword;charset=utf-8' });
-        downloadBlob(wordBlob, `${getFileBaseName(selectedFile.name)}.doc`);
-        toast.success('PDF dosyası Word formatına aktarıldı.');
         return;
       }
 
