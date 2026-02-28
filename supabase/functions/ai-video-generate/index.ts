@@ -5,11 +5,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function getApiConfig(): { lovableKey?: string; geminiKey?: string } {
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY") ?? undefined;
-  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY") || undefined;
-  if (!lovableKey && !geminiKey) throw new Error("No API key configured");
-  return { lovableKey, geminiKey };
+function getApiConfig(): { apiKey: string; useLovable: boolean } {
+  const geminiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_CLOUD_API_KEY");
+  if (geminiKey) return { apiKey: geminiKey, useLovable: false };
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableKey) return { apiKey: lovableKey, useLovable: true };
+  throw new Error("No API key configured");
 }
 
 interface VideoGenerateRequest {
@@ -83,8 +84,8 @@ serve(async (req) => {
       );
     }
 
-    const { lovableKey, geminiKey } = getApiConfig();
-    console.log(`Generating AI video frame: style=${style}, duration=${duration}s, quality=${quality}%, hasGemini=${Boolean(geminiKey)}, hasLovable=${Boolean(lovableKey)}`);
+    const { apiKey, useLovable } = getApiConfig();
+    console.log(`Generating AI video frame: style=${style}, duration=${duration}s, quality=${quality}%, useLovable=${useLovable}`);
 
     const styleDescriptions: Record<string, string> = {
       cinematic: "cinematic film style, dramatic lighting, movie quality, 35mm film look",
@@ -99,41 +100,33 @@ serve(async (req) => {
     const enhancedPrompt = `Create a stunning video frame: ${prompt}. Style: ${styleDesc}. High quality, ${quality}% detail level. Ultra high resolution, professional cinematography.`;
 
     let generatedImage: string | null = null;
-    const providerErrors: string[] = [];
 
-    if (geminiKey) {
-      try {
-        generatedImage = await generateImageWithGeminiNative(geminiKey, enhancedPrompt);
-      } catch (error) {
-        providerErrors.push(`Gemini: ${error instanceof Error ? error.message : String(error)}`);
+    if (useLovable) {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3-pro-image-preview",
+          messages: [{ role: "user", content: enhancedPrompt }],
+          modalities: ["image", "text"],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Lovable AI error:", response.status, errorText);
+        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        throw new Error(`AI error: ${response.status}`);
       }
+
+      const data = await response.json();
+      generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    } else {
+      generatedImage = await generateImageWithGeminiNative(apiKey, enhancedPrompt);
     }
 
-    if (!generatedImage && lovableKey) {
-      try {
-        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-3-pro-image-preview",
-            messages: [{ role: "user", content: enhancedPrompt }],
-            modalities: ["image", "text"],
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          providerErrors.push(`Lovable AI (${response.status}): ${errorText}`);
-        } else {
-          const data = await response.json();
-          generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-        }
-      } catch (error) {
-        providerErrors.push(`Lovable AI: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    }
-
-    if (!generatedImage) throw new Error(`Failed to generate video frame. ${providerErrors.join(" | ")}`);
+    if (!generatedImage) throw new Error("Failed to generate video frame");
 
     console.log("Video frame generated successfully");
 

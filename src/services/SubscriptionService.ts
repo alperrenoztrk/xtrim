@@ -225,7 +225,7 @@ export class SubscriptionService {
       .select('ai_tasks_used')
       .eq('user_id', session.user.id)
       .eq('usage_date', today)
-      .maybeSingle();
+      .single();
 
     return data?.ai_tasks_used ?? 0;
   }
@@ -246,7 +246,7 @@ export class SubscriptionService {
       .select('id, ai_tasks_used')
       .eq('user_id', session.user.id)
       .eq('usage_date', today)
-      .maybeSingle();
+      .single();
 
     if (existing) {
       if (existing.ai_tasks_used >= limit) {
