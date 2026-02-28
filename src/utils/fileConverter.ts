@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
 import html2canvas from 'html2canvas';
-import { Document, ImageRun, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, BorderStyle } from 'docx';
+import { Document, ImageRun, Packer, Paragraph } from 'docx';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -46,11 +46,11 @@ export const detectFormat = (file: File): SourceFormat | null => {
 export const getAvailableTargets = (source: SourceFormat): TargetFormat[] => {
   const map: Record<SourceFormat, TargetFormat[]> = {
     pdf: ['docx', 'png', 'txt'],
-    word: ['pdf', 'txt'],
-    excel: ['docx', 'pdf', 'csv', 'txt'],
+    word: ['pdf', 'docx', 'png', 'txt'],
+    excel: ['docx', 'pdf', 'png', 'csv', 'txt'],
     image: ['pdf', 'docx', 'txt'],
-    csv: ['xlsx', 'docx', 'pdf', 'txt'],
-    txt: ['docx', 'pdf'],
+    csv: ['xlsx', 'docx', 'pdf', 'png', 'txt'],
+    txt: ['docx', 'pdf', 'png'],
   };
   return map[source];
 };
@@ -189,14 +189,122 @@ const createTextPdf = (text: string): Blob => {
   return new Blob([total], { type: 'application/pdf' });
 };
 
-/* ── HTML-based doc/pdf builder ── */
-const wrapHtmlAsDoc = (htmlBody: string): Blob => {
-  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="utf-8">
-<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->
-<style>body{font-family:Calibri,sans-serif;font-size:11pt}table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:11pt}</style>
-</head><body>${htmlBody}</body></html>`;
-  return new Blob(['\uFEFF' + html], { type: 'application/msword;charset=utf-8' });
+/* ── HTML → Image-based DOCX (high fidelity) ── */
+const htmlToImageDocx = async (htmlContent: string, cssOverride = ''): Promise<Blob> => {
+  const pageWidth = 595;
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = `${pageWidth}px`;
+  container.style.background = '#fff';
+  container.style.color = '#000';
+  container.style.fontFamily = 'Calibri, Arial, sans-serif';
+  container.style.fontSize = '11pt';
+  container.style.padding = '40px';
+  container.style.boxSizing = 'border-box';
+  if (cssOverride) {
+    const style = document.createElement('style');
+    style.textContent = cssOverride;
+    container.appendChild(style);
+  }
+  container.innerHTML += htmlContent;
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      width: pageWidth,
+    });
+
+    const imgW = canvas.width;
+    const imgH = canvas.height;
+    const scaledPageH = Math.round((842 / 595) * pageWidth * 2);
+    const numPages = Math.ceil(imgH / scaledPageH) || 1;
+    const sections: any[] = [];
+
+    for (let p = 0; p < numPages; p++) {
+      const sliceH = Math.min(scaledPageH, imgH - p * scaledPageH);
+      const pc = document.createElement('canvas');
+      pc.width = imgW;
+      pc.height = sliceH;
+      const ctx = pc.getContext('2d')!;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, imgW, sliceH);
+      ctx.drawImage(canvas, 0, -p * scaledPageH);
+      const blob = await new Promise<Blob>((res, rej) =>
+        pc.toBlob((b) => (b ? res(b) : rej(new Error('Render failed'))), 'image/png')
+      );
+      const pngBytes = new Uint8Array(await blob.arrayBuffer());
+      const layoutW = pageWidth;
+      const layoutH = Math.round((sliceH / imgW) * pageWidth);
+
+      sections.push({
+        properties: {
+          page: {
+            margin: { top: 0, right: 0, bottom: 0, left: 0 },
+            size: { width: pxToTwips(layoutW), height: pxToTwips(layoutH) },
+          },
+        },
+        children: [
+          new Paragraph({
+            spacing: { before: 0, after: 0 },
+            children: [
+              new ImageRun({
+                type: 'png',
+                data: pngBytes,
+                transformation: { width: layoutW, height: layoutH },
+              }),
+            ],
+          }),
+        ],
+      });
+    }
+
+    return Packer.toBlob(new Document({ sections }));
+  } finally {
+    document.body.removeChild(container);
+  }
+};
+
+/* ── HTML → PNG (high fidelity) ── */
+const htmlToImagePng = async (htmlContent: string, cssOverride = ''): Promise<Blob> => {
+  const pageWidth = 595;
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = `${pageWidth}px`;
+  container.style.background = '#fff';
+  container.style.color = '#000';
+  container.style.fontFamily = 'Calibri, Arial, sans-serif';
+  container.style.fontSize = '11pt';
+  container.style.padding = '40px';
+  container.style.boxSizing = 'border-box';
+  if (cssOverride) {
+    const style = document.createElement('style');
+    style.textContent = cssOverride;
+    container.appendChild(style);
+  }
+  container.innerHTML += htmlContent;
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      width: pageWidth,
+    });
+    const blob = await new Promise<Blob>((res, rej) =>
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error('Render failed'))), 'image/png')
+    );
+    return blob;
+  } finally {
+    document.body.removeChild(container);
+  }
 };
 
 /* ── HTML → Image-based PDF (high fidelity) ── */
@@ -445,7 +553,7 @@ const imageToTxt = async (file: File): Promise<Blob> => {
   return new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' });
 };
 
-// Excel → DOCX (HTML table in .doc)
+// Excel → DOCX (high fidelity via image embedding)
 const excelToDocx = async (file: File): Promise<Blob> => {
   const ab = await file.arrayBuffer();
   const wb = XLSX.read(ab, { type: 'array' });
@@ -454,10 +562,11 @@ const excelToDocx = async (file: File): Promise<Blob> => {
     const sheet = wb.Sheets[name];
     if (!sheet) continue;
     const html = XLSX.utils.sheet_to_html(sheet, { editable: false });
-    htmlParts.push(`<h2 style="font-family:Calibri;font-size:14pt;margin:16px 0 8px;">${name}</h2>${html}`);
+    htmlParts.push(`<h2 style="font-size:14pt;margin:16px 0 8px;">${name}</h2>${html}`);
   }
   if (!htmlParts.length) throw new Error('No data found in the Excel file.');
-  return wrapHtmlAsDoc(htmlParts.join('<br style="page-break-after:always">'));
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
+  return htmlToImageDocx(htmlParts.join('<div style="page-break-after:always"></div>'), css);
 };
 
 // Excel → PDF (high fidelity via HTML rendering)
@@ -535,7 +644,7 @@ const csvToXlsx = async (file: File): Promise<Blob> => {
   return new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 };
 
-// CSV → DOCX
+// CSV → DOCX (high fidelity via image embedding)
 const csvToDocx = async (file: File): Promise<Blob> => {
   const text = await file.text();
   const wb = XLSX.read(text, { type: 'string' });
@@ -545,7 +654,8 @@ const csvToDocx = async (file: File): Promise<Blob> => {
     if (!sheet) continue;
     htmlParts.push(XLSX.utils.sheet_to_html(sheet, { editable: false }));
   }
-  return wrapHtmlAsDoc(htmlParts.join(''));
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
+  return htmlToImageDocx(htmlParts.join(''), css);
 };
 
 // CSV → PDF (high fidelity via HTML rendering)
@@ -578,10 +688,11 @@ const csvToTxt = async (file: File): Promise<Blob> => {
   return new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/plain;charset=utf-8' });
 };
 
-// TXT → DOCX
+// TXT → DOCX (high fidelity via image embedding)
 const txtToDocx = async (file: File): Promise<Blob> => {
   const text = await file.text();
-  return wrapHtmlAsDoc(`<pre style="font-family:Calibri;font-size:11pt;white-space:pre-wrap">${text.replace(/</g, '&lt;')}</pre>`);
+  const html = `<pre style="font-family:Calibri,monospace;font-size:11pt;white-space:pre-wrap;word-break:break-word">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+  return htmlToImageDocx(html);
 };
 
 // TXT → PDF (high fidelity via HTML rendering)
@@ -589,6 +700,64 @@ const txtToPdf = async (file: File): Promise<Blob> => {
   const text = await file.text();
   const html = `<pre style="font-family:Calibri,monospace;font-size:11pt;white-space:pre-wrap;word-break:break-word">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
   return htmlToImagePdf(html);
+};
+
+// Word → DOCX (high fidelity via image embedding - preserves exact layout)
+const wordToDocx = async (file: File): Promise<Blob> => {
+  const mammoth = await import('mammoth');
+  const ab = await file.arrayBuffer();
+  const { value: html } = await mammoth.convertToHtml({ arrayBuffer: ab });
+  if (!html.trim()) throw new Error('No content found in the Word file.');
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 6px}img{max-width:100%}';
+  return htmlToImageDocx(html, css);
+};
+
+// Word → PNG
+const wordToPng = async (file: File): Promise<Blob> => {
+  const mammoth = await import('mammoth');
+  const ab = await file.arrayBuffer();
+  const { value: html } = await mammoth.convertToHtml({ arrayBuffer: ab });
+  if (!html.trim()) throw new Error('No content found in the Word file.');
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:4px 6px}img{max-width:100%}';
+  return htmlToImagePng(html, css);
+};
+
+// Excel → PNG
+const excelToPng = async (file: File): Promise<Blob> => {
+  const ab = await file.arrayBuffer();
+  const wb = XLSX.read(ab, { type: 'array' });
+  const htmlParts: string[] = [];
+  for (const name of wb.SheetNames) {
+    const sheet = wb.Sheets[name];
+    if (!sheet) continue;
+    const html = XLSX.utils.sheet_to_html(sheet, { editable: false });
+    htmlParts.push(`<h2 style="font-size:14pt;margin:16px 0 8px;">${name}</h2>${html}`);
+  }
+  if (!htmlParts.length) throw new Error('No data found in the Excel file.');
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
+  return htmlToImagePng(htmlParts.join('<hr>'), css);
+};
+
+// CSV → PNG
+const csvToPng = async (file: File): Promise<Blob> => {
+  const text = await file.text();
+  const wb = XLSX.read(text, { type: 'string' });
+  const htmlParts: string[] = [];
+  for (const name of wb.SheetNames) {
+    const sheet = wb.Sheets[name];
+    if (!sheet) continue;
+    htmlParts.push(XLSX.utils.sheet_to_html(sheet, { editable: false }));
+  }
+  if (!htmlParts.length) throw new Error('No data found in the CSV file.');
+  const css = 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:4px 6px;font-size:10pt}';
+  return htmlToImagePng(htmlParts.join(''), css);
+};
+
+// TXT → PNG
+const txtToPng = async (file: File): Promise<Blob> => {
+  const text = await file.text();
+  const html = `<pre style="font-family:Calibri,monospace;font-size:11pt;white-space:pre-wrap;word-break:break-word">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`;
+  return htmlToImagePng(html);
 };
 
 /* ── Conversion router ── */
@@ -602,16 +771,21 @@ const converterMap: Record<string, ConverterFn> = {
   'image→txt': imageToTxt,
   'excel→docx': excelToDocx,
   'excel→pdf': excelToPdf,
+  'excel→png': excelToPng,
   'excel→csv': excelToCsv,
   'excel→txt': excelToTxt,
   'word→pdf': wordToPdf,
+  'word→docx': wordToDocx,
+  'word→png': wordToPng,
   'word→txt': wordToTxt,
   'csv→xlsx': csvToXlsx,
   'csv→docx': csvToDocx,
   'csv→pdf': csvToPdf,
+  'csv→png': csvToPng,
   'csv→txt': csvToTxt,
   'txt→docx': txtToDocx,
   'txt→pdf': txtToPdf,
+  'txt→png': txtToPng,
 };
 
 const extMap: Record<TargetFormat, string> = {
@@ -623,13 +797,6 @@ const extMap: Record<TargetFormat, string> = {
   txt: '.txt',
 };
 
-// Special case: excel→docx produces .doc not .docx
-const specialExtMap: Record<string, string> = {
-  'excel→docx': '.doc',
-  'csv→docx': '.doc',
-  'txt→docx': '.doc',
-};
-
 export const convertFile = async (
   file: File,
   source: SourceFormat,
@@ -639,7 +806,7 @@ export const convertFile = async (
   const fn = converterMap[key];
   if (!fn) throw new Error('This conversion type is not supported yet.');
   const blob = await fn(file);
-  const ext = specialExtMap[key] ?? extMap[target];
+  const ext = extMap[target];
   return { blob, filename: `${getBaseName(file.name)}${ext}` };
 };
 
