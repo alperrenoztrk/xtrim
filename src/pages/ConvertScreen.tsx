@@ -1,10 +1,11 @@
 import { ChangeEvent, MouseEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileImage, FileSpreadsheet, FileText, FileType2, Loader2 } from 'lucide-react';
+import { ArrowLeft, ClipboardCopy, Download, FileImage, FileSpreadsheet, FileText, FileType2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
 type ConverterType = 'png-to-pdf' | 'pdf-to-word' | 'excel-to-word' | 'image-to-text-ocr';
@@ -187,7 +188,7 @@ const ConvertScreen = () => {
   const [activeType, setActiveType] = useState<ConverterType>('png-to-pdf');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isConverting, setIsConverting] = useState(false);
-
+  const [ocrResult, setOcrResult] = useState<string | null>(null);
   const acceptedFileType = useMemo(() => {
     return converterConfig[activeType].accept;
   }, [activeType]);
@@ -195,6 +196,7 @@ const ConvertScreen = () => {
   const handleTypeChange = (type: ConverterType) => {
     setActiveType(type);
     setSelectedFile(null);
+    setOcrResult(null);
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -255,9 +257,8 @@ const ConvertScreen = () => {
           return;
         }
 
-        const textBlob = new Blob([extractedText], { type: 'text/plain;charset=utf-8' });
-        downloadBlob(textBlob, `${getFileBaseName(selectedFile.name)}-ocr.txt`);
-        toast.success('OCR tamamlandı. Metin dosyası indirildi.');
+        setOcrResult(extractedText);
+        toast.success('OCR tamamlandı. Sonucu aşağıda görebilirsiniz.');
         return;
       }
 
@@ -359,6 +360,41 @@ const ConvertScreen = () => {
               {isConverting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               {isConverting ? 'Dönüştürülüyor...' : 'Dönüştür ve indir'}
             </Button>
+
+            {ocrResult && (
+              <div className="space-y-3 pt-2">
+                <Label>OCR Sonucu</Label>
+                <Textarea
+                  value={ocrResult}
+                  readOnly
+                  rows={12}
+                  className="font-mono text-sm"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(ocrResult);
+                      toast.success('Metin panoya kopyalandı.');
+                    }}
+                  >
+                    <ClipboardCopy className="h-4 w-4 mr-2" />
+                    Kopyala
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const textBlob = new Blob(['\uFEFF' + ocrResult], { type: 'text/plain;charset=utf-8' });
+                      downloadBlob(textBlob, `${getFileBaseName(selectedFile?.name ?? 'ocr')}-ocr.txt`);
+                      toast.success('Metin dosyası indirildi.');
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    İndir
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
