@@ -9,6 +9,21 @@ import { toast } from 'sonner';
 
 type ConverterType = 'png-to-pdf' | 'pdf-to-word' | 'excel-to-word';
 
+const converterConfig: Record<ConverterType, { accept: string; allowedExtensions: string[] }> = {
+  'png-to-pdf': {
+    accept: '.png,image/png',
+    allowedExtensions: ['png'],
+  },
+  'pdf-to-word': {
+    accept: '.pdf,application/pdf',
+    allowedExtensions: ['pdf'],
+  },
+  'excel-to-word': {
+    accept: '.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    allowedExtensions: ['xls', 'xlsx'],
+  },
+};
+
 const getFileBaseName = (fileName: string) => fileName.replace(/\.[^/.]+$/, '');
 
 const createPdfFromJpeg = (jpegBytes: Uint8Array, width: number, height: number): Uint8Array => {
@@ -135,13 +150,30 @@ const ConvertScreen = () => {
   const [isConverting, setIsConverting] = useState(false);
 
   const acceptedFileType = useMemo(() => {
-    if (activeType === 'png-to-pdf') return '.png,image/png';
-    if (activeType === 'pdf-to-word') return '.pdf,application/pdf';
-    return '.xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    return converterConfig[activeType].accept;
   }, [activeType]);
+
+  const handleTypeChange = (type: ConverterType) => {
+    setActiveType(type);
+    setSelectedFile(null);
+  };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
+
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+    if (!converterConfig[activeType].allowedExtensions.includes(extension)) {
+      toast.error('Seçilen dosya, aktif dönüştürme türüyle uyumlu değil.');
+      event.target.value = '';
+      setSelectedFile(null);
+      return;
+    }
+
     setSelectedFile(file);
   };
 
@@ -226,20 +258,20 @@ const ConvertScreen = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 md:grid-cols-3">
-              <Button variant={activeType === 'png-to-pdf' ? 'default' : 'outline'} onClick={() => setActiveType('png-to-pdf')}>
+              <Button variant={activeType === 'png-to-pdf' ? 'default' : 'outline'} onClick={() => handleTypeChange('png-to-pdf')}>
                 <FileType2 className="mr-2 h-4 w-4" /> PNG → PDF
               </Button>
-              <Button variant={activeType === 'pdf-to-word' ? 'default' : 'outline'} onClick={() => setActiveType('pdf-to-word')}>
+              <Button variant={activeType === 'pdf-to-word' ? 'default' : 'outline'} onClick={() => handleTypeChange('pdf-to-word')}>
                 <FileText className="mr-2 h-4 w-4" /> PDF → Word
               </Button>
-              <Button variant={activeType === 'excel-to-word' ? 'default' : 'outline'} onClick={() => setActiveType('excel-to-word')}>
+              <Button variant={activeType === 'excel-to-word' ? 'default' : 'outline'} onClick={() => handleTypeChange('excel-to-word')}>
                 <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel → Word
               </Button>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="converter-file">Dosya seçin</Label>
-              <Input id="converter-file" type="file" accept={acceptedFileType} onChange={handleFileChange} />
+              <Input key={activeType} id="converter-file" type="file" accept={acceptedFileType} onChange={handleFileChange} />
               {selectedFile && <p className="text-sm text-muted-foreground">Seçilen dosya: {selectedFile.name}</p>}
             </div>
 
