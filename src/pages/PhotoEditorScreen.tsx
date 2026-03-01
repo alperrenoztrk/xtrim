@@ -27,7 +27,6 @@ import {
   MoreHorizontal,
   Bot,
   Loader2,
-  Copy,
   Share2,
   Sticker,
   Maximize,
@@ -68,7 +67,7 @@ import samplePhoto from '@/assets/sample-photo.jpg';
 
 
 type EditorTab = 'adjust' | 'crop' | 'draw' | 'filters' | 'ai' | 'more';
-type AIToolType = 'enhance' | 'expand' | 'generate' | 'avatar' | 'poster' | 'background' | 'watermark' | null;
+type AIToolType = 'enhance' | 'expand' | 'generate' | 'avatar' | 'poster' | 'background' | 'watermark' | 'sticker' | null;
 
 interface ImageAdjustments {
   brightness: number;
@@ -193,14 +192,13 @@ interface CropInteractionState {
   handle?: CropHandle;
 }
 
-type QuickTool = 'collage' | 'delete' | 'audio' | 'text' | 'sticker' | 'more';
+type QuickTool = 'collage' | 'delete' | 'audio' | 'text' | 'more';
 
 const moreMenuTools: { id: Exclude<QuickTool, 'more'>; icon: React.ComponentType<any>; label: string }[] = [
   { id: 'collage', icon: LayoutGrid, label: 'Collage' },
   { id: 'delete', icon: Trash2, label: 'Delete' },
   { id: 'audio', icon: Volume2, label: 'Audio' },
   { id: 'text', icon: Type, label: 'Text' },
-  { id: 'sticker', icon: Sticker, label: 'Sticker' },
 ];
 
 const drawBrushOptions: { id: DrawBrushType; label: string; icon: React.ComponentType<any>; description: string }[] = [
@@ -245,7 +243,7 @@ const PhotoEditorScreen = () => {
   const [drawOpacity, setDrawOpacity] = useState(0.9);
   const [drawBrushType, setDrawBrushType] = useState<DrawBrushType>('precision');
   const [cornerRadius, setCornerRadius] = useState(0);
-  const [isCreatingSticker, setIsCreatingSticker] = useState(false);
+  const [stickerPreviewUrl, setStickerPreviewUrl] = useState<string | null>(null);
   
   // AI Tool states
   const [activeAITool, setActiveAITool] = useState<AIToolType>(null);
@@ -1010,144 +1008,6 @@ const PhotoEditorScreen = () => {
     await handleSaveToDevice(imageBlob);
   };
 
-  const blobToDataUrl = (blob: Blob): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result !== 'string') {
-          reject(new Error('File could not be read'));
-          return;
-        }
-
-        resolve(reader.result);
-      };
-      reader.onerror = () => reject(new Error('File could not be read'));
-      reader.readAsDataURL(blob);
-    });
-
-  const convertBlobToPng = async (blob: Blob): Promise<Blob> => {
-    if (blob.type === 'image/png') {
-      return blob;
-    }
-
-    const bitmap = await createImageBitmap(blob);
-    const canvas = document.createElement('canvas');
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
-
-    const context = canvas.getContext('2d');
-    if (!context) {
-      throw new Error('Sticker could not be converted');
-    }
-
-    context.drawImage(bitmap, 0, 0);
-    bitmap.close();
-
-    const pngBlob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((convertedBlob) => resolve(convertedBlob), 'image/png');
-    });
-
-    if (!pngBlob) {
-      throw new Error('Sticker could not be converted');
-    }
-
-    return pngBlob;
-  };
-
-  const addStickerOutline = async (imageDataUrl: string, outlineWidth = 8): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const pad = outlineWidth * 2;
-        const w = img.width + pad * 2;
-        const h = img.height + pad * 2;
-
-        // Draw original on padded canvas to get alpha
-        const srcCanvas = document.createElement('canvas');
-        srcCanvas.width = w;
-        srcCanvas.height = h;
-        const srcCtx = srcCanvas.getContext('2d')!;
-        srcCtx.drawImage(img, pad, pad);
-
-        const srcData = srcCtx.getImageData(0, 0, w, h);
-        const alpha = new Uint8Array(w * h);
-        for (let i = 0; i < alpha.length; i++) {
-          alpha[i] = srcData.data[i * 4 + 3] > 20 ? 255 : 0;
-        }
-
-        // Dilate alpha channel
-        const dilated = new Uint8Array(w * h);
-        const r = outlineWidth;
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            let found = false;
-            for (let dy = -r; dy <= r && !found; dy++) {
-              for (let dx = -r; dx <= r && !found; dx++) {
-                if (dx * dx + dy * dy > r * r) continue;
-                const nx = x + dx, ny = y + dy;
-                if (nx >= 0 && nx < w && ny >= 0 && ny < h && alpha[ny * w + nx] === 255) {
-                  found = true;
-                }
-              }
-            }
-            dilated[y * w + x] = found ? 255 : 0;
-          }
-        }
-
-        // Compose: white outline + original on top
-        const outCanvas = document.createElement('canvas');
-        outCanvas.width = w;
-        outCanvas.height = h;
-        const outCtx = outCanvas.getContext('2d')!;
-
-        // Draw white fill on dilated area
-        const outData = outCtx.createImageData(w, h);
-        for (let i = 0; i < dilated.length; i++) {
-          if (dilated[i] === 255) {
-            outData.data[i * 4] = 255;
-            outData.data[i * 4 + 1] = 255;
-            outData.data[i * 4 + 2] = 255;
-            outData.data[i * 4 + 3] = 255;
-          }
-        }
-        outCtx.putImageData(outData, 0, 0);
-
-        // Draw original subject on top
-        outCtx.drawImage(img, pad, pad);
-
-        resolve(outCanvas.toDataURL('image/png'));
-      };
-      img.onerror = () => reject(new Error('Failed to load sticker image'));
-      img.src = imageDataUrl;
-    });
-  };
-
-  const copyStickerToClipboard = async (blob: Blob) => {
-    if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
-      throw new Error('Clipboard is not supported on this device.');
-    }
-
-    const pngSticker = await convertBlobToPng(blob);
-    await navigator.clipboard.write([
-      new ClipboardItem({
-        'image/png': pngSticker,
-      }),
-    ]);
-  };
-
-  const shareStickerImage = async (dataUrl: string) => {
-    const response = await fetch(dataUrl);
-    const blob = await response.blob();
-    const file = new File([blob], 'sticker.png', { type: 'image/png' });
-
-    if (navigator.share && navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ files: [file], title: 'Sticker' });
-      return true;
-    }
-    return false;
-  };
-
   const saveStickerImage = (dataUrl: string) => {
     const link = document.createElement('a');
     link.href = dataUrl;
@@ -1155,49 +1015,6 @@ const PhotoEditorScreen = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const handleCreateSticker = async () => {
-    if (!imageUrl) {
-      toast.error('Önce bir fotoğraf seçin');
-      return;
-    }
-
-    setIsCreatingSticker(true);
-
-    try {
-      // Sticker should work with a single tap using the original selected image.
-      // If imageUrl is not already base64, convert it so the AI API can process it reliably.
-      const stickerSource = imageUrl.startsWith('data:')
-        ? imageUrl
-        : await (async () => {
-            const response = await fetch(imageUrl);
-            const blob = await response.blob();
-            return blobToDataUrl(blob);
-          })();
-
-      const stickerResult = await AIToolsService.removeBackground(stickerSource);
-
-      if (!stickerResult.success || !stickerResult.imageUrl) {
-        throw new Error(stickerResult.error || 'Sticker could not be created');
-      }
-
-      // Give the user the ready sticker directly.
-      saveStickerImage(stickerResult.imageUrl);
-      toast.success('Sticker hazır!', {
-        description: 'Arka plan kaldırıldı ve PNG indirildi.',
-        action: {
-          label: 'Paylaş',
-          onClick: () => shareStickerImage(stickerResult.imageUrl!).catch(() => {}),
-        },
-      });
-    } catch (error) {
-      console.error('Sticker creation error:', error);
-      const message = error instanceof Error ? error.message : 'Sticker could not be created';
-      toast.error(message);
-    } finally {
-      setIsCreatingSticker(false);
-    }
   };
 
   // AI Processing functions
@@ -1253,6 +1070,9 @@ const PhotoEditorScreen = () => {
         case 'watermark':
           result = await AIToolsService.processVideoTool('watermark-remove', imageBase64);
           break;
+        case 'sticker':
+          result = await AIToolsService.removeBackground(imageBase64);
+          break;
         default:
           throw new Error('Unknown AI tool');
       }
@@ -1263,9 +1083,14 @@ const PhotoEditorScreen = () => {
       if (result.success) {
         const outputUrl = result.outputUrl || result.imageUrl;
         if (outputUrl) {
-          saveState();
-          setImageUrl(outputUrl);
-          toast.success('AI operation completed!');
+          if (activeAITool === 'sticker') {
+            setStickerPreviewUrl(outputUrl);
+            toast.success('Sticker önizlemesi hazır. Onaylayınca indirilecek.');
+          } else {
+            saveState();
+            setImageUrl(outputUrl);
+            toast.success('AI operation completed!');
+          }
         } else {
           throw new Error('No result received');
         }
@@ -1333,9 +1158,6 @@ const PhotoEditorScreen = () => {
         setActiveTab('ai');
         setActiveAITool('poster');
         break;
-      case 'sticker':
-        await handleCreateSticker();
-        break;
       case 'more':
         setActiveTab('filters');
         break;
@@ -1360,6 +1182,7 @@ const PhotoEditorScreen = () => {
 
   const aiTools = [
     { id: 'background', name: 'Remove Background', icon: Eraser, description: 'Automatically remove image background' },
+    { id: 'sticker', name: 'Sticker', icon: Sticker, description: 'Create sticker and preview before downloading' },
     { id: 'enhance', name: 'Enhance Quality', icon: Sparkles, description: 'Improve photo quality' },
     { id: 'watermark', name: 'Remove Watermark', icon: Eraser, description: 'Remove text/logo watermark with AI' },
     { id: 'expand', name: 'Expand', icon: Expand, description: 'Expand photo with AI' },
@@ -2003,6 +1826,7 @@ const PhotoEditorScreen = () => {
                           onClick={() => {
                             setActiveAITool(null);
                             setAiPrompt('');
+                            setStickerPreviewUrl(null);
                           }}
                         >
                           <ArrowLeft className="w-4 h-4 mr-1" />
@@ -2043,6 +1867,32 @@ const PhotoEditorScreen = () => {
                         </div>
                       )}
 
+                      {activeAITool === 'sticker' && stickerPreviewUrl && (
+                        <div className="space-y-2 rounded-xl border border-border bg-background p-3">
+                          <p className="text-xs text-muted-foreground">Sticker preview</p>
+                          <img src={stickerPreviewUrl} alt="Sticker preview" className="mx-auto max-h-44 rounded-lg object-contain" />
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => setStickerPreviewUrl(null)}
+                            >
+                              Düzenle
+                            </Button>
+                            <Button
+                              variant="gradient"
+                              className="flex-1"
+                              onClick={() => {
+                                saveStickerImage(stickerPreviewUrl);
+                                toast.success('Sticker indirildi.');
+                              }}
+                            >
+                              Onayla ve indir
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
                       {activeAITool === 'background' ? (
                         <Button
                           variant="gradient"
@@ -2057,7 +1907,7 @@ const PhotoEditorScreen = () => {
                           variant="gradient"
                           className="w-full"
                           onClick={processAITool}
-                          disabled={isAIProcessing}
+                          disabled={isAIProcessing || (activeAITool === 'sticker' && Boolean(stickerPreviewUrl))}
                         >
                           {isAIProcessing ? (
                             <>
@@ -2067,7 +1917,7 @@ const PhotoEditorScreen = () => {
                           ) : (
                             <>
                               <Sparkles className="w-4 h-4" />
-                              {activeAITool === 'generate' ? 'Create' : 'Apply'}
+                              {activeAITool === 'generate' ? 'Create' : activeAITool === 'sticker' ? 'Önizleme oluştur' : 'Apply'}
                             </>
                           )}
                         </Button>
@@ -2097,21 +1947,13 @@ const PhotoEditorScreen = () => {
                         onClick={() => {
                           void handleQuickToolClick(tool.id);
                         }}
-                        disabled={tool.id === 'sticker' && isCreatingSticker}
                       >
                         <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                          {tool.id === 'sticker' && isCreatingSticker ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <tool.icon className="w-4 h-4" />
-                          )}
+                          <tool.icon className="w-4 h-4" />
                         </div>
                         <span className="text-sm font-medium text-left">
                           {tool.label}
                         </span>
-                        {tool.id === 'sticker' && (
-                          <Copy className="w-4 h-4 ml-auto text-muted-foreground" />
-                        )}
                       </button>
                     ))}
                   </div>
