@@ -59,26 +59,44 @@ serve(async (req) => {
         const match = imageBase64.match(/^data:(image\/\w+);base64,(.+)$/);
         if (match) { mimeType = match[1]; imageData = match[2]; }
       }
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data: imageData } }] }],
-          generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
-        }),
-      });
-      if (!response.ok) {
-        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-      const data = await response.json();
-      const candidate = data.candidates?.[0];
-      if (candidate?.content?.parts) {
-        for (const part of candidate.content.parts) {
-          if (part.inlineData) { generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`; break; }
+      const candidateModels = [
+        "gemini-2.5-flash-image",
+        "gemini-2.0-flash-exp-image-generation",
+        "gemini-2.0-flash-preview-image-generation",
+        "gemini-2.0-flash-exp",
+      ];
+      let lastError = "No compatible model returned image output";
+      for (const model of candidateModels) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data: imageData } }] }],
+            generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+          }),
+        });
+        if (response.status === 404) {
+          const body = await response.text();
+          console.warn(`Model not available: ${model}`, body);
+          lastError = body || `Model not found: ${model}`;
+          continue;
         }
+        if (!response.ok) {
+          if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          throw new Error(`Gemini API error: ${response.status}`);
+        }
+        const data = await response.json();
+        const candidate = data.candidates?.[0];
+        if (candidate?.content?.parts) {
+          for (const part of candidate.content.parts) {
+            if (part.inlineData) { generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`; break; }
+          }
+        }
+        if (generatedImage) break;
+        lastError = `Model ${model} did not return image data`;
       }
+      if (!generatedImage) throw new Error(`Background removal failed: ${lastError}`);
     }
 
     if (!generatedImage) throw new Error("Background removal failed - no image generated");
