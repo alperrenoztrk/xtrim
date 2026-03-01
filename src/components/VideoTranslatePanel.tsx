@@ -27,6 +27,7 @@ interface TranslationResult {
 const languages = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
   { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
+  { code: 'ro', name: 'Romanian', flag: '🇷🇴' },
   { code: 'es', name: 'Spanish', flag: '🇪🇸' },
   { code: 'fr', name: 'French', flag: '🇫🇷' },
   { code: 'de', name: 'German', flag: '🇩🇪' },

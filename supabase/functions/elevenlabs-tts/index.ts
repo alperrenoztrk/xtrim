@@ -15,6 +15,7 @@ interface TTSRequest {
 const languageVoices: Record<string, string> = {
   'en': 'EXAVITQu4vr4xnSDxMaL', // Sarah - natural English
   'tr': 'onwK4e9ZLuTAKqWW03F9', // Daniel - works well for Turkish
+  'ro': 'N2lVS1w4EtoT3dr4eOWO', // Callum - multilingual fallback for Romanian
   'es': 'FGY2WhTYpPnrIDTdsKH5', // Laura - great for Spanish
   'fr': 'XrExE9yKIg1WjnnlVkGX', // Matilda - elegant for French
   'de': 'JBFqnCBsd6RMkjVDRZzb', // George - clear German
