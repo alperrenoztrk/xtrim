@@ -1,48 +1,40 @@
 
 
-## Plan: Fix Word→PDF, Remove Word→Word, Add PowerPoint
+## Plan: Make Sticker Feature Work Like iPhone
 
-### 1. Fix Word→PDF Bug
-The console error `Cannot read properties of undefined (reading 'indexOf')` comes from `XLSX.utils.sheet_to_html` being called on sheets without a valid `!ref` property. This affects Excel/CSV conversions too. For Word→PDF specifically, `mammoth` may fail on `.doc` (non-DOCX) files.
+### Problem
+The current sticker feature only removes the background, producing a flat cutout. iPhone's sticker feature adds a distinctive white outline/stroke around the subject, giving it a proper "sticker" appearance that pops.
 
-**Fixes in `src/utils/fileConverter.ts`:**
-- Add `!ref` guard before calling `sheet_to_html` on every sheet (skip empty sheets)
-- Wrap `mammoth.convertToHtml` in try-catch for `.doc` files; fall back to reading raw text
-- Add null-check on mammoth result before passing to `htmlToImagePdf`
+### Solution
+Enhance the sticker creation pipeline to add a white outline stroke around the subject after background removal, mimicking the iPhone sticker effect.
 
-### 2. Remove Word→Word Conversion
-- Remove `'docx'` from `word` targets in `getAvailableTargets` (line 49)
-- Remove `'word→docx': wordToDocx` from `converterMap` (line 778)
-- Delete the `wordToDocx` function (lines 706-713)
+### Changes
 
-### 3. Add PowerPoint (PPTX) Support
-**New dependency:** `pptxgenjs` — browser-compatible PPTX generation library.
+**1. `src/pages/PhotoEditorScreen.tsx` — Post-process sticker with outline**
+After receiving the background-removed image from the AI, add a canvas post-processing step:
+- Load the transparent PNG result onto a canvas
+- Extract the alpha channel to create a silhouette
+- Dilate the silhouette by ~6-8px to create an outline mask
+- Draw the white outline first, then draw the original transparent image on top
+- This produces the classic iPhone "lift subject" sticker look with a clean white border
 
-**New source format:** `'pptx'` — detect `.pptx` and `.ppt` files.
+Specifically in `handleCreateSticker`:
+- After getting `stickerResult.imageUrl`, load it into a temporary canvas
+- Apply the outline algorithm (alpha dilation + white fill)
+- Convert the final canvas to a data URL
+- Use that as the sticker result
 
-**Conversion approach:** Since there's no reliable browser-based PPTX *reader*, PowerPoint files will be treated as binary blobs for image-based conversions where possible. For *creating* PPTX from other formats, we render the source to images and embed each page/slice as a full-slide image in a PPTX.
+**2. `src/pages/PhotoEditorScreen.tsx` — Add share option**
+Instead of only copying to clipboard (which fails on many browsers), also offer a "Share" fallback using the Web Share API, and a "Save" option that downloads the sticker as PNG.
 
-**New conversions (output PPTX):**
-- `pdf→pptx`: Render each PDF page as image → embed as slides
-- `image→pptx`: Embed image as a single slide
-- `word→pptx`: mammoth HTML → html2canvas → embed as slides
-- `excel→pptx`: sheet HTML → html2canvas → embed as slides
-- `csv→pptx`: parsed HTML → html2canvas → embed as slides
-- `txt→pptx`: pre-formatted HTML → html2canvas → embed as slides
-
-**New conversions (from PPTX):**
-- `pptx→pdf`, `pptx→docx`, `pptx→png`, `pptx→txt`: Extract slides via ZIP parsing (PPTX is a ZIP), render slide XML to basic HTML, then use existing pipelines.
-
-**Changes:**
-- Add `'pptx'` to `SourceFormat` and `TargetFormat` types
-- Add labels for pptx
-- Update `detectFormat` to recognize `.ppt`/`.pptx`
-- Update `getAvailableTargets` for all sources to include `pptx`, and for `pptx` source
-- Add converter functions and register in `converterMap`
-- Add `pptx: '.pptx'` to `extMap`
+### Outline Algorithm (canvas-based, no external deps)
+```text
+1. Draw transparent image → extract alpha channel
+2. Create dilated alpha (expand opaque pixels by N px in all directions)
+3. New canvas: fill dilated area with white → draw original image on top
+4. Result: subject with white stroke border
+```
 
 ### Files Modified
-- `src/utils/fileConverter.ts` — all conversion logic changes
-- `src/pages/ConvertScreen.tsx` — add `.pptx,.ppt` to file input accept attribute
-- `package.json` — add `pptxgenjs` dependency
+- `src/pages/PhotoEditorScreen.tsx` — add sticker outline post-processing and improved share/save
 
