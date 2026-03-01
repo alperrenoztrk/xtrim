@@ -56,7 +56,7 @@ serve(async (req) => {
     console.log(`Video downloaded: ${videoBytes.length} bytes, type: ${mimeType}`);
 
     const languageNames: Record<string, string> = {
-      'en': 'English', 'tr': 'Turkish', 'es': 'Spanish', 'fr': 'French',
+      'en': 'English', 'tr': 'Turkish', 'ro': 'Romanian', 'es': 'Spanish', 'fr': 'French',
       'de': 'German', 'it': 'Italian', 'pt': 'Portuguese', 'ru': 'Russian',
       'ja': 'Japanese', 'ko': 'Korean', 'zh': 'Chinese', 'ar': 'Arabic', 'hi': 'Hindi',
     };
