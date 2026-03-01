@@ -55,6 +55,10 @@ const ConvertScreen = () => {
     e.currentTarget.value = '';
   };
 
+  const handleChooseFile = () => {
+    document.getElementById('converter-file')?.click();
+  };
+
   const handleConvert = async () => {
     if (!selectedFile || !detectedFormat || !targetFormat) {
       toast.error('Please select a file and choose a target format.');
@@ -97,13 +101,22 @@ const ConvertScreen = () => {
                 <Upload className="inline h-4 w-4 mr-1 -mt-0.5" />
                 Select a file
               </Label>
-              <Input
-                id="converter-file"
-                type="file"
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.log,.png,.jpg,.jpeg,.webp,.bmp,.gif,.tiff,.tif,.ppt,.pptx"
-                onClick={handleFileInputClick}
-                onChange={handleFileChange}
-              />
+              <div className="flex items-center gap-3 rounded-md border border-input px-3 py-2">
+                <Input
+                  id="converter-file"
+                  type="file"
+                  className="sr-only"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.log,.png,.jpg,.jpeg,.webp,.bmp,.gif,.tiff,.tif,.ppt,.pptx"
+                  onClick={handleFileInputClick}
+                  onChange={handleFileChange}
+                />
+                <Button type="button" variant="outline" size="sm" onClick={handleChooseFile}>
+                  Choose file
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  {selectedFile?.name ?? 'No file selected'}
+                </span>
+              </div>
               {selectedFile && detectedFormat && (
                 <p className="text-sm text-muted-foreground">
                   <strong>{selectedFile.name}</strong> — Detected format:{' '}
