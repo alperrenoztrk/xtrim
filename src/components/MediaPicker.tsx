@@ -83,6 +83,8 @@ export const MediaPicker = ({
   className,
 }: MediaPickerProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const photoCaptureInputRef = useRef<HTMLInputElement>(null);
+  const videoCaptureInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<MediaItem[]>([]);
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
   const [permissionState, setPermissionState] = useState<PermissionState>({
@@ -130,17 +132,27 @@ export const MediaPicker = ({
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const processIncomingFiles = useCallback(async (files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
 
     setIsProcessing(true);
 
     try {
-      const fileArray = Array.from(files).slice(0, maxFiles - selectedFiles.length);
+      const filteredFiles = fileArray
+        .filter((file) => {
+          const type = file.type.split('/')[0];
+          if (mediaType === 'all') return type === 'image' || type === 'video';
+          if (mediaType === 'photo') return type === 'image';
+          if (mediaType === 'video') return type === 'video';
+          if (mediaType === 'audio') return type === 'audio';
+          return false;
+        })
+        .slice(0, maxFiles - selectedFiles.length);
+
       const mediaItems: MediaItem[] = [];
 
-      for (const file of fileArray) {
+      for (const file of filteredFiles) {
         const item = await MediaService.createMediaItem(file);
         mediaItems.push(item);
       }
@@ -154,8 +166,15 @@ export const MediaPicker = ({
       console.error('Error processing files:', error);
     } finally {
       setIsProcessing(false);
-      e.target.value = '';
     }
+  }, [maxFiles, mediaType, multiple, selectedFiles.length]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    await processIncomingFiles(files);
+    e.target.value = '';
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -175,37 +194,7 @@ export const MediaPicker = ({
     const files = e.dataTransfer.files;
     if (!files || files.length === 0) return;
 
-    setIsProcessing(true);
-
-    try {
-      const fileArray = Array.from(files)
-        .filter((file) => {
-          const type = file.type.split('/')[0];
-          if (mediaType === 'all') return type === 'image' || type === 'video';
-          if (mediaType === 'photo') return type === 'image';
-          if (mediaType === 'video') return type === 'video';
-          if (mediaType === 'audio') return type === 'audio';
-          return false;
-        })
-        .slice(0, maxFiles - selectedFiles.length);
-
-      const mediaItems: MediaItem[] = [];
-
-      for (const file of fileArray) {
-        const item = await MediaService.createMediaItem(file);
-        mediaItems.push(item);
-      }
-
-      if (multiple) {
-        setSelectedFiles((prev) => [...prev, ...mediaItems].slice(0, maxFiles));
-      } else {
-        setSelectedFiles(mediaItems.slice(0, 1));
-      }
-    } catch (error) {
-      console.error('Error processing dropped files:', error);
-    } finally {
-      setIsProcessing(false);
-    }
+    await processIncomingFiles(files);
   };
 
   const handleRemoveFile = (id: string) => {
@@ -228,6 +217,22 @@ export const MediaPicker = ({
         type="file"
         accept={getAcceptTypes(mediaType)}
         multiple={multiple}
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <input
+        ref={photoCaptureInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <input
+        ref={videoCaptureInputRef}
+        type="file"
+        accept="video/*"
+        capture="environment"
         className="hidden"
         onChange={handleFileChange}
       />
@@ -331,6 +336,38 @@ export const MediaPicker = ({
               <p className="text-sm text-muted-foreground mt-1">
                 Tap to browse or drag and drop
               </p>
+              {(mediaType === 'photo' || mediaType === 'video' || mediaType === 'all') && (
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  {(mediaType === 'photo' || mediaType === 'all') && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        photoCaptureInputRef.current?.click();
+                      }}
+                    >
+                      <Camera className="w-4 h-4" />
+                      Take Photo
+                    </Button>
+                  )}
+                  {(mediaType === 'video' || mediaType === 'all') && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        videoCaptureInputRef.current?.click();
+                      }}
+                    >
+                      <Video className="w-4 h-4" />
+                      Record Video
+                    </Button>
+                  )}
+                </div>
+              )}
               {multiple && (
                 <p className="text-xs text-muted-foreground mt-2">
                   Up to {maxFiles} files
