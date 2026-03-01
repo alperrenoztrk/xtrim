@@ -12,7 +12,8 @@ function getGoogleApiKey(): string {
 }
 
 interface TranscriptRequest {
-  videoUrl: string;
+  videoUrl?: string;
+  videoBase64?: string;
   includeEmptySeconds?: boolean;
 }
 
@@ -41,20 +42,32 @@ serve(async (req) => {
   }
 
   try {
-    const { videoUrl, includeEmptySeconds }: TranscriptRequest = await req.json();
+    const { videoUrl, videoBase64, includeEmptySeconds } = await req.json() as TranscriptRequest;
 
-    if (!videoUrl) {
-      return new Response(JSON.stringify({ error: "Video URL is required" }), {
+    if (!videoUrl && !videoBase64) {
+      return new Response(JSON.stringify({ error: "Video URL or video data is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const apiKey = getGoogleApiKey();
 
+    // Build content parts for the AI request
+    const userParts: Array<Record<string, unknown>> = [];
+
+    if (videoBase64) {
+      // Extract mime type and data from base64 data URL
+      const match = videoBase64.match(/^data:(video\/\w+);base64,(.+)$/s);
+      if (match) {
+        userParts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+      } else {
+        // Try as raw base64 with default mime
+        userParts.push({ inlineData: { mimeType: "video/mp4", data: videoBase64 } });
+      }
+    }
+
     const prompt = `Analyze the speech in this video and create a second-by-second transcript.
-
-Video URL: ${videoUrl}
-
+${videoUrl ? `\nVideo URL: ${videoUrl}\n` : ""}
 Requirements:
 - Return valid JSON only
 - JSON schema:
@@ -68,21 +81,18 @@ Requirements:
 - "second" must be integer and start from 0
 - Keep each entry concise and aligned with spoken content of that second
 - ${includeEmptySeconds ? "Include empty seconds with text '[silence]' when nobody speaks." : "Skip seconds with no speech."}
-- If video cannot be processed, include an "error" field`;
+    - If video cannot be processed, include an "error" field`;
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+    userParts.push({ text: prompt });
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(geminiUrl, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gemini-2.5-flash",
-        messages: [
-          { role: "system", content: "You are an expert speech-to-text assistant. Always return strictly valid JSON with no markdown wrapper." },
-          { role: "user", content: prompt },
-        ],
-        response_format: { type: "json_object" },
+        contents: [{ parts: userParts }],
+        systemInstruction: { parts: [{ text: "You are an expert speech-to-text assistant. Always return strictly valid JSON with no markdown wrapper." }] },
+        generationConfig: { responseMimeType: "application/json" },
       }),
     });
 
@@ -93,7 +103,7 @@ Requirements:
     }
 
     const data = await response.json();
-    const rawResult = data.choices?.[0]?.message?.content;
+    const rawResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!rawResult) throw new Error("AI response did not include transcript content");
 
