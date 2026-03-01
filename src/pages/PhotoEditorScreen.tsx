@@ -1067,7 +1067,7 @@ const PhotoEditorScreen = () => {
     ]);
   };
 
-  const handleCreateStickerCopy = async () => {
+  const handleCreateSticker = async () => {
     if (!imageUrl) {
       toast.error('Please select a photo first');
       return;
@@ -1088,15 +1088,18 @@ const PhotoEditorScreen = () => {
         throw new Error(stickerResult.error || 'Sticker could not be created');
       }
 
+      saveState();
+      setImageUrl(stickerResult.imageUrl);
+      setSelectedImageUrls([stickerResult.imageUrl]);
+
       const stickerResponse = await fetch(stickerResult.imageUrl);
       const stickerBlob = await stickerResponse.blob();
 
       try {
         await copyStickerToClipboard(stickerBlob);
-        toast.success('Sticker copied to clipboard');
+        toast.success('Sticker created and copied to clipboard');
       } catch {
-        setImageUrl(stickerResult.imageUrl);
-        toast.success('Sticker created. Clipboard is not supported on this device.');
+        toast.success('Sticker created');
       }
     } catch (error) {
       console.error('Sticker creation error:', error);
@@ -1241,7 +1244,7 @@ const PhotoEditorScreen = () => {
         setActiveAITool('poster');
         break;
       case 'sticker':
-        await handleCreateStickerCopy();
+        await handleCreateSticker();
         break;
       case 'more':
         setActiveTab('filters');
@@ -2014,7 +2017,7 @@ const PhotoEditorScreen = () => {
                           )}
                         </div>
                         <span className="text-sm font-medium text-left">
-                          {tool.id === 'sticker' ? 'Sticker (Kopyala)' : tool.label}
+                          {tool.label}
                         </span>
                         {tool.id === 'sticker' && (
                           <Copy className="w-4 h-4 ml-auto text-muted-foreground" />
