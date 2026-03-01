@@ -110,6 +110,7 @@ const SettingsScreen = () => {
 
   const [showThemeSheet, setShowThemeSheet] = useState(false);
   const [showPrivacySheet, setShowPrivacySheet] = useState(false);
+  const [showDistanceSalesSheet, setShowDistanceSalesSheet] = useState(false);
 
   useEffect(() => {
     applyTheme(settings.theme);
@@ -413,6 +414,18 @@ const SettingsScreen = () => {
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
+            <button
+              className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+              onClick={() => setShowDistanceSalesSheet(true)}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <span>Mesafeli Satış Sözleşmesi</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
@@ -549,6 +562,118 @@ const SettingsScreen = () => {
                 </div>
 
                 <p className="text-xs">Last updated: February 18, 2026</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Distance Sales Agreement Sheet */}
+      <AnimatePresence>
+        {showDistanceSalesSheet && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-50"
+            onClick={() => setShowDistanceSalesSheet(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="absolute inset-0 bg-card p-6 safe-area-bottom overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Mesafeli Satış Sözleşmesi</h3>
+                <Button variant="ghost" size="sm" onClick={() => setShowDistanceSalesSheet(false)}>
+                  Close
+                </Button>
+              </div>
+
+              <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">MADDE 1: TARAFLAR</h4>
+                  <p><strong>SATICI:</strong></p>
+                  <p>Unvanı: [Şirket Unvanınız]</p>
+                  <p>Adresi: [Şirket Adresiniz]</p>
+                  <p>E-posta: romingoacademy@outlook.com</p>
+                </div>
+
+                <div>
+                  <p><strong>ALICI:</strong></p>
+                  <p>Adı Soyadı/Unvanı:</p>
+                  <p>Adresi:</p>
+                  <p>Telefon:</p>
+                  <p>E-posta:</p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">MADDE 2: KONU</h4>
+                  <p>
+                    İşbu sözleşmenin konusu, ALICI&apos;nın SATICI&apos;ya ait www.romingoakademi.com internet
+                    sitesinden elektronik ortamda siparişini yaptığı aşağıda nitelikleri ve satış fiyatı
+                    belirtilen ürünün/hizmetin satışı ve teslimi ile ilgili olarak 6502 sayılı Tüketicinin
+                    Korunması Hakkındaki Kanun ve Mesafeli Sözleşmeler Yönetmeliği hükümleri gereğince
+                    tarafların hak ve yükümlülüklerinin saptanmasıdır.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">MADDE 3: SÖZLEŞME KONUSU ÜRÜN/HİZMET BİLGİLERİ</h4>
+                  <p>
+                    Ürünün/Hizmetin türü, miktarı, marka/modeli, rengi, adedi, satış bedeli, ödeme şekli,
+                    siparişin sonlandığı andaki bilgilerden oluşmaktadır.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">MADDE 4: GENEL HÜKÜMLER</h4>
+                  <p>
+                    4.1. ALICI, www.romingoakademi.com internet sitesinde sözleşme konusu ürünün temel
+                    nitelikleri, satış fiyatı ve ödeme şekli ile teslimata ilişkin ön bilgileri okuyup bilgi
+                    sahibi olduğunu ve elektronik ortamda gerekli teyidi verdiğini beyan eder.
+                  </p>
+                  <p>
+                    4.2. Sözleşme konusu ürün/hizmet, yasal 30 günlük süreyi aşmamak koşulu ile her bir ürün
+                    için ALICI&apos;nın yerleşim yerinin uzaklığına bağlı olarak internet sitesinde ön bilgiler içinde
+                    açıklanan süre içinde ALICI veya gösterdiği adresteki kişi/kuruluşa teslim edilir. Sunulan
+                    hizmet dijital içerik ise, satın alma sonrası ALICI&apos;nın hesabına tanımlanır ve/veya e-posta
+                    ile erişim bilgileri gönderilir.
+                  </p>
+                  <p>
+                    4.3. SATICI, sözleşme konusu ürünün sağlam, eksiksiz, siparişte belirtilen niteliklere uygun
+                    teslim edilmesinden sorumludur.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">MADDE 5: CAYMA HAKKI</h4>
+                  <p>
+                    ALICI, sözleşme konusu ürünün/hizmetin kendisine veya gösterdiği adresteki kişi/kuruluşa
+                    tesliminden itibaren 14 (ondört) gün içinde hiçbir gerekçe göstermeksizin cayma hakkına
+                    sahiptir. Ancak, Mesafeli Sözleşmeler Yönetmeliği&apos;nin "Cayma Hakkının İstisnaları" başlıklı
+                    maddesi uyarınca, elektronik ortamda anında ifa edilen hizmetler (sınav giriş ücreti) veya
+                    tüketiciye anında teslim edilen gayrimaddi mallara ilişkin sözleşmelerde cayma hakkı
+                    kullanılamaz. Sitemizde satılan sınava giriş hizmetleri bu kapsama girdiğinden cayma hakkı
+                    kullanılamaz ve iade yapılamaz.
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-medium text-foreground mb-1">MADDE 6: YETKİLİ MAHKEME</h4>
+                  <p>
+                    İşbu sözleşmenin uygulanmasında, Sanayi ve Ticaret Bakanlığınca ilan edilen değere kadar
+                    Tüketici Hakem Heyetleri ile ALICI&apos;nın veya SATICI&apos;nın yerleşim yerindeki Tüketici
+                    Mahkemeleri yetkilidir.
+                  </p>
+                </div>
+
+                <p>
+                  Siparişin gerçekleşmesi durumunda ALICI işbu sözleşmenin tüm koşullarını kabul etmiş sayılır.
+                </p>
               </div>
             </motion.div>
           </motion.div>
