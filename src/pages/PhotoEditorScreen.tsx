@@ -1025,6 +1025,48 @@ const PhotoEditorScreen = () => {
       reader.readAsDataURL(blob);
     });
 
+  const convertBlobToPng = async (blob: Blob): Promise<Blob> => {
+    if (blob.type === 'image/png') {
+      return blob;
+    }
+
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Sticker could not be converted');
+    }
+
+    context.drawImage(bitmap, 0, 0);
+    bitmap.close();
+
+    const pngBlob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((convertedBlob) => resolve(convertedBlob), 'image/png');
+    });
+
+    if (!pngBlob) {
+      throw new Error('Sticker could not be converted');
+    }
+
+    return pngBlob;
+  };
+
+  const copyStickerToClipboard = async (blob: Blob) => {
+    if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+      throw new Error('Clipboard is not supported on this device.');
+    }
+
+    const pngSticker = await convertBlobToPng(blob);
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'image/png': pngSticker,
+      }),
+    ]);
+  };
+
   const handleCreateStickerCopy = async () => {
     if (!imageUrl) {
       toast.error('Please select a photo first');
@@ -1049,17 +1091,13 @@ const PhotoEditorScreen = () => {
       const stickerResponse = await fetch(stickerResult.imageUrl);
       const stickerBlob = await stickerResponse.blob();
 
-      if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+      try {
+        await copyStickerToClipboard(stickerBlob);
+        toast.success('Sticker copied to clipboard');
+      } catch {
         setImageUrl(stickerResult.imageUrl);
         toast.success('Sticker created. Clipboard is not supported on this device.');
-        return;
       }
-
-      await navigator.clipboard.write([
-        new ClipboardItem({ [stickerBlob.type]: stickerBlob }),
-      ]);
-
-      toast.success('Sticker copied to clipboard');
     } catch (error) {
       console.error('Sticker creation error:', error);
       const message = error instanceof Error ? error.message : 'Sticker could not be created';
