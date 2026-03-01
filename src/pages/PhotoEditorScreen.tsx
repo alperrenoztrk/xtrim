@@ -1178,35 +1178,19 @@ const PhotoEditorScreen = () => {
         throw new Error(stickerResult.error || 'Sticker could not be created');
       }
 
-      // Add iPhone-style white outline
-      const stickerWithOutline = await addStickerOutline(stickerResult.imageUrl);
-
       saveState();
-      setImageUrl(stickerWithOutline);
-      setSelectedImageUrls([stickerWithOutline]);
+      setImageUrl(stickerResult.imageUrl);
+      setSelectedImageUrls([stickerResult.imageUrl]);
 
-      // Try clipboard first, then share, then save
-      const stickerResponse = await fetch(stickerWithOutline);
-      const stickerBlob = await stickerResponse.blob();
-
-      try {
-        await copyStickerToClipboard(stickerBlob);
-        toast.success('Sticker created & copied!', {
-          description: 'Tap Share or Save below to export.',
-          action: {
-            label: 'Save',
-            onClick: () => saveStickerImage(stickerWithOutline),
-          },
-        });
-      } catch {
-        const shared = await shareStickerImage(stickerWithOutline).catch(() => false);
-        if (!shared) {
-          saveStickerImage(stickerWithOutline);
-          toast.success('Sticker created & saved!');
-        } else {
-          toast.success('Sticker created & shared!');
-        }
-      }
+      // Download the isolated subject directly
+      saveStickerImage(stickerResult.imageUrl);
+      toast.success('Object isolated & saved!', {
+        description: 'Background removed, PNG downloaded.',
+        action: {
+          label: 'Share',
+          onClick: () => shareStickerImage(stickerResult.imageUrl!).catch(() => {}),
+        },
+      });
     } catch (error) {
       console.error('Sticker creation error:', error);
       const message = error instanceof Error ? error.message : 'Sticker could not be created';
