@@ -1159,35 +1159,35 @@ const PhotoEditorScreen = () => {
 
   const handleCreateSticker = async () => {
     if (!imageUrl) {
-      toast.error('Please select a photo first');
+      toast.error('Önce bir fotoğraf seçin');
       return;
     }
 
     setIsCreatingSticker(true);
 
     try {
-      const editedImageBlob = await createEditedImageBlob();
-      if (!editedImageBlob) {
-        return;
-      }
+      // Sticker should work with a single tap using the original selected image.
+      // If imageUrl is not already base64, convert it so the AI API can process it reliably.
+      const stickerSource = imageUrl.startsWith('data:')
+        ? imageUrl
+        : await (async () => {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            return blobToDataUrl(blob);
+          })();
 
-      const editedImageBase64 = await blobToDataUrl(editedImageBlob);
-      const stickerResult = await AIToolsService.removeBackground(editedImageBase64);
+      const stickerResult = await AIToolsService.removeBackground(stickerSource);
 
       if (!stickerResult.success || !stickerResult.imageUrl) {
         throw new Error(stickerResult.error || 'Sticker could not be created');
       }
 
-      saveState();
-      setImageUrl(stickerResult.imageUrl);
-      setSelectedImageUrls([stickerResult.imageUrl]);
-
-      // Download the isolated subject directly
+      // Give the user the ready sticker directly.
       saveStickerImage(stickerResult.imageUrl);
-      toast.success('Object isolated & saved!', {
-        description: 'Background removed, PNG downloaded.',
+      toast.success('Sticker hazır!', {
+        description: 'Arka plan kaldırıldı ve PNG indirildi.',
         action: {
-          label: 'Share',
+          label: 'Paylaş',
           onClick: () => shareStickerImage(stickerResult.imageUrl!).catch(() => {}),
         },
       });
