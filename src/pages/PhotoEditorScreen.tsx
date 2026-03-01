@@ -1054,6 +1054,75 @@ const PhotoEditorScreen = () => {
     return pngBlob;
   };
 
+  const addStickerOutline = async (imageDataUrl: string, outlineWidth = 8): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const pad = outlineWidth * 2;
+        const w = img.width + pad * 2;
+        const h = img.height + pad * 2;
+
+        // Draw original on padded canvas to get alpha
+        const srcCanvas = document.createElement('canvas');
+        srcCanvas.width = w;
+        srcCanvas.height = h;
+        const srcCtx = srcCanvas.getContext('2d')!;
+        srcCtx.drawImage(img, pad, pad);
+
+        const srcData = srcCtx.getImageData(0, 0, w, h);
+        const alpha = new Uint8Array(w * h);
+        for (let i = 0; i < alpha.length; i++) {
+          alpha[i] = srcData.data[i * 4 + 3] > 20 ? 255 : 0;
+        }
+
+        // Dilate alpha channel
+        const dilated = new Uint8Array(w * h);
+        const r = outlineWidth;
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            let found = false;
+            for (let dy = -r; dy <= r && !found; dy++) {
+              for (let dx = -r; dx <= r && !found; dx++) {
+                if (dx * dx + dy * dy > r * r) continue;
+                const nx = x + dx, ny = y + dy;
+                if (nx >= 0 && nx < w && ny >= 0 && ny < h && alpha[ny * w + nx] === 255) {
+                  found = true;
+                }
+              }
+            }
+            dilated[y * w + x] = found ? 255 : 0;
+          }
+        }
+
+        // Compose: white outline + original on top
+        const outCanvas = document.createElement('canvas');
+        outCanvas.width = w;
+        outCanvas.height = h;
+        const outCtx = outCanvas.getContext('2d')!;
+
+        // Draw white fill on dilated area
+        const outData = outCtx.createImageData(w, h);
+        for (let i = 0; i < dilated.length; i++) {
+          if (dilated[i] === 255) {
+            outData.data[i * 4] = 255;
+            outData.data[i * 4 + 1] = 255;
+            outData.data[i * 4 + 2] = 255;
+            outData.data[i * 4 + 3] = 255;
+          }
+        }
+        outCtx.putImageData(outData, 0, 0);
+
+        // Draw original subject on top
+        outCtx.drawImage(img, pad, pad);
+
+        resolve(outCanvas.toDataURL('image/png'));
+      };
+      img.onerror = () => reject(new Error('Failed to load sticker image'));
+      img.src = imageDataUrl;
+    });
+  };
+
   const copyStickerToClipboard = async (blob: Blob) => {
     if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
       throw new Error('Clipboard is not supported on this device.');
@@ -1065,6 +1134,27 @@ const PhotoEditorScreen = () => {
         'image/png': pngSticker,
       }),
     ]);
+  };
+
+  const shareStickerImage = async (dataUrl: string) => {
+    const response = await fetch(dataUrl);
+    const blob = await response.blob();
+    const file = new File([blob], 'sticker.png', { type: 'image/png' });
+
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Sticker' });
+      return true;
+    }
+    return false;
+  };
+
+  const saveStickerImage = (dataUrl: string) => {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = 'sticker.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleCreateSticker = async () => {
@@ -1088,18 +1178,34 @@ const PhotoEditorScreen = () => {
         throw new Error(stickerResult.error || 'Sticker could not be created');
       }
 
-      saveState();
-      setImageUrl(stickerResult.imageUrl);
-      setSelectedImageUrls([stickerResult.imageUrl]);
+      // Add iPhone-style white outline
+      const stickerWithOutline = await addStickerOutline(stickerResult.imageUrl);
 
-      const stickerResponse = await fetch(stickerResult.imageUrl);
+      saveState();
+      setImageUrl(stickerWithOutline);
+      setSelectedImageUrls([stickerWithOutline]);
+
+      // Try clipboard first, then share, then save
+      const stickerResponse = await fetch(stickerWithOutline);
       const stickerBlob = await stickerResponse.blob();
 
       try {
         await copyStickerToClipboard(stickerBlob);
-        toast.success('Sticker created and copied to clipboard');
+        toast.success('Sticker created & copied!', {
+          description: 'Tap Share or Save below to export.',
+          action: {
+            label: 'Save',
+            onClick: () => saveStickerImage(stickerWithOutline),
+          },
+        });
       } catch {
-        toast.success('Sticker created');
+        const shared = await shareStickerImage(stickerWithOutline).catch(() => false);
+        if (!shared) {
+          saveStickerImage(stickerWithOutline);
+          toast.success('Sticker created & saved!');
+        } else {
+          toast.success('Sticker created & shared!');
+        }
       }
     } catch (error) {
       console.error('Sticker creation error:', error);
