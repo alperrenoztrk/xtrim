@@ -63,6 +63,7 @@ import BackgroundRemover from '@/components/BackgroundRemover';
 import { AnimatedFilterOverlay, type AnimatedFilterType } from '@/components/AnimatedFilterOverlay';
 import { AIToolsService } from '@/services/AIToolsService';
 import { nativeExportService } from '@/services/NativeExportService';
+import { MediaService } from '@/services/MediaService';
 import samplePhoto from '@/assets/sample-photo.jpg';
 
 
@@ -443,16 +444,44 @@ const PhotoEditorScreen = () => {
       return;
     }
 
-    const imageUrls = files.map((file) => URL.createObjectURL(file));
+    const resolvedImageUrls: string[] = [];
+    let skippedCount = 0;
+
+    for (const file of files) {
+      if (!MediaService.isImageFile(file)) {
+        skippedCount += 1;
+        continue;
+      }
+
+      try {
+        const mediaItem = await MediaService.createMediaItem(file);
+        const resolvedUri = await MediaService.resolveMediaUri(mediaItem.uri);
+        resolvedImageUrls.push(resolvedUri);
+      } catch {
+        skippedCount += 1;
+      }
+    }
+
+    if (resolvedImageUrls.length === 0) {
+      toast.error('No valid photo selected');
+      setOpenCollageAfterSelection(false);
+      e.target.value = '';
+      return;
+    }
+
+    if (skippedCount > 0) {
+      toast.warning(`${skippedCount} unsupported photo(s) were skipped`);
+    }
+
     const existingImages = selectedImageUrls.length > 0
       ? selectedImageUrls
       : imageUrl
         ? [imageUrl]
         : [];
-    const mergedImages = Array.from(new Set([...existingImages, ...imageUrls]));
+    const mergedImages = Array.from(new Set([...existingImages, ...resolvedImageUrls]));
 
     setSelectedImageUrls(mergedImages);
-    setImageUrl(imageUrls[0]);
+    setImageUrl(resolvedImageUrls[0]);
     setAdjustments(defaultAdjustments);
     setSelectedFilter('none');
     setAnimatedFilter('none');
@@ -2013,7 +2042,7 @@ const PhotoEditorScreen = () => {
                 } else {
                   toast.error(saveResult.error || 'Photo could not be saved');
                 }
-              } catch (error) {
+              } catch {
                 console.error('Background remover save error:', error);
                 toast.error('Photo could not be saved');
               }
