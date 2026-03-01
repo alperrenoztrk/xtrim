@@ -120,11 +120,10 @@ const ExportScreen = () => {
   const requestedMode = searchParams.get('mode');
   const requestedAction = requestedMode === 'share'
     ? 'share'
-    : requestedMode === 'download'
-      ? 'download'
-      : null;
+    : null;
   const pendingActionRef = useRef<'share' | 'download' | null>(requestedAction);
   const autoExportStartedRef = useRef(false);
+  const rawDownloadStartedRef = useRef(false);
 
   const getDefaultExportSettings = (): ExportSettings => {
     const fallback: ExportSettings = {
@@ -420,6 +419,47 @@ const ExportScreen = () => {
     }
   };
 
+  const handleDirectDownload = async () => {
+    if (!project) return;
+
+    const firstVideo = project.mediaItems.find((item) => item.type === 'video');
+    if (!firstVideo) {
+      toast.error('Download failed: no source video found in this project');
+      return;
+    }
+
+    setExportStatus('preparing');
+    setProgress(15);
+    setProgressMessage('Preparing original video...');
+
+    try {
+      const resolvedUri = await MediaService.resolveMediaUri(firstVideo.uri);
+      const response = await fetch(resolvedUri);
+      if (!response.ok) {
+        throw new Error('Could not read original video file');
+      }
+
+      const originalBlob = await response.blob();
+      const fallbackName = `original-${project.name || 'video'}.mp4`;
+      const rawFileName = firstVideo.name?.trim() || fallbackName;
+      const result = await nativeExportService.saveVideoToDevice(originalBlob, rawFileName);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Download failed');
+      }
+
+      setExportStatus('complete');
+      setProgress(100);
+      setProgressMessage('Original file downloaded');
+      toast.success('Original video downloaded without FFmpeg');
+    } catch (error) {
+      console.error('Raw download error:', error);
+      setExportStatus('error');
+      setProgressMessage(error instanceof Error ? error.message : 'Download failed');
+      toast.error(error instanceof Error ? error.message : 'Download failed');
+    }
+  };
+
   useEffect(() => {
     if (!project || !requestedAction || autoExportStartedRef.current || exportStatus !== 'idle') return;
 
@@ -443,7 +483,14 @@ const ExportScreen = () => {
   }, [project, requestedAction, exportStatus]);
 
   useEffect(() => {
-    if (!requestedMode || requestedAction) return;
+    if (!project || requestedMode !== 'download' || rawDownloadStartedRef.current || exportStatus !== 'idle') return;
+
+    rawDownloadStartedRef.current = true;
+    void handleDirectDownload();
+  }, [project, requestedMode, exportStatus]);
+
+  useEffect(() => {
+    if (!requestedMode || requestedAction || requestedMode === 'download') return;
 
     toast.info('A non-FFmpeg shortcut like "share the raw file directly" is not defined on this screen.');
   }, [requestedMode, requestedAction]);
