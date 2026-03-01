@@ -36,6 +36,8 @@ import {
   Maximize,
   Minimize,
   Eye,
+  Camera,
+  Video,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AutoCutPanel } from '@/components/AutoCutPanel';
@@ -384,6 +386,8 @@ const VideoEditorScreen = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const capturePhotoInputRef = useRef<HTMLInputElement>(null);
+  const captureVideoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineScrubRef = useRef<HTMLDivElement>(null);
@@ -2220,6 +2224,28 @@ const VideoEditorScreen = () => {
           e.target.value = '';
         }}
       />
+      <input
+        ref={capturePhotoInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          handleAddMedia(e.target.files);
+          e.target.value = '';
+        }}
+      />
+      <input
+        ref={captureVideoInputRef}
+        type="file"
+        accept="video/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          handleAddMedia(e.target.files);
+          e.target.value = '';
+        }}
+      />
 
       {/* Header */}
       {!isFullscreen && (
@@ -2378,13 +2404,31 @@ const VideoEditorScreen = () => {
           <div className="text-muted-foreground text-sm">Select a clip for preview</div>
         ) : (
           <div className="flex flex-col items-center gap-4 text-center p-8">
-            <Button
-              variant="gradient"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isMediaImporting}
-            >
-              {isMediaImporting ? `Loading... %${mediaImportProgress}` : 'Add Media'}
-            </Button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button
+                variant="gradient"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isMediaImporting}
+              >
+                {isMediaImporting ? `Loading... %${mediaImportProgress}` : 'Add Media'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => capturePhotoInputRef.current?.click()}
+                disabled={isMediaImporting}
+              >
+                <Camera className="w-4 h-4" />
+                Take Photo
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => captureVideoInputRef.current?.click()}
+                disabled={isMediaImporting}
+              >
+                <Video className="w-4 h-4" />
+                Record Video
+              </Button>
+            </div>
             {isMediaImporting && (
               <div className="w-full max-w-sm rounded-lg border border-border bg-card/90 p-3 space-y-2">
                 <div className="flex items-center justify-between gap-2 text-xs">

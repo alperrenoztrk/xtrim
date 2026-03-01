@@ -18,6 +18,7 @@ import {
   Check,
   X,
   ImagePlus,
+  Camera,
   Eraser,
   Expand,
   Type,
@@ -213,6 +214,7 @@ const PhotoEditorScreen = () => {
   const [searchParams] = useSearchParams();
   const projectName = searchParams.get('projectName')?.trim() || 'Photo Editor';
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const capturePhotoInputRef = useRef<HTMLInputElement>(null);
   const previewStageRef = useRef<HTMLDivElement>(null);
   const previewImageRef = useRef<HTMLImageElement>(null);
   const cornerRadiusInteractionRef = useRef(false);
@@ -1230,6 +1232,14 @@ const PhotoEditorScreen = () => {
         className="hidden"
         onChange={handleImageSelect}
       />
+      <input
+        ref={capturePhotoInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleImageSelect}
+      />
 
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
@@ -1401,10 +1411,14 @@ const PhotoEditorScreen = () => {
             )}
           </motion.div>
         ) : (
-          <div className="flex items-center justify-center">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <Button variant="gradient" onClick={() => fileInputRef.current?.click()}>
               <ImagePlus className="w-4 h-4" />
               Select a photo
+            </Button>
+            <Button variant="outline" onClick={() => capturePhotoInputRef.current?.click()}>
+              <Camera className="w-4 h-4" />
+              Take photo
             </Button>
           </div>
         )}
