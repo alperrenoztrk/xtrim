@@ -118,12 +118,10 @@ const ExportScreen = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const [searchParams] = useSearchParams();
   const requestedMode = searchParams.get('mode');
-  const requestedAction = requestedMode === 'share'
-    ? 'share'
-    : null;
-  const pendingActionRef = useRef<'share' | 'download' | null>(requestedAction);
+  const pendingActionRef = useRef<'share' | 'download' | null>(null);
   const autoExportStartedRef = useRef(false);
   const rawDownloadStartedRef = useRef(false);
+  const rawShareStartedRef = useRef(false);
 
   const getDefaultExportSettings = (): ExportSettings => {
     const fallback: ExportSettings = {
@@ -460,11 +458,61 @@ const ExportScreen = () => {
     }
   };
 
+  const handleDirectShare = async () => {
+    if (!project) return;
+
+    const firstVideo = project.mediaItems.find((item) => item.type === 'video');
+    if (!firstVideo) {
+      toast.error('Share failed: no source video found in this project');
+      return;
+    }
+
+    setExportStatus('preparing');
+    setProgress(15);
+    setProgressMessage('Preparing original video...');
+
+    try {
+      const resolvedUri = await MediaService.resolveMediaUri(firstVideo.uri);
+      const response = await fetch(resolvedUri);
+      if (!response.ok) {
+        throw new Error('Could not read original video file');
+      }
+
+      const originalBlob = await response.blob();
+      const fallbackName = `original-${project.name || 'video'}.mp4`;
+      const rawFileName = firstVideo.name?.trim() || fallbackName;
+
+      const success = await nativeExportService.shareVideoBlob(originalBlob, rawFileName);
+      if (!success) {
+        throw new Error('Sharing is not supported on this device');
+      }
+
+      setExportStatus('complete');
+      setProgress(100);
+      setProgressMessage('Original file shared');
+      toast.success('Original video shared without FFmpeg');
+    } catch (error) {
+      console.error('Raw share error:', error);
+      setExportStatus('error');
+      setProgressMessage(error instanceof Error ? error.message : 'Share failed');
+      toast.error(error instanceof Error ? error.message : 'Share failed');
+    }
+  };
+
   useEffect(() => {
-    if (!project || !requestedAction || autoExportStartedRef.current || exportStatus !== 'idle') return;
+    if (
+      !project
+      || !requestedMode
+      || requestedMode === 'download'
+      || requestedMode === 'share'
+      || autoExportStartedRef.current
+      || exportStatus !== 'idle'
+    ) {
+      return;
+    }
 
     autoExportStartedRef.current = true;
-    pendingActionRef.current = requestedAction;
+    pendingActionRef.current = null;
 
     const autoSettings: ExportSettings = {
       ...defaultExportSettings,
@@ -480,7 +528,7 @@ const ExportScreen = () => {
     setRemoveAudio(autoSettings.removeAudio ?? false);
 
     void handleStartExport(autoSettings);
-  }, [project, requestedAction, exportStatus]);
+  }, [project, requestedMode, exportStatus]);
 
   useEffect(() => {
     if (!project || requestedMode !== 'download' || rawDownloadStartedRef.current || exportStatus !== 'idle') return;
@@ -490,10 +538,11 @@ const ExportScreen = () => {
   }, [project, requestedMode, exportStatus]);
 
   useEffect(() => {
-    if (!requestedMode || requestedAction || requestedMode === 'download') return;
+    if (!project || requestedMode !== 'share' || rawShareStartedRef.current || exportStatus !== 'idle') return;
 
-    toast.info('A non-FFmpeg shortcut like "share the raw file directly" is not defined on this screen.');
-  }, [requestedMode, requestedAction]);
+    rawShareStartedRef.current = true;
+    void handleDirectShare();
+  }, [project, requestedMode, exportStatus]);
 
   if (!project) {
     return (
