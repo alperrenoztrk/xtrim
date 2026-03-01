@@ -60,11 +60,25 @@ export const AITranscriptPanel = ({ isOpen, onClose, videoUrl, videoName }: AITr
         throw new Error('Your AI usage quota has been reached. Please upgrade your plan or wait until tomorrow.');
       }
 
+      // Convert blob URL to base64 so the edge function can process it
+      let videoPayload: { videoUrl?: string; videoBase64?: string; includeEmptySeconds: boolean } = { includeEmptySeconds };
+
+      if (videoUrl.startsWith('blob:')) {
+        const response = await fetch(videoUrl);
+        const blob = await response.blob();
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        videoPayload.videoBase64 = base64;
+      } else {
+        videoPayload.videoUrl = videoUrl;
+      }
+
       const { data, error } = await supabase.functions.invoke('ai-transcript', {
-        body: {
-          videoUrl,
-          includeEmptySeconds,
-        },
+        body: videoPayload,
       });
 
       if (error) {
